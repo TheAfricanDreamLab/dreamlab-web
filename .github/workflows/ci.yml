@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm build
+
+  # Builds the image; on main also publishes ghcr.io/<org>/dreamlab-web:sha-<short> and :main.
+  docker:
+    runs-on: ubuntu-latest
+    needs: check
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - if: env.PUBLISH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: names
+        run: |
+          image="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/dreamlab-web"
+          echo "tags=${image}:sha-${GITHUB_SHA::7},${image}:main" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}
+          push: ${{ env.PUBLISH == 'true' }}
+          tags: ${{ env.PUBLISH == 'true' && steps.names.outputs.tags || 'dreamlab-web:ci' }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Roll the new image out to staging (needs INFRA_DISPATCH_TOKEN; skipped when absent).
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - env:
+          TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+        run: |
+          [ -n "$TOKEN" ] || { echo "No INFRA_DISPATCH_TOKEN; deploy from dreamlab-infra by hand."; exit 0; }
+          payload=$(jq -nc --arg tag "sha-${GITHUB_SHA::7}" '{event_type: "deploy", client_payload: {services: "web", tag: $tag}}')
+          curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository_owner }}/dreamlab-infra/dispatches" -d "$payload"

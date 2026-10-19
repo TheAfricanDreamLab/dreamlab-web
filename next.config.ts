@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   // The landing page is static on its own; Cache Components can come back per route later.
   cacheComponents: false,
   poweredByHeader: false,
+  // A self-contained server for the Docker image (Dockerfile).
+  output: 'standalone',
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
