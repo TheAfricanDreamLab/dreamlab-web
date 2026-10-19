@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // A self-contained server for the Docker image (Dockerfile).
   output: 'standalone',
+  // Platform admins upload course files (JSON) through a Server Action; allow up to 4 MB plus overhead.
+  experimental: { serverActions: { bodySizeLimit: '5mb' } },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

@@ -41,6 +41,9 @@ export default async function LandingPage() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
         <Brand />
         <nav className="flex items-center gap-2 text-[14px] font-semibold sm:gap-6">
+          <Link href="/courses" className="px-2 text-body hover:text-ink">
+            Courses
+          </Link>
           <a href="#ways-in" className="hidden text-body hover:text-ink sm:inline">
             Who it’s for
           </a>
@@ -81,11 +84,16 @@ export default async function LandingPage() {
               <ButtonLink href="/signup" className="sm:w-auto sm:px-7">
                 Start learning, it’s free
               </ButtonLink>
-              <ButtonLink href="/orgs/new" variant="secondary" className="sm:w-auto sm:px-7">
-                Bring your organisation
+              <ButtonLink href="/courses" variant="secondary" className="sm:w-auto sm:px-7">
+                Explore courses
               </ButtonLink>
             </div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">Sign up with email, phone or Google</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+              Sign up with email, phone or Google ·{' '}
+              <Link href="/orgs/new" className="text-link hover:underline">
+                Bring your organisation
+              </Link>
+            </p>
           </div>
 
           <div className="relative animate-rise [animation-delay:120ms]">
@@ -206,6 +214,9 @@ export default async function LandingPage() {
       <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <span>© {new Date().getFullYear()} The African Dream Network</span>
         <nav className="flex gap-5">
+          <Link href="/courses" className="hover:text-ink">
+            Courses
+          </Link>
           <Link href="/terms" className="hover:text-ink">
             Terms
           </Link>

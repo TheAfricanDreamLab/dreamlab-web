@@ -1,8 +1,9 @@
-import type { JoinableOrganization } from '@dreamlab/contracts';
+import type { EnrollmentSummary, JoinableOrganization } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { switchOrg } from '@/app/actions/auth';
 import { joinOrganisation } from '@/app/actions/security';
+import { EnrollmentCard } from '@/components/learning/enrollment-card';
 import { Badge, ButtonLink, Card, Eyebrow, LogoMark, Notice } from '@/components/ui/primitives';
 import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -18,7 +19,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const firstName = me.user.fullName.split(' ')[0];
   const spaces = me.memberships.filter((m) => m.status === 'active' && m.org.status !== 'suspended');
   const waiting = me.memberships.filter((m) => m.status === 'requested');
-  const joinable = await api<{ items: JoinableOrganization[] }>('GET', '/v1/me/joinable-orgs');
+  const [joinable, learning] = await Promise.all([
+    api<{ items: JoinableOrganization[] }>('GET', '/v1/me/joinable-orgs'),
+    api<{ items: EnrollmentSummary[] }>('GET', '/v1/learning/enrollments'),
+  ]);
+  const enrolments = learning.ok ? learning.data.items : [];
+  const continuing = enrolments.filter((e) => e.status !== 'completed').slice(0, 3);
 
   return (
     <div className="space-y-8">
@@ -36,7 +42,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <p className="max-w-2xl text-[15px] text-muted">
           {active
             ? `You’re working in ${active.org.name} as ${active.roles.map((r) => ROLE_LABELS[r.roleKey] ?? r.roleKey).join(', ') || 'a member'}.`
-            : 'You’re learning on your own. Courses arrive here soon. You can also join or set up an organisation.'}
+            : 'You’re learning on your own. Pick a course and start, or join or set up an organisation.'}
         </p>
       </section>
 
@@ -45,6 +51,33 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <b>{active.org.name}</b> is in review. You can organise teams and invite co-admins now; learners can join once it’s approved.
         </Notice>
       )}
+
+      {continuing.length > 0 && (
+        <section className="space-y-3" aria-labelledby="continue-learning">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="continue-learning" className="text-[20px] font-bold">
+              Continue learning
+            </h2>
+            <Link href="/app/learning" className="text-[13.5px] font-semibold text-link hover:underline">
+              All my courses →
+            </Link>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {continuing.map((e) => (
+              <EnrollmentCard key={e.id} e={e} compact />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] bg-forest px-5 py-4 text-white">
+        <p className="text-[14.5px]">
+          <span className="font-display font-bold">Explore courses.</span> <span className="text-white/75">Free, practical, and made for your phone.</span>
+        </p>
+        <Link href="/courses" className="rounded-[10px] bg-gold px-4 py-2 text-[14px] font-semibold text-forest hover:bg-gold/90">
+          Explore courses →
+        </Link>
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <Card className="space-y-5 p-6">
@@ -63,12 +96,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                     text: 'Verify your email domain, then add Microsoft, Google Workspace, Okta or any SAML/OIDC sign-on.',
                     href: can(me, 'org.security.manage') ? '/app/settings' : undefined,
                   },
-                  { done: false, title: 'Assign learning', text: 'Courses and programmes arrive in the next release.' },
+                  { done: false, title: 'Explore learning', text: 'Browse the course catalogue. Assigning courses to your people comes next.', href: '/courses' },
                 ]
               : [
                   { done: true, title: 'Create your account', text: 'Done. Welcome!' },
                   { done: false, title: 'Secure your account', text: 'Turn on two-step sign-in and check your devices.', href: '/app/account' },
-                  { done: false, title: 'Start a course', text: 'The course catalogue opens in the next release.' },
+                  {
+                    done: enrolments.length > 0,
+                    title: 'Start a course',
+                    text: enrolments.length > 0 ? 'Done. Keep going a little each day.' : 'Problem Solving is a good first one. It’s free.',
+                    href: enrolments.length > 0 ? '/app/learning' : '/courses',
+                  },
                 ]
             ).map((s) => (
               <li key={s.title} className="flex items-start gap-3 rounded-[var(--radius-field)] bg-surface px-4 py-3 ring-1 ring-line">
