@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { cx } from '@/components/ui/primitives';
 
-export function NavLink({ href, children }: { href: string; children: ReactNode }) {
+export function NavLink({ href, children, exact = false }: { href: string; children: ReactNode; exact?: boolean }) {
   const path = usePathname();
-  const active = href === '/app' ? path === '/app' : path.startsWith(href);
+  const active = exact || href === '/app' ? path === href : path === href || path.startsWith(`${href}/`);
   return (
     <Link
       href={href}

@@ -11,7 +11,8 @@ const REFRESH_COOKIE = 'dl_rt';
 const REFRESH_BEFORE_SECONDS = 60;
 const GATEWAY_URL = process.env.GATEWAY_URL ?? 'http://localhost:3000';
 
-const SIGNED_IN_ONLY = ['/app', '/orgs/new'];
+// /courses and /programs are public; the course player needs an account.
+const SIGNED_IN_ONLY = ['/app', '/orgs/new', '/learn'];
 const SIGNED_OUT_ONLY = ['/login', '/signup'];
 
 function expiresAt(token: string | undefined): number {

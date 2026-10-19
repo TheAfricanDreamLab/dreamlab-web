@@ -211,7 +211,8 @@ test.describe('organisations', () => {
     const admin = await adminContext.newPage();
     const { email, password } = adminCredentials();
     await signedIn(admin, email, password);
-    await admin.getByRole('link', { name: 'Organisations' }).click();
+    await admin.getByRole('link', { name: 'Platform admin' }).click();
+    await admin.getByRole('navigation', { name: 'Platform admin' }).getByRole('link', { name: 'Organisations' }).click();
     const row = admin.locator('li').filter({ hasText: school });
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: 'Approve' }).click();
