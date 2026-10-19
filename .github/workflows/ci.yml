@@ -82,8 +82,12 @@ jobs:
         env:
           RG: ${{ vars.AZURE_RESOURCE_GROUP }}
           PULL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Runs finish out of order; never let an older commit replace a newer one on staging.
+          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+          if [ "$head" != "$GITHUB_SHA" ]; then echo "main has moved on to ${head::7}; skipping this deploy."; exit 0; fi
           tag="sha-${GITHUB_SHA::7}"
           for svc in web; do
             vm=$svc; [ "$svc" = init-db ] && vm=iam
