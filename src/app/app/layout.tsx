@@ -12,6 +12,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const nav = [
     { href: '/app', label: 'Home', show: true },
     { href: '/app/members', label: 'People', show: Boolean(active) && can(me, 'org.members.read') },
+    { href: '/app/roles', label: 'Roles', show: Boolean(active) && can(me, 'org.roles.manage') },
+    { href: '/app/settings', label: 'Sign-in & security', show: Boolean(active) && can(me, 'org.security.manage') },
     { href: '/app/admin/organisations', label: 'Organisations', show: me.platformAdmin },
     { href: '/app/account', label: 'Account', show: true },
   ].filter((n) => n.show);

@@ -11,6 +11,8 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'org.roles.revoke': 'Take roles away',
   'org.units.manage': 'Organise departments and teams',
   'org.groups.manage': 'Manage groups',
+  'org.security.manage': 'Manage sign-in, domains and security',
+  'org.roles.manage': 'Create and change custom roles',
   'org.reports.read': 'Read progress reports',
   'learning.assign': 'Assign learning to people',
   'course.content.edit': 'Build and edit course content',
@@ -20,6 +22,14 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'submission.grade': 'Grade submissions',
   'mentorship.conduct': 'Mentor learners',
 };
+
+/** Permissions a custom role can include, grouped for the role editor. Platform-wide ones never appear. */
+export const PERMISSION_GROUPS: { title: string; permissions: string[] }[] = [
+  { title: 'People', permissions: ['org.members.read', 'org.members.invite', 'org.members.update', 'org.members.remove', 'org.roles.assign', 'org.roles.revoke'] },
+  { title: 'Structure', permissions: ['org.units.manage', 'org.groups.manage'] },
+  { title: 'Learning', permissions: ['learning.assign', 'org.reports.read', 'course.content.edit', 'course.publish', 'course.analytics.read', 'course_run.teach', 'submission.grade', 'mentorship.conduct'] },
+  { title: 'Organisation', permissions: ['org.settings.update', 'org.security.manage', 'org.roles.manage'] },
+];
 
 /** Roles an org admin can hand out from the members screen, simplest first. */
 export const INVITABLE_ROLES: { key: string; label: string; hint: string }[] = [

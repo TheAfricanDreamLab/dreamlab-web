@@ -8,10 +8,13 @@ import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { INVITABLE_ROLES } from '@/lib/labels';
 
-export function InviteForm({ orgPending, canAssignRoles }: { orgPending: boolean; canAssignRoles: boolean }) {
+type RoleOption = { key: string; label: string; hint: string };
+
+export function InviteForm({ orgPending, canAssignRoles, customRoles = [] }: { orgPending: boolean; canAssignRoles: boolean; customRoles?: RoleOption[] }) {
   const [state, action] = useActionState(inviteMember, {} as FormState);
   // While in review only co-admins can be invited; without role rights only learners.
-  const roles = orgPending ? INVITABLE_ROLES.filter((r) => r.key === 'org_admin') : canAssignRoles ? INVITABLE_ROLES : INVITABLE_ROLES.filter((r) => r.key === 'learner');
+  const all = [...INVITABLE_ROLES, ...customRoles];
+  const roles = orgPending ? INVITABLE_ROLES.filter((r) => r.key === 'org_admin') : canAssignRoles ? all : INVITABLE_ROLES.filter((r) => r.key === 'learner');
   return (
     <form action={action} className="space-y-4">
       <TextInput label="Email or phone" name="identifier" required placeholder="ada@company.com or 0803 000 0000" defaultValue={state.values?.identifier} />
@@ -36,9 +39,9 @@ export function InviteForm({ orgPending, canAssignRoles }: { orgPending: boolean
   );
 }
 
-export function AddRoleForm({ membershipId, has }: { membershipId: string; has: string[] }) {
+export function AddRoleForm({ membershipId, has, customRoles = [] }: { membershipId: string; has: string[]; customRoles?: RoleOption[] }) {
   const [state, action] = useActionState(assignRole, {} as FormState);
-  const options = INVITABLE_ROLES.filter((r) => !has.includes(r.key));
+  const options = [...INVITABLE_ROLES, ...customRoles].filter((r) => !has.includes(r.key));
   if (options.length === 0) return null;
   return (
     <form action={action} className="flex items-center gap-2">

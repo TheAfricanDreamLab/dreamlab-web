@@ -11,9 +11,10 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@dreamlab/contracts": "github:TheAfricanDreamLab/dreamlab-contracts#v0.5.0",
+    "@dreamlab/contracts": "github:TheAfricanDreamLab/dreamlab-contracts#51b592992fb6fe579ff7e30bc18ab0826ae7cfbb",
     "@ts-rest/core": "3.52.1",
     "next": "16.4.2",
+    "qrcode": "1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "0.0.1",
@@ -23,6 +24,7 @@
     "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
