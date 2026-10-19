@@ -19,6 +19,8 @@ export function AssignmentForm({
 }) {
   const [state, action] = useActionState(submitAssignment, {} as SubmissionState);
   const [text, setText] = useState(state.values?.text ?? previous?.text ?? assignment.template ?? '');
+  // Controlled, so a failed submission (React resets the form) keeps the learner's ticks.
+  const [ticked, setTicked] = useState<Record<string, boolean>>(previous?.selfAssessment ?? {});
   const words = wordCount(text);
   const min = assignment.minWords ?? 0;
   const enough = words >= Math.max(1, min);
@@ -33,7 +35,14 @@ export function AssignmentForm({
         <p className="clear-both text-[13px] text-muted">Tick each one you believe you’ve met. Faculty use the same rubric.</p>
         {assignment.rubric.map((r) => (
           <label key={r.id} className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-field)] bg-surface px-4 py-3 ring-1 ring-line has-[:checked]:ring-primary">
-            <input type="checkbox" name="criteria" value={r.id} defaultChecked={previous?.selfAssessment[r.id] ?? false} className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-primary)]" />
+            <input
+              type="checkbox"
+              name="criteria"
+              value={r.id}
+              checked={ticked[r.id] ?? false}
+              onChange={(e) => setTicked((t) => ({ ...t, [r.id]: e.target.checked }))}
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-primary)]"
+            />
             <span>
               <span className="block text-[14.5px] font-semibold text-ink">{r.criterion}</span>
               <span className="block text-[13px] leading-relaxed text-body">{r.description}</span>

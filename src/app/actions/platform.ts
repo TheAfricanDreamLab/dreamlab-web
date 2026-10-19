@@ -2,6 +2,7 @@
 
 import type { PlatformUserDetail } from '@dreamlab/contracts';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
 import { type FormState, str } from '@/lib/forms';
 import { api } from '@/lib/gateway';
@@ -11,9 +12,11 @@ import { type AdminCourse, type ImportResult, isUuid } from '@/lib/learning';
 export async function setCourseFlag(fd: FormData): Promise<void> {
   const courseId = str(fd, 'courseId');
   const flag = str(fd, 'flag');
-  if (!isUuid(courseId) || (flag !== 'listed' && flag !== 'featured')) return;
-  await api<AdminCourse>('PATCH', `/v1/catalog/admin/courses/${courseId}`, { [flag]: str(fd, 'value') === 'true' });
+  if (!isUuid(courseId) || (flag !== 'listed' && flag !== 'featured')) redirect('/app/admin/catalog?error=flag_invalid');
+  const res = await api<AdminCourse>('PATCH', `/v1/catalog/admin/courses/${courseId}`, { [flag]: str(fd, 'value') === 'true' });
   revalidatePath('/app/admin/catalog');
+  // Only a known-safe error code travels in the URL; the page turns it into words.
+  if (!res.ok) redirect(`/app/admin/catalog?error=${/^[a-z_]{1,64}$/.test(res.error.code ?? '') ? res.error.code : 'flag_update_failed'}`);
 }
 
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024;

@@ -64,14 +64,14 @@ export function LessonPlayer({
       if (target > furthest) {
         setFurthest(target);
         // Saving the place is best effort: a dropped connection should not stop the learner.
-        void saveProgress(enrollmentId, itemId, target);
+        saveProgress(enrollmentId, itemId, target).catch(() => undefined);
       }
       go(target);
       return;
     }
     setBusy(true);
     setError(null);
-    const res = await saveProgress(enrollmentId, itemId, last, true);
+    const res = await saveProgress(enrollmentId, itemId, last, true).catch(() => ({ ok: false as const, error: 'We couldn’t reach the server. Check your connection and try again.' }));
     if (!res.ok) {
       setBusy(false);
       setError(res.error);

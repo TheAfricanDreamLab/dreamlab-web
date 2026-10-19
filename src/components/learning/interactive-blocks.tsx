@@ -54,10 +54,16 @@ function useSubmit(onCheck: CheckFn) {
   const submit = async (response: BlockResponse) => {
     setPending(true);
     setError(null);
-    const err = await onCheck(response);
-    setError(err);
-    setPending(false);
-    return !err;
+    try {
+      const err = await onCheck(response);
+      setError(err);
+      return !err;
+    } catch {
+      setError('We couldn’t reach the server. Check your connection and try again.');
+      return false;
+    } finally {
+      setPending(false);
+    }
   };
   return { pending, error, submit };
 }

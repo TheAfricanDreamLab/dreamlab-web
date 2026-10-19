@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { setCourseFlag } from '@/app/actions/platform';
 import { ImportForm } from '@/components/admin/admin-forms';
 import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
-import { friendlyError } from '@/lib/errors';
+import { friendlyError, messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { type AdminCourse, shortDate } from '@/lib/learning';
 
@@ -30,8 +30,11 @@ function Toggle({ course, flag, on, label }: { course: AdminCourse; flag: 'liste
   );
 }
 
-export default async function CatalogAdminPage() {
+export default async function CatalogAdminPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const res = await api<{ items: AdminCourse[] }>('GET', '/v1/catalog/admin/courses');
+  const { error } = await searchParams;
+  const flagError =
+    error === 'flag_invalid' || error === 'flag_update_failed' ? 'That change didn’t save. Please try again.' : messageForCode(error);
 
   return (
     <div className="space-y-6">
@@ -40,6 +43,8 @@ export default async function CatalogAdminPage() {
         <h1 className="text-[30px] font-extrabold">Catalog</h1>
         <p className="text-[14.5px] text-muted">Every course on the platform. Hidden courses leave the catalogue but stay open to learners already enrolled.</p>
       </header>
+
+      {flagError && <Notice tone="error">{flagError}</Notice>}
 
       {!res.ok ? (
         <Notice tone="error">{friendlyError(res.error)}</Notice>

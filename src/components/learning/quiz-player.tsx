@@ -39,8 +39,9 @@ export function QuizPlayer({
   const submit = async () => {
     setPending(true);
     setError(null);
-    const res = await submitQuiz(enrollmentId, itemId, answers as Record<string, BlockResponse>);
-    setPending(false);
+    const res = await submitQuiz(enrollmentId, itemId, answers as Record<string, BlockResponse>)
+      .catch(() => ({ ok: false as const, error: 'We couldn’t reach the server. Check your connection and try again.' }))
+      .finally(() => setPending(false));
     if (!res.ok) return setError(res.error);
     setAttempt(res.data);
     window.scrollTo({ top: 0, behavior: 'smooth' });
