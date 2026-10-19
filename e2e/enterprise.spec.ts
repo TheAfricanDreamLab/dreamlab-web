@@ -132,7 +132,7 @@ test.describe('company sign-in and security', () => {
     // Test sign-on as the admin: away to the identity provider and straight back.
     idp.user = { sub: 'ngozi', email: founder, name: 'Ngozi Okafor' };
     await page.getByRole('button', { name: 'Test sign-on with my account' }).click();
-    await expect(page.getByText(`Sign-on works. Your identity provider signed in ${founder}.`)).toBeVisible();
+    await expect(page.getByText("Sign-on works: your identity provider signed you in.")).toBeVisible();
     await page.getByLabel(/Let people sign in with it/).check();
     await page.getByLabel(/Require it/).check();
     await page.getByRole('button', { name: 'Save sign-on settings' }).click();

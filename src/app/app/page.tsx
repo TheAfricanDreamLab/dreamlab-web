@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { switchOrg } from '@/app/actions/auth';
 import { joinOrganisation } from '@/app/actions/security';
 import { Badge, ButtonLink, Card, Eyebrow, LogoMark, Notice } from '@/components/ui/primitives';
+import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { KIND_LABELS, ROLE_LABELS } from '@/lib/labels';
 import { activeMembership, can, getMe } from '@/lib/me';
@@ -27,7 +28,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       )}
       {sp.joined && <Notice tone="success">You’ve joined. Welcome aboard!</Notice>}
       {sp.requested && <Notice tone="info">We’ve asked the organisation’s admins. You’ll see it in your spaces once they say yes.</Notice>}
-      {sp.join_error && <Notice tone="error">{sp.join_error}</Notice>}
+      {sp.join_error && <Notice tone="error">{messageForCode(sp.join_error)}</Notice>}
 
       <section className="space-y-2">
         <Eyebrow tone="gold">{active ? active.org.name : 'Just me · your personal space'}</Eyebrow>

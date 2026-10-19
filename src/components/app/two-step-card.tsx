@@ -46,7 +46,8 @@ export function TwoStepCard({ status }: { status: Status }) {
     if (url) void QRCode.toDataURL(url, { margin: 1, width: 192 }).then(setQr);
   }, [url]);
 
-  const fresh = confirmed.values?.recoveryCodes?.split(' ') ?? regen.values?.recoveryCodes?.split(' ');
+  // The newest set wins: replacing the codes invalidates the ones shown when MFA was turned on.
+  const fresh = regen.values?.recoveryCodes?.split(' ') ?? confirmed.values?.recoveryCodes?.split(' ');
 
   return (
     <Card className="scroll-mt-24 space-y-4 p-6">
@@ -114,6 +115,7 @@ export function TwoStepCard({ status }: { status: Status }) {
             <form action={regenAction} className="space-y-3 px-4 pb-4">
               <TextInput label="Code from your app" name="code" required autoComplete="one-time-code" />
               {regen.error && <Notice tone="error">{regen.error}</Notice>}
+              {regen.notice && <Notice tone="success">{regen.notice}</Notice>}
               <SubmitButton pending="Making new codes…" variant="secondary">
                 Replace my recovery codes
               </SubmitButton>

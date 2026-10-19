@@ -74,6 +74,15 @@ const MESSAGES: Record<string, string> = {
   network: 'We couldn’t reach Dream Lab. Check your connection and try again.',
 };
 
+/**
+ * Wording for an error code carried in a URL (?sso_error=…). Only our own messages are shown, never
+ * text from the link itself, so a crafted link cannot put its words on our pages.
+ */
+export function messageForCode(code: string | undefined): string | null {
+  if (!code) return null;
+  return MESSAGES[code] ?? 'Something went wrong. Please try again.';
+}
+
 export function friendlyError(error: ErrorResponse | undefined): string {
   if (!error) return 'Something went wrong. Please try again.';
   return (error.code && MESSAGES[error.code]) || error.message || 'Something went wrong. Please try again.';

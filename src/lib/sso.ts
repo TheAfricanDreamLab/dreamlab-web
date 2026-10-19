@@ -1,7 +1,6 @@
 import 'server-only';
 import type { SsoResult } from '@dreamlab/contracts';
 import { NextResponse } from 'next/server';
-import { friendlyError } from './errors';
 import { safeNext } from './forms';
 import type { ApiResult } from './gateway';
 import { getInvite, saveTokens } from './session';
@@ -13,13 +12,9 @@ export function here(request: Request, path: string): URL {
 
 /** Turn the API's sign-on result into cookies and a redirect. */
 export async function finishSignOn(request: Request, res: ApiResult<SsoResult>, mode: 'signin' | 'test'): Promise<NextResponse> {
-  if (!res.ok) {
-    const message = friendlyError(res.error);
-    const to = mode === 'test' ? `/app/settings?sso_error=${encodeURIComponent(message)}#sign-on` : `/login/sso?error=${encodeURIComponent(message)}`;
-    return NextResponse.redirect(here(request, to), 303);
-  }
+  if (!res.ok) return failed(request, res.error.code ?? 'sso_failed', mode);
   if (res.data.kind === 'test') {
-    return NextResponse.redirect(here(request, `/app/settings?sso_tested=${encodeURIComponent(res.data.email)}#sign-on`), 303);
+    return NextResponse.redirect(here(request, '/app/settings?sso_tested=1#sign-on'), 303);
   }
   await saveTokens(res.data.tokens);
   // A pending invitation still wins, as with every other way of signing in.
@@ -28,7 +23,12 @@ export async function finishSignOn(request: Request, res: ApiResult<SsoResult>, 
 }
 
 export function signOnExpired(request: Request, mode: 'signin' | 'test' | null): NextResponse {
-  const message = 'That sign-on took too long, or it started in another browser. Please start again.';
-  const to = mode === 'test' ? `/app/settings?sso_error=${encodeURIComponent(message)}#sign-on` : `/login/sso?error=${encodeURIComponent(message)}`;
+  return failed(request, 'sso_state_invalid', mode);
+}
+
+/** Back to where the sign-on started, with an error code (pages map it to our own wording). */
+function failed(request: Request, code: string, mode: 'signin' | 'test' | null): NextResponse {
+  const safe = encodeURIComponent(code.replace(/[^a-z_]/g, '').slice(0, 64) || 'sso_failed');
+  const to = mode === 'test' ? `/app/settings?sso_error=${safe}#sign-on` : `/login/sso?error=${safe}`;
   return NextResponse.redirect(here(request, to), 303);
 }

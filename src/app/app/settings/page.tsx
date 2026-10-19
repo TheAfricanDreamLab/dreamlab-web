@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AddDomainForm, AdminMfaPolicy, DomainRow, type DomainView, ScimSetup, SsoSetup, type SsoView } from '@/components/settings/settings-forms';
 import { Card, Eyebrow, Notice } from '@/components/ui/primitives';
+import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { activeMembership, can, getMe } from '@/lib/me';
 import { getClaims } from '@/lib/session';
@@ -65,8 +66,8 @@ export default async function SecuritySettingsPage({ searchParams }: { searchPar
           Your organisation requires two-step sign-in for admin settings. Confirm a code in <a className="font-semibold text-link" href="/app/account#two-step">Account → Two-step sign-in</a>, then come back.
         </Notice>
       )}
-      {sp.sso_tested && <Notice tone="success">Sign-on works. Your identity provider signed in {sp.sso_tested}. You can require it now.</Notice>}
-      {sp.sso_error && <Notice tone="error">{sp.sso_error}</Notice>}
+      {sp.sso_tested && <Notice tone="success">Sign-on works: your identity provider signed you in. You can require it now.</Notice>}
+      {sp.sso_error && <Notice tone="error">{messageForCode(sp.sso_error)}</Notice>}
 
       <Section id="domains" step="Step 1" title="Email domains" intro="Prove your organisation owns its email domain. Sign-on, provisioning and joining by email all depend on it.">
         <div className="space-y-4">

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   if (error || !code) {
     return finishSignOn(
       request,
-      { ok: false, status: 400, error: { statusCode: 400, error: 'Bad Request', message: params.get('error_description') ?? 'Sign-on was cancelled.', code: 'sso_failed' } },
+      { ok: false, status: 400, error: { statusCode: 400, error: 'Bad Request', message: 'Sign-on was cancelled.', code: 'sso_failed' } },
       pending.mode,
     );
   }

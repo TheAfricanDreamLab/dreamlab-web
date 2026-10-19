@@ -7,6 +7,8 @@ export interface FormState {
   /** Echo of what the user typed, so a failed submit does not wipe the form. */
   values?: Record<string, string>;
   needsConsent?: boolean;
+  /** The API's error code, for redirects that carry it in the URL. */
+  code?: string;
 }
 
 export const TERMS_VERSION = '2026-10';

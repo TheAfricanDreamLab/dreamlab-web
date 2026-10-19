@@ -191,17 +191,23 @@ export async function joinOrganisation(fd: FormData): Promise<void> {
     if (switched.ok) await saveTokens(switched.data);
     redirect('/app?joined=1');
   }
-  redirect(res.ok ? '/app?requested=1' : `/app?join_error=${encodeURIComponent(friendlyError(res.error))}`);
+  redirect(res.ok ? '/app?requested=1' : `/app?join_error=${encodeURIComponent(res.error.code ?? 'join_not_allowed')}`);
 }
 
 export async function answerJoinRequest(fd: FormData): Promise<void> {
   const orgId = await activeOrg();
   const membershipId = str(fd, 'membershipId');
-  if (str(fd, 'answer') === 'approve') {
-    await api('PATCH', `/v1/orgs/${orgId}/members/${membershipId}`, { status: 'active' });
-    await api('POST', `/v1/orgs/${orgId}/members/${membershipId}/roles`, { roleKey: 'learner', scopeType: 'org' });
-  } else {
-    await api('DELETE', `/v1/orgs/${orgId}/members/${membershipId}`);
+  // Stop at the first failure and say so, rather than leaving someone active without a role.
+  const steps =
+    str(fd, 'answer') === 'approve'
+      ? [
+          () => api('PATCH', `/v1/orgs/${orgId}/members/${membershipId}`, { status: 'active' }),
+          () => api('POST', `/v1/orgs/${orgId}/members/${membershipId}/roles`, { roleKey: 'learner', scopeType: 'org' }),
+        ]
+      : [() => api('DELETE', `/v1/orgs/${orgId}/members/${membershipId}`)];
+  for (const step of steps) {
+    const res = await step();
+    if (!res.ok) redirect(`/app/members?error=${encodeURIComponent(res.error.code ?? 'permission_denied')}`);
   }
   revalidatePath('/app/members');
 }

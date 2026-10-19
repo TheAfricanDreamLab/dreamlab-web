@@ -6,6 +6,7 @@ import { removeMember, revokeInvitation, revokeRole } from '@/app/actions/org';
 import { answerJoinRequest } from '@/app/actions/security';
 import { AddRoleForm, InviteForm } from '@/components/directory/member-forms';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
+import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { initials, ROLE_LABELS } from '@/lib/labels';
 import { activeMembership, can, getMe } from '@/lib/me';
@@ -14,7 +15,8 @@ export const metadata: Metadata = { title: 'People' };
 
 type InvitationRow = z.infer<typeof InvitationSchema>;
 
-export default async function MembersPage() {
+export default async function MembersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const sp = await searchParams;
   const me = await getMe();
   const active = activeMembership(me);
   if (!active) redirect('/app');
@@ -45,6 +47,7 @@ export default async function MembersPage() {
       </header>
 
       {!members.ok && <Notice tone="error">{members.error.message}</Notice>}
+      {sp.error && <Notice tone="error">{messageForCode(sp.error)}</Notice>}
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <Card className="overflow-hidden">

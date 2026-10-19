@@ -5,6 +5,7 @@ import { LoginForm } from '@/components/auth/forms';
 import { AuthShell } from '@/components/auth/shells';
 import { TenantSsoButton } from '@/components/auth/sso-forms';
 import { Notice } from '@/components/ui/primitives';
+import { messageForCode } from '@/lib/errors';
 import { safeNext } from '@/lib/forms';
 import { callGateway, incomingRequest } from '@/lib/gateway';
 import { currentTenant } from '@/lib/tenant';
@@ -19,7 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   ) : sp.signedout ? (
     <Notice tone="success">You’ve been signed out on every device.</Notice>
   ) : sp.sso_error ? (
-    <Notice tone="error">{sp.sso_error}</Notice>
+    <Notice tone="error">{messageForCode(sp.sso_error)}</Notice>
   ) : sp.next?.startsWith('/orgs/new') ? (
     <Notice tone="info">Sign in first. Your new organisation will belong to this account, and you’ll be its admin.</Notice>
   ) : undefined;

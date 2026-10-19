@@ -8,10 +8,10 @@ import { Button, cx, Eyebrow, Notice, Steps } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 
 const KINDS = [
-  { key: 'enterprise', title: 'A company or team', text: 'Train your staff: invite colleagues and assign learning.', live: true, icon: '◆' },
-  { key: 'institution', title: 'A school or academy', text: 'Run programmes and cohorts with admissions and credits.', live: false, icon: '▲' },
-  { key: 'partner', title: 'A content partner', text: 'Publish courses for other people to take.', live: false, icon: '●' },
-  { key: 'sponsor', title: 'A sponsor or funder', text: 'Pay for learners and follow how they do.', live: false, icon: '■' },
+  { key: 'enterprise', title: 'A company or team', plural: 'companies and teams', text: 'Train your staff: invite colleagues and assign learning.', live: true, icon: '◆' },
+  { key: 'institution', title: 'A school or academy', plural: 'schools and academies', text: 'Run programmes and cohorts with admissions and credits.', live: false, icon: '▲' },
+  { key: 'partner', title: 'A content partner', plural: 'content partners', text: 'Publish courses for other people to take.', live: false, icon: '●' },
+  { key: 'sponsor', title: 'A sponsor or funder', plural: 'sponsors and funders', text: 'Pay for learners and follow how they do.', live: false, icon: '■' },
 ] as const;
 
 const SIZES = ['1-10', '11-50', '51-200', '201-1000', '1000+'];
@@ -155,7 +155,7 @@ export function OrgWizard({ initialKind, domain }: { initialKind?: string; domai
           {chosen?.live ? (
             <Notice tone="success">You’ll be its admin, and it’s ready the moment you create it.</Notice>
           ) : (
-            <Notice tone="info">You’ll be its admin. We check new {chosen?.title.replace(/^an? /, '')}s within two working days; meanwhile you can set things up and invite co-admins.</Notice>
+            <Notice tone="info">You’ll be its admin. We check new {chosen?.plural} within two working days; meanwhile you can set things up and invite co-admins.</Notice>
           )}
           {state.error && <Notice tone="error">{state.error}</Notice>}
           <SubmitButton pending="Creating…">Create {name.trim() || 'organisation'}</SubmitButton>

@@ -63,7 +63,7 @@ async function startSso(orgId: string, next: string, mode: 'signin' | 'test' = '
     // The page states the terms next to the button; a first sign-on creates the account.
     consent: { termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION, aiProcessing: false, marketing: false },
   });
-  if (!res.ok) return { error: friendlyError(res.error) };
+  if (!res.ok) return { error: friendlyError(res.error), code: res.error.code };
   await setSsoState(res.data.state, res.data.expiresIn, mode);
   redirect(res.data.redirectUrl);
 }
@@ -82,13 +82,13 @@ export async function signInWithOrganisation(_: FormState, fd: FormData): Promis
 /** The organisation's own site already knows which sign-on to use. */
 export async function signInWithTenantSso(fd: FormData): Promise<void> {
   const result = await startSso(str(fd, 'orgId'), str(fd, 'next'));
-  redirect(`/login?sso_error=${encodeURIComponent(result.error ?? 'Sign-on could not start')}`);
+  redirect(`/login?sso_error=${encodeURIComponent(result.code ?? 'sso_unavailable')}`);
 }
 
 /** Admins check their sign-on without creating a session. */
 export async function testSso(fd: FormData): Promise<void> {
   const result = await startSso(str(fd, 'orgId'), '/app/settings', 'test');
-  redirect(`/app/settings?sso_error=${encodeURIComponent(result.error ?? 'Sign-on could not start')}#sign-on`);
+  redirect(`/app/settings?sso_error=${encodeURIComponent(result.code ?? 'sso_unavailable')}#sign-on`);
 }
 
 export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
