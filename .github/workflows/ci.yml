@@ -9,6 +9,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default; jobs ask for more only where they need it.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -61,6 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # The dispatch uses INFRA_DISPATCH_TOKEN; this job needs no GITHUB_TOKEN rights.
+    permissions: {}
     steps:
       - env:
           TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}

@@ -11,7 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@dreamlab/contracts": "github:TheAfricanDreamLab/dreamlab-contracts#51b592992fb6fe579ff7e30bc18ab0826ae7cfbb",
+    "@dreamlab/contracts": "github:TheAfricanDreamLab/dreamlab-contracts#v0.6.0",
     "@ts-rest/core": "3.52.1",
     "next": "16.4.2",
     "qrcode": "1.5.4",
