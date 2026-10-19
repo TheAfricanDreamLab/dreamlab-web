@@ -15,7 +15,7 @@ const RESERVED = new Set(['www', 'api', 'app', 'admin', 'platform', 'static', 'c
 export const currentTenant = cache(async (): Promise<TenantInfo | null> => {
   const request = await incomingRequest();
   const hostname = (request.host ?? '').split(':')[0]!.toLowerCase();
-  const bases = [(process.env.NEXT_PUBLIC_SITE_DOMAIN ?? '').split(':')[0], 'localhost'].filter(Boolean) as string[];
+  const bases = [siteDomain().split(':')[0], 'localhost'].filter(Boolean) as string[];
   const base = bases.find((b) => hostname.endsWith(`.${b}`));
   if (!base) return null;
   const slug = hostname.slice(0, -(base.length + 1));
@@ -25,5 +25,6 @@ export const currentTenant = cache(async (): Promise<TenantInfo | null> => {
 });
 
 export function siteDomain(): string {
-  return process.env.NEXT_PUBLIC_SITE_DOMAIN ?? 'theafricandreamlab.com';
+  // Read at runtime (server only), so one image serves prod and staging.
+  return process.env.SITE_DOMAIN ?? process.env.NEXT_PUBLIC_SITE_DOMAIN ?? 'learn.theafricandreamlab.com';
 }

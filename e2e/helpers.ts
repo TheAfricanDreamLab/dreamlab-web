@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -94,4 +95,41 @@ export async function signOut(page: Page): Promise<void> {
   await page.locator('summary', { hasText: /^[A-Z]{1,2}$/ }).click();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/$/);
+}
+
+/** RFC 6238 code for a base32 secret, as an authenticator app would show it (offsetSteps shifts by 30 s). */
+export function totp(secretBase32: string, offsetSteps = 0): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0;
+  let value = 0;
+  const bytes: number[] = [];
+  for (const ch of secretBase32.replace(/[\s=]/g, '').toUpperCase()) {
+    value = (value << 5) | alphabet.indexOf(ch);
+    bits += 5;
+    if (bits >= 8) {
+      bytes.push((value >>> (bits - 8)) & 255);
+      bits -= 8;
+    }
+  }
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000) + offsetSteps));
+  const mac = createHmac('sha1', Buffer.from(bytes)).update(counter).digest();
+  const offset = mac[mac.length - 1]! & 15;
+  return String((mac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
+
+/** Create a company as a freshly signed-up founder; leaves the page inside the new organisation. */
+export async function createCompany(page: Page, founderName: string, founderEmail: string, name: string): Promise<void> {
+  await signUpWithEmail(page, founderName, founderEmail);
+  await page.goto('/orgs/new?kind=enterprise');
+  await page.getByLabel('Organisation name').fill(name);
+  await page.getByRole('button', { name: `Create ${name}` }).click();
+  await expect(page).toHaveURL(/\/app\?created=active/);
+}
+
+/** Switch space with the header switcher. */
+export async function switchTo(page: Page, orgName: string): Promise<void> {
+  await page.locator('summary').filter({ hasText: /You’re in/ }).click();
+  await page.getByRole('banner').getByRole('button', { name: new RegExp(orgName) }).click();
+  await expect(page.locator('summary').filter({ hasText: orgName })).toBeVisible();
 }

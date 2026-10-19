@@ -28,11 +28,17 @@ export function SubmitButton({ children, pending: pendingLabel = 'One moment…'
 
 const initial: FormState = {};
 
-export function LoginForm({ next, banner }: { next: string; banner?: React.ReactNode }) {
+export function LoginForm({ next, banner, organisationSso }: { next: string; banner?: React.ReactNode; organisationSso?: React.ReactNode }) {
   const [state, action] = useActionState(login, initial);
   return (
     <div className="space-y-5">
       {banner}
+      {organisationSso && (
+        <>
+          {organisationSso}
+          <Divider label="or with your own account" />
+        </>
+      )}
       <form action={action} className="space-y-4">
         <input type="hidden" name="next" value={next} />
         <TextInput
@@ -65,6 +71,17 @@ export function LoginForm({ next, banner }: { next: string; banner?: React.React
         >
           Email me a sign-in code instead
         </Link>
+        {!organisationSso && (
+          <Link
+            href={`/login/sso?next=${encodeURIComponent(next)}`}
+            className="flex h-12 items-center justify-center gap-2 rounded-[var(--radius-field)] bg-card text-[14.5px] font-semibold text-ink ring-1 ring-line-strong hover:ring-line-heavy"
+          >
+            <span aria-hidden className="grid h-5 w-5 place-items-center rounded bg-forest text-[10px] font-bold text-white">
+              ⌂
+            </span>
+            Sign in with your organisation
+          </Link>
+        )}
       </div>
       <p className="text-center text-[13.5px] text-muted">
         New here? <TextLink href={`/signup${next !== '/app' ? `?next=${encodeURIComponent(next)}` : ''}`}>Create your free account</TextLink>
@@ -73,13 +90,14 @@ export function LoginForm({ next, banner }: { next: string; banner?: React.React
   );
 }
 
-export function SignupForm({ next }: { next: string }) {
+export function SignupForm({ next, banner }: { next: string; banner?: React.ReactNode }) {
   const [state, action] = useActionState(signUp, initial);
   const [method, setMethod] = useState<'email' | 'phone'>(state.values?.method === 'phone' ? 'phone' : 'email');
   const [name, setName] = useState(state.values?.fullName ?? '');
   const [contact, setContact] = useState(state.values?.[method] ?? '');
   return (
     <div className="space-y-5">
+      {banner}
       <GoogleButton next={next} label="Sign up with Google" />
       <Divider label="or with your details" />
       <form action={action} className="space-y-4">
@@ -166,6 +184,10 @@ export function RequestCodeForm({ purpose, next = '/app' }: { purpose: 'login' |
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <TextInput label="Email or phone" name="identifier" autoComplete="username" required defaultValue={state.values?.identifier} />
+      <label className="flex items-start gap-3 text-[13px] text-muted">
+        <input type="checkbox" name="channel" value="whatsapp" className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" />
+        <span>For a phone number, send the code on WhatsApp instead of SMS.</span>
+      </label>
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <SubmitButton pending="Sending…">{purpose === 'login' ? 'Send me a code' : 'Send reset code'}</SubmitButton>
       <Notice tone="neutral">

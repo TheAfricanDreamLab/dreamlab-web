@@ -91,7 +91,13 @@ export async function proxy(request: NextRequest) {
   }
 
   let response: NextResponse;
-  if (!signedIn && SIGNED_IN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
+  if (!signedIn && path === '/orgs/new') {
+    // Bringing an organisation starts with your own account: explain that instead of a bare sign-in page.
+    const start = new URL('/orgs/start', request.url);
+    const kind = request.nextUrl.searchParams.get('kind');
+    if (kind) start.searchParams.set('kind', kind);
+    response = NextResponse.redirect(start);
+  } else if (!signedIn && SIGNED_IN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
     const login = new URL('/login', request.url);
     login.searchParams.set('next', path + request.nextUrl.search);
     response = NextResponse.redirect(login);

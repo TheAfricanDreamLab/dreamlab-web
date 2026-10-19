@@ -3,8 +3,10 @@ import type { z } from 'zod';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { removeMember, revokeInvitation, revokeRole } from '@/app/actions/org';
+import { answerJoinRequest } from '@/app/actions/security';
 import { AddRoleForm, InviteForm } from '@/components/directory/member-forms';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
+import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { initials, ROLE_LABELS } from '@/lib/labels';
 import { activeMembership, can, getMe } from '@/lib/me';
@@ -13,7 +15,8 @@ export const metadata: Metadata = { title: 'People' };
 
 type InvitationRow = z.infer<typeof InvitationSchema>;
 
-export default async function MembersPage() {
+export default async function MembersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const sp = await searchParams;
   const me = await getMe();
   const active = activeMembership(me);
   if (!active) redirect('/app');
@@ -23,10 +26,17 @@ export default async function MembersPage() {
   const canRevoke = can(me, 'org.roles.revoke');
   const canRemove = can(me, 'org.members.remove');
 
-  const [members, invitations] = await Promise.all([
+  const [allMembers, invitations, orgRoles] = await Promise.all([
     api<{ items: Membership[] }>('GET', `/v1/orgs/${orgId}/members?limit=100`),
     canInvite ? api<{ items: InvitationRow[] }>('GET', `/v1/orgs/${orgId}/invitations?status=pending&limit=100`) : null,
+    api<{ items: { key: string; name: string; description: string; system: boolean; scopeTypes: string[] }[] }>('GET', `/v1/orgs/${orgId}/roles`),
   ]);
+  const customRoles = orgRoles.ok
+    ? orgRoles.data.items.filter((r) => !r.system && r.scopeTypes.includes('org')).map((r) => ({ key: r.key, label: r.name, hint: r.description || 'Custom role' }))
+    : [];
+  const roleName = (key: string) => ROLE_LABELS[key] ?? customRoles.find((r) => r.key === key)?.label ?? key;
+  const requests = allMembers.ok ? allMembers.data.items.filter((m) => m.status === 'requested') : [];
+  const members = allMembers.ok ? { ok: true as const, data: { items: allMembers.data.items.filter((m) => m.status !== 'requested') } } : allMembers;
 
   return (
     <div className="space-y-8">
@@ -37,6 +47,7 @@ export default async function MembersPage() {
       </header>
 
       {!members.ok && <Notice tone="error">{members.error.message}</Notice>}
+      {sp.error && <Notice tone="error">{messageForCode(sp.error)}</Notice>}
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <Card className="overflow-hidden">
@@ -59,18 +70,18 @@ export default async function MembersPage() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         {m.roles.map((r) => (
                           <span key={r.id} className="inline-flex items-center gap-1 rounded-full bg-surface py-0.5 pl-2.5 pr-1 text-[12px] font-medium text-ink ring-1 ring-line">
-                            {ROLE_LABELS[r.roleKey] ?? r.roleKey}
+                            {roleName(r.roleKey)}
                             {canRevoke && (
                               <form action={revokeRole}>
                                 <input type="hidden" name="assignmentId" value={r.id} />
-                                <button type="submit" className="grid h-5 w-5 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink" aria-label={`Remove ${ROLE_LABELS[r.roleKey] ?? r.roleKey} role`}>
+                                <button type="submit" className="grid h-5 w-5 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink" aria-label={`Remove ${roleName(r.roleKey)} role`}>
                                   ×
                                 </button>
                               </form>
                             )}
                           </span>
                         ))}
-                        {canAssign && <AddRoleForm membershipId={m.id} has={m.roles.map((r) => r.roleKey)} />}
+                        {canAssign && <AddRoleForm membershipId={m.id} has={m.roles.map((r) => r.roleKey)} customRoles={customRoles} />}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -91,11 +102,35 @@ export default async function MembersPage() {
         </Card>
 
         <div className="space-y-6">
+          {requests.length > 0 && canInvite && (
+            <Card className="overflow-hidden">
+              <h2 className="border-b border-line px-5 py-4 text-[17px] font-bold">Asking to join</h2>
+              <ul className="divide-y divide-line">
+                {requests.map((m) => (
+                  <li key={m.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-semibold text-ink">{m.user.fullName}</p>
+                      <p className="truncate text-[12.5px] text-muted">{m.user.email}</p>
+                    </div>
+                    <form action={answerJoinRequest} className="flex gap-1">
+                      <input type="hidden" name="membershipId" value={m.id} />
+                      <button type="submit" name="answer" value="approve" className="rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-primary-hover">
+                        Let in
+                      </button>
+                      <button type="submit" name="answer" value="decline" className="rounded-lg px-3 py-1.5 text-[12.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
+                        Decline
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           {canInvite && (
             <Card className="space-y-4 p-5">
               <h2 className="text-[17px] font-bold">Invite someone</h2>
               {active.org.status === 'pending' && <Notice tone="info">While you’re in review, you can invite co-admins. Learners can join after approval.</Notice>}
-              <InviteForm orgPending={active.org.status === 'pending'} canAssignRoles={canAssign} />
+              <InviteForm orgPending={active.org.status === 'pending'} canAssignRoles={canAssign} customRoles={customRoles} />
             </Card>
           )}
           {invitations?.ok && invitations.data.items.length > 0 && (
@@ -107,7 +142,7 @@ export default async function MembersPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-medium text-ink">{inv.email ?? inv.phone}</p>
                       <p className="text-[12px] text-muted">
-                        {inv.roleKeys.map((k) => ROLE_LABELS[k] ?? k).join(', ')} · expires {new Date(inv.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {inv.roleKeys.map(roleName).join(', ')} · expires {new Date(inv.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </p>
                     </div>
                     <form action={revokeInvitation}>

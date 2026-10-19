@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { revokeSession, signOutEverywhere } from '@/app/actions/account';
 import { ChangePasswordForm } from '@/components/app/change-password-form';
+import { TwoStepCard } from '@/components/app/two-step-card';
 import { Badge, Button, Card, Eyebrow } from '@/components/ui/primitives';
 import { api } from '@/lib/gateway';
 import { getMe } from '@/lib/me';
@@ -27,7 +28,10 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'nume
 
 export default async function AccountPage() {
   const me = await getMe();
-  const sessions = await api<{ items: Session[] }>('GET', '/v1/auth/sessions');
+  const [sessions, mfa] = await Promise.all([
+    api<{ items: Session[] }>('GET', '/v1/auth/sessions'),
+    api<{ enabled: boolean; enabledAt: string | null; recoveryCodesRemaining: number; sessionVerified: boolean }>('GET', '/v1/auth/mfa'),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -105,11 +109,14 @@ export default async function AccountPage() {
           </Card>
         </div>
 
-        <Card className="space-y-4 p-6">
-          <h2 className="text-[17px] font-bold">Change password</h2>
-          <p className="text-[13.5px] text-muted">Changing it signs you out on your other devices.</p>
-          <ChangePasswordForm avoid={[...me.user.fullName.split(' '), (me.user.email ?? '').split('@')[0] ?? '']} />
-        </Card>
+        <div className="space-y-6">
+          {mfa.ok && <TwoStepCard status={mfa.data} />}
+          <Card className="space-y-4 p-6">
+            <h2 className="text-[17px] font-bold">Change password</h2>
+            <p className="text-[13.5px] text-muted">Changing it signs you out on your other devices.</p>
+            <ChangePasswordForm avoid={[...me.user.fullName.split(' '), (me.user.email ?? '').split('@')[0] ?? '']} />
+          </Card>
+        </div>
       </div>
     </div>
   );

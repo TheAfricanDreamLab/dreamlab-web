@@ -14,7 +14,7 @@ export default async function NewOrganisationPage({ searchParams }: { searchPara
       eyebrow="New organisation"
       eyebrowTone="gold"
       title="Bring your people together"
-      intro="Three quick steps. You’ll be its admin, and you can change the details later."
+      intro="Two quick steps. You’ll be its admin, and you can change everything later."
     >
       <OrgWizard initialKind={kind} domain={siteDomain()} />
       <p className="text-center text-[13px] text-muted">

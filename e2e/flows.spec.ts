@@ -29,7 +29,8 @@ test.describe('public pages', () => {
     await page.goto('/app/account');
     await expect(page).toHaveURL(/\/login\?next=%2Fapp%2Faccount/);
     await page.goto('/orgs/new');
-    await expect(page).toHaveURL(/\/login\?next=%2Forgs%2Fnew/);
+    await expect(page).toHaveURL(/\/orgs\/start$/);
+    await expect(page.getByRole('heading', { name: 'Set up your organisation' })).toBeVisible();
   });
 });
 
@@ -42,7 +43,7 @@ test.describe('individual learner', () => {
     await expect(page).toHaveURL(/\/app$/);
     await expect(page.getByRole('heading', { name: 'Welcome, Ada.' })).toBeVisible();
     await expect(page.getByText('You’re learning on your own.')).toBeVisible();
-    await expect(page.locator('summary').filter({ hasText: 'Personal' })).toBeVisible();
+    await expect(page.locator('summary').filter({ hasText: 'Just me' })).toBeVisible();
   });
 
   test('a duplicate sign-up is turned towards sign-in', async ({ page }) => {
@@ -137,13 +138,12 @@ test.describe('organisations', () => {
     await page.goto('/orgs/new');
     await page.getByRole('radio', { name: /A company or team/ }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
-    await page.getByLabel('Name').fill(orgName);
-    orgSlug = (await page.locator('p.font-mono').filter({ hasText: '.localhost' }).innerText()).split('.')[0]!;
+    await page.getByLabel('Organisation name').fill(orgName);
+    orgSlug = (await page.locator('span.font-mono').filter({ hasText: '.localhost' }).innerText()).split('.')[0]!;
     expect(orgSlug).toMatch(/^kano-builders-/);
     await page.getByRole('button', { name: '11-50' }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByText('Your space is ready as soon as you create it.')).toBeVisible();
-    await page.getByRole('button', { name: 'Create and open' }).click();
+    await expect(page.getByText('it’s ready the moment you create it')).toBeVisible();
+    await page.getByRole('button', { name: `Create ${orgName}` }).click();
     await expect(page).toHaveURL(/\/app\?created=active/);
     await expect(page.getByText('Your organisation is ready.')).toBeVisible();
     await expect(page.locator('summary').filter({ hasText: orgName })).toBeVisible();
@@ -154,7 +154,7 @@ test.describe('organisations', () => {
 
   test('the admin invites someone, who previews, signs up and joins', async ({ page, browser }) => {
     await signedIn(page, ownerEmail);
-    await page.locator('summary').filter({ hasText: /Personal|Kano/ }).first().click();
+    await page.locator('summary').filter({ hasText: /Just me|Kano/ }).first().click();
     await page.getByRole('banner').getByRole('button', { name: new RegExp(orgName) }).click();
     await page.getByRole('link', { name: 'People' }).click();
     await page.getByLabel('Email or phone').fill(inviteeEmail);
@@ -197,11 +197,10 @@ test.describe('organisations', () => {
     const school = `Lagos Academy ${Date.now().toString(36)}`;
     await signUpWithEmail(page, 'Dean Okoro', dean);
     await page.goto('/orgs/new?kind=institution');
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await page.getByLabel('Name').fill(school);
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByText(/We review new/)).toBeVisible();
-    await page.getByRole('button', { name: 'Create and set up' }).click();
+    // The type came with the link, so the wizard opens at the name.
+    await page.getByLabel('Organisation name').fill(school);
+    await expect(page.getByText(/We check new/)).toBeVisible();
+    await page.getByRole('button', { name: `Create ${school}` }).click();
     await expect(page).toHaveURL(/\/app\?created=pending/);
     await expect(page.getByText(/is in review/)).toBeVisible();
     await page.getByRole('link', { name: 'People' }).click();

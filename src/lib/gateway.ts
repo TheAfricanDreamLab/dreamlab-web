@@ -32,7 +32,7 @@ export async function incomingRequest(): Promise<ForwardedRequest> {
 
 /** Call the Dream Lab API through the gateway, server-side. */
 export async function callGateway<T>(
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   options: { body?: unknown; token?: string | null; request: ForwardedRequest },
 ): Promise<ApiResult<T>> {
@@ -68,6 +68,6 @@ export async function callGateway<T>(
 }
 
 /** Same as callGateway, with the signed-in user's token and the current request. */
-export async function api<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<ApiResult<T>> {
+export async function api<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<ApiResult<T>> {
   return callGateway<T>(method, path, { body, token: await getAccessToken(), request: await incomingRequest() });
 }
