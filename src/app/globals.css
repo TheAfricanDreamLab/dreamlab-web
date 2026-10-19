@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/*
+ * Dream Lab OS tokens, taken from the Claude Design web boards
+ * (docs/design/Dream Lab OS - Web.dc.html).
+ */
+@theme {
+  --color-ink: #16233a;
+  --color-body: #4c5a73;
+  --color-muted: #5c6880;
+  --color-faint: #8a95a8;
+
+  --color-page: #e7edf3;
+  --color-surface: #f4f7fa;
+  --color-card: #ffffff;
+  --color-line: #e4e9f2;
+  --color-line-strong: #d8deea;
+  --color-line-heavy: #c3ccdb;
+
+  --color-primary: #159b62;
+  --color-primary-hover: #12895a;
+  --color-link: #0f7a4d;
+  --color-forest: #0a3d29;
+  --color-forest-soft: #0f5a3b;
+  --color-success-tint: #e6f4ec;
+  --color-success-line: #bfe3d0;
+
+  --color-gold: #b8963a;
+  --color-gold-ink: #6e5716;
+  --color-gold-tint: #fbf2de;
+  --color-gold-line: #ebdcb5;
+
+  --color-danger: #e1512a;
+  --color-danger-ink: #a63a18;
+  --color-danger-tint: #fce9e3;
+  --color-danger-line: #f2c4b5;
+
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-field: 14px;
+  --radius-card: 18px;
+  --radius-panel: 22px;
+
+  --shadow-card: 0 12px 40px rgba(10, 61, 41, 0.1);
+  --shadow-panel: 0 20px 60px rgba(10, 61, 41, 0.12);
+  --shadow-focus: 0 0 0 4px rgba(21, 155, 98, 0.14);
+
+  --animate-rise: dl-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes dl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* In the base layer so utilities (text-white, …) can override these defaults. */
+@layer base {
+  html {
+    background: var(--color-page);
+    color: var(--color-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: var(--color-gold-tint);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
