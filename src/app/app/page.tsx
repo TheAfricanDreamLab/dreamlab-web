@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { switchOrg } from '@/app/actions/auth';
 import { joinOrganisation } from '@/app/actions/security';
 import { EnrollmentCard } from '@/components/learning/enrollment-card';
-import { Badge, ButtonLink, Card, Eyebrow, LogoMark, Notice } from '@/components/ui/primitives';
+import { Badge, Card, Eyebrow, Notice, OrgMark } from '@/components/ui/primitives';
 import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { KIND_LABELS, ROLE_LABELS } from '@/lib/labels';
@@ -42,7 +42,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <p className="max-w-2xl text-[15px] text-muted">
           {active
             ? `You’re working in ${active.org.name} as ${active.roles.map((r) => ROLE_LABELS[r.roleKey] ?? r.roleKey).join(', ') || 'a member'}.`
-            : 'You’re learning on your own. Pick a course and start, or join or set up an organisation.'}
+            : 'You’re learning on your own. Pick a course and start.'}
         </p>
       </section>
 
@@ -148,16 +148,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </form>
             {waiting.map((m) => (
               <div key={m.membershipId} className="flex items-center gap-3 rounded-[var(--radius-field)] border border-dashed border-line-strong px-3 py-2.5">
-                <LogoMark size={28} className="opacity-60" />
+                <OrgMark size={28} name={m.org.name} className="opacity-60" />
                 <span className="min-w-0 flex-1 text-[13.5px] text-muted">
                   <span className="block truncate font-semibold text-ink">{m.org.name}</span>
                   Waiting for an admin to let you in
                 </span>
               </div>
             ))}
-            <ButtonLink href="/orgs/new" variant="secondary" className="w-full">
-              Set up a new organisation
-            </ButtonLink>
           </Card>
 
           {joinable.ok && joinable.data.items.length > 0 && (
@@ -167,7 +164,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               {joinable.data.items.map((j) => (
                 <form key={j.org.id} action={joinOrganisation} className="flex items-center gap-3 rounded-[var(--radius-field)] bg-surface px-3 py-2.5 ring-1 ring-line">
                   <input type="hidden" name="orgId" value={j.org.id} />
-                  <LogoMark size={28} />
+                  <OrgMark size={28} name={j.org.name} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-semibold text-ink">{j.org.name}</span>
                     <span className="block text-[12px] text-muted">Everyone at @{j.domain}</span>
@@ -194,7 +191,7 @@ function SpaceRow({ name, detail, here, value, badge }: { name: string; detail: 
       disabled={here}
       className="flex w-full items-center gap-3 rounded-[var(--radius-field)] bg-surface px-3 py-2.5 text-left ring-1 ring-line enabled:hover:ring-line-heavy disabled:cursor-default disabled:ring-2 disabled:ring-primary"
     >
-      <LogoMark size={28} className={value ? '' : 'bg-success-tint text-link'} />
+      <OrgMark size={28} name={name} personal={!value} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px] font-semibold text-ink">{name}</span>
         <span className="block truncate text-[12px] text-muted">{detail}</span>

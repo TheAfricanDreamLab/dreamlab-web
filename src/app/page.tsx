@@ -16,14 +16,14 @@ const AUDIENCES = [
     tag: 'Schools & academies',
     title: 'Run your cohorts',
     text: 'Admissions, lessons, credit hours and residencies in one place, under your own name and address.',
-    cta: { label: 'Bring your school', href: '/orgs/new?kind=institution' },
+    cta: { label: 'Bring your school', href: '/orgs/start?kind=institution' },
     tone: 'gold' as const,
   },
   {
     tag: 'Companies & teams',
     title: 'Grow your people',
     text: 'Invite your team, assign learning, and see progress. Your space is ready the moment you sign up.',
-    cta: { label: 'Set up your team', href: '/orgs/new?kind=enterprise' },
+    cta: { label: 'Set up your team', href: '/orgs/start?kind=enterprise' },
     tone: 'ink' as const,
   },
 ];
@@ -31,7 +31,7 @@ const AUDIENCES = [
 const STEPS = [
   { n: '1', title: 'Create your account', text: 'Your name, an email or phone, and a password. Two minutes.' },
   { n: '2', title: 'Confirm it’s you', text: 'Type the 6-digit code we send. That’s the whole check.' },
-  { n: '3', title: 'Begin', text: 'Start a course, accept an invitation, or set up your organisation.' },
+  { n: '3', title: 'Begin', text: 'Start a course, or accept an invitation from your school or team.' },
 ];
 
 export default async function LandingPage() {
@@ -39,7 +39,7 @@ export default async function LandingPage() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <Brand />
+        <Brand href={signedIn ? '/app' : '/'} />
         <nav className="flex items-center gap-2 text-[14px] font-semibold sm:gap-6">
           <Link href="/courses" className="px-2 text-body hover:text-ink">
             Courses
@@ -89,10 +89,7 @@ export default async function LandingPage() {
               </ButtonLink>
             </div>
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-              Sign up with email, phone or Google ·{' '}
-              <Link href="/orgs/new" className="text-link hover:underline">
-                Bring your organisation
-              </Link>
+              Sign up with email, phone or Google
             </p>
           </div>
 
@@ -217,6 +214,9 @@ export default async function LandingPage() {
           <Link href="/courses" className="hover:text-ink">
             Courses
           </Link>
+          <a href="/orgs/start" className="hover:text-ink">
+            For organisations
+          </a>
           <Link href="/terms" className="hover:text-ink">
             Terms
           </Link>

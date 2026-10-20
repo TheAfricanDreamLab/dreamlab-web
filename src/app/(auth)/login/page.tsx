@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <Notice tone="success">You’ve been signed out on every device.</Notice>
   ) : sp.sso_error ? (
     <Notice tone="error">{messageForCode(sp.sso_error)}</Notice>
-  ) : sp.next?.startsWith('/orgs/new') ? (
+  ) : sp.next?.startsWith('/orgs/') ? (
     <Notice tone="info">Sign in first. Your new organisation will belong to this account, and you’ll be its admin.</Notice>
   ) : undefined;
 

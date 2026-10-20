@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CourseCard, CourseCover, FeaturedCourseCard } from '@/components/learning/course-ui';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
+import { BackLink } from '@/components/ui/nav';
 import { Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -49,6 +50,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
       <PublicHeader next="/courses" />
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
         <section className="space-y-5">
+          <BackLink href="/" label="home" className="-mb-2" />
           <div className="max-w-2xl space-y-2">
             <Eyebrow tone="gold">The African Dream Lab · Courses</Eyebrow>
             <h1 className="text-[34px] font-extrabold leading-[1.05] sm:text-[44px]">Learn the skills to build what you dream.</h1>

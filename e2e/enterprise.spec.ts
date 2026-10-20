@@ -28,8 +28,12 @@ test.describe('bringing an organisation', () => {
     const { enterCode } = await import('./helpers');
     await enterCode(page, await latestCode(email));
     await page.getByRole('button', { name: 'Verify and continue' }).click();
-    // Straight on to naming the organisation, the type already chosen.
-    await expect(page).toHaveURL(/\/orgs\/new\?kind=enterprise/);
+    // Back to the organisations route: a deliberate confirmation, then naming it with the type already chosen.
+    await expect(page).toHaveURL(/\/orgs\/start\?kind=enterprise/);
+    await expect(page.getByRole('heading', { name: 'Set up an organisation?' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: /A company or team/ })).toBeChecked();
+    await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
+    await expect(page).toHaveURL(/\/orgs\/new\?from=start&kind=enterprise/);
     await expect(page.getByLabel('Organisation name')).toBeVisible();
   });
 });

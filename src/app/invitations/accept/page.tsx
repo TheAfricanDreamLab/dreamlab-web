@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { InvitationActions } from '@/components/directory/invitation-actions';
 import { CenteredCard } from '@/components/auth/shells';
-import { Badge, ButtonLink, LogoMark, Notice } from '@/components/ui/primitives';
+import { Badge, ButtonLink, Notice, OrgMark } from '@/components/ui/primitives';
 import { callGateway, incomingRequest } from '@/lib/gateway';
 import { KIND_LABELS, PERMISSION_LABELS } from '@/lib/labels';
 import { getClaims, getInvite } from '@/lib/session';
@@ -70,7 +70,7 @@ export default async function InvitationPage() {
         <div className="flex items-center gap-4 rounded-[var(--radius-field)] bg-card px-4 py-3 ring-1 ring-line">
           <dt className="w-20 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">Where</dt>
           <dd className="flex flex-1 items-center gap-2 text-[14px] font-medium text-ink">
-            <LogoMark size={22} /> {invite.organization.name}
+            <OrgMark size={22} name={invite.organization.name} /> {invite.organization.name}
           </dd>
         </div>
         <div className="flex items-center gap-4 rounded-[var(--radius-field)] bg-card px-4 py-3 ring-1 ring-line">

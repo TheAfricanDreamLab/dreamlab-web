@@ -15,6 +15,7 @@ export default async function CodeLoginPage({ searchParams }: { searchParams: Pr
   if (pending?.purpose === 'login') {
     return (
       <CenteredCard
+        back={{ href: `/login?next=${encodeURIComponent(next)}`, label: 'sign in' }}
         eyebrow="Sign-in code"
         title="Enter your 6-digit code"
         intro={
@@ -28,7 +29,7 @@ export default async function CodeLoginPage({ searchParams }: { searchParams: Pr
     );
   }
   return (
-    <CenteredCard eyebrow="No password needed" title="We’ll send you a code" intro="Enter the email or phone you signed up with.">
+    <CenteredCard back={{ href: `/login?next=${encodeURIComponent(next)}`, label: 'sign in' }} eyebrow="No password needed" title="We’ll send you a code" intro="Enter the email or phone you signed up with.">
       <RequestCodeForm purpose="login" next={next} />
       <p className="text-center text-[13.5px] text-muted">
         Remembered your password? <TextLink href="/login">Back to sign in</TextLink>

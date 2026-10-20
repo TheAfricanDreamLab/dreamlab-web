@@ -3,21 +3,56 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Badge, cx } from '@/components/ui/primitives';
 import { formatMinutes, LEVEL_LABELS } from '@/lib/learning';
+import { safeImageUrl } from '@/lib/media';
 
 type Cover = CourseSummary['cover'];
 
-/** Course artwork: a gradient between the course's two colours, with its symbol. No image downloads. */
-export function CourseCover({ cover, className, symbolSize = 44, children }: { cover: Cover; className?: string; symbolSize?: number; children?: ReactNode }) {
+/**
+ * Course artwork: the course's photo when it has one, under a wash of its two colours so text on
+ * top stays readable; otherwise the gradient with its symbol. Photos load lazily from allowed hosts only.
+ */
+export function CourseCover({
+  cover,
+  className,
+  symbolSize = 44,
+  showCredit = false,
+  eager = false,
+  children,
+}: {
+  cover: Cover;
+  className?: string;
+  symbolSize?: number;
+  showCredit?: boolean;
+  eager?: boolean;
+  children?: ReactNode;
+}) {
+  const photo = safeImageUrl(cover.imageUrl);
   return (
-    <div
-      className={cx('relative overflow-hidden', className)}
-      style={{ background: `linear-gradient(135deg, ${cover.from} 0%, ${cover.to} 100%)` }}
-    >
-      <span aria-hidden className="absolute -right-6 -top-8 h-32 w-32 rounded-full bg-white/10" />
-      <span aria-hidden className="absolute -bottom-10 left-6 h-24 w-24 rounded-full bg-black/10" />
-      <span aria-hidden style={{ fontSize: symbolSize }} className="absolute bottom-3 right-4 font-display font-bold leading-none text-white/85">
-        {cover.symbol}
-      </span>
+    <div className={cx('relative overflow-hidden', className)} style={{ background: `linear-gradient(135deg, ${cover.from} 0%, ${cover.to} 100%)` }}>
+      {photo ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- remote photo from an allowed host, served as it is */}
+          <img
+            src={photo}
+            alt={cover.imageAlt ?? ''}
+            loading={eager ? 'eager' : 'lazy'}
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <span aria-hidden className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${cover.from}e6 0%, ${cover.from}99 45%, ${cover.to}40 100%)` }} />
+          {showCredit && cover.imageCredit && (
+            <span className="absolute bottom-1.5 right-2.5 z-10 text-[10.5px] text-white/70">{cover.imageCredit}</span>
+          )}
+        </>
+      ) : (
+        <>
+          <span aria-hidden className="absolute -right-6 -top-8 h-32 w-32 rounded-full bg-white/10" />
+          <span aria-hidden className="absolute -bottom-10 left-6 h-24 w-24 rounded-full bg-black/10" />
+          <span aria-hidden style={{ fontSize: symbolSize }} className="absolute bottom-3 right-4 font-display font-bold leading-none text-white/85">
+            {cover.symbol}
+          </span>
+        </>
+      )}
       {children}
     </div>
   );

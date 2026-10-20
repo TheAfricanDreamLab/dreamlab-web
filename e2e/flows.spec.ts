@@ -135,7 +135,8 @@ test.describe('organisations', () => {
 
   test('a learner signs up a company, which is live at once', async ({ page }) => {
     await signUpWithEmail(page, 'Funmi Owner', ownerEmail);
-    await page.goto('/orgs/new');
+    await page.goto('/orgs/start');
+    await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
     await page.getByRole('radio', { name: /A company or team/ }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByLabel('Organisation name').fill(orgName);
@@ -196,7 +197,9 @@ test.describe('organisations', () => {
     const dean = unique('dean');
     const school = `Lagos Academy ${Date.now().toString(36)}`;
     await signUpWithEmail(page, 'Dean Okoro', dean);
-    await page.goto('/orgs/new?kind=institution');
+    await page.goto('/orgs/start?kind=institution');
+    await expect(page.getByRole('heading', { name: 'Set up an organisation?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
     // The type came with the link, so the wizard opens at the name.
     await page.getByLabel('Organisation name').fill(school);
     await expect(page.getByText(/We check new/)).toBeVisible();
@@ -223,5 +226,27 @@ test.describe('organisations', () => {
 
     await page.reload();
     await expect(page.getByRole('radio', { name: /Learner/ })).toBeVisible();
+  });
+});
+
+test.describe('organisation sign-up is deliberate', () => {
+  test('learners see no organisation sign-up prompts, and /orgs/new needs the confirmation first', async ({ page }) => {
+    await page.goto('/signup');
+    await expect(page.locator('a[href^="/orgs/"]')).toHaveCount(0);
+    await expect(page.getByText(/start an organisation|bring your organisation/i)).toHaveCount(0);
+
+    await signUpWithEmail(page, 'Lola Learner', unique('lola'));
+    await expect(page).toHaveURL(/\/app$/);
+    await expect(page.locator('a[href^="/orgs/"]')).toHaveCount(0);
+    await expect(page.getByText(/set up a new organisation/i)).toHaveCount(0);
+    // The space switcher only switches.
+    await page.locator('summary').filter({ hasText: 'Just me' }).click();
+    await expect(page.getByRole('banner').locator('a[href^="/orgs/"]')).toHaveCount(0);
+
+    await page.goto('/orgs/new?kind=enterprise');
+    await expect(page).toHaveURL(/\/orgs\/start\?kind=enterprise$/);
+    await expect(page.getByRole('heading', { name: 'Set up an organisation?' })).toBeVisible();
+    await page.getByRole('link', { name: 'No, take me back' }).click();
+    await expect(page).toHaveURL(/\/app$/);
   });
 });

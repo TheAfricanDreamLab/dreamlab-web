@@ -10,6 +10,8 @@ const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrai
 export const metadata: Metadata = {
   title: { default: 'The African Dream Lab', template: '%s · The African Dream Lab' },
   description: 'A learning management platform born from TADIS, the African Dream Network International Summit. Courses, cohorts and certificates for learners, schools and teams.',
+  // The African Dream Network mark, the same file the public site uses.
+  icons: { icon: [{ url: '/brand/adn-logo.png', type: 'image/png' }], apple: '/brand/adn-logo.png' },
 };
 
 export const viewport: Viewport = { themeColor: '#0a3d29' };

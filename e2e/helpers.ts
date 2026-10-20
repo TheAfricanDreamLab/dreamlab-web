@@ -121,7 +121,8 @@ export function totp(secretBase32: string, offsetSteps = 0): string {
 /** Create a company as a freshly signed-up founder; leaves the page inside the new organisation. */
 export async function createCompany(page: Page, founderName: string, founderEmail: string, name: string): Promise<void> {
   await signUpWithEmail(page, founderName, founderEmail);
-  await page.goto('/orgs/new?kind=enterprise');
+  await page.goto('/orgs/start?kind=enterprise');
+  await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
   await page.getByLabel('Organisation name').fill(name);
   await page.getByRole('button', { name: `Create ${name}` }).click();
   await expect(page).toHaveURL(/\/app\?created=active/);

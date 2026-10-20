@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { switchOrg } from '@/app/actions/auth';
-import { Badge, LogoMark } from '@/components/ui/primitives';
+import { Badge, OrgMark } from '@/components/ui/primitives';
 import { KIND_LABELS } from '@/lib/labels';
 
 interface Option {
@@ -21,7 +20,7 @@ export function OrgSwitcher({ current, options }: { current: { id: string; name:
         className="flex h-11 max-w-[240px] cursor-pointer list-none items-center gap-2 rounded-full bg-card pl-1.5 pr-3 text-ink ring-1 ring-line hover:ring-line-heavy"
         aria-label={`You’re in ${current ? current.name : 'your personal space'}. Switch space`}
       >
-        <LogoMark size={30} className={current ? '' : 'bg-success-tint text-link'} />
+        <OrgMark size={30} name={current?.name ?? ''} personal={!current} />
         <span className="min-w-0 leading-tight">
           <span className="block font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted">You’re in</span>
           <span className="block truncate text-[13.5px] font-semibold">{current ? current.name : 'Just me'}</span>
@@ -50,11 +49,6 @@ export function OrgSwitcher({ current, options }: { current: { id: string; name:
             </button>
           ))}
         </form>
-        <div className="mt-1 border-t border-line pt-1">
-          <Link href="/orgs/new" className="block rounded-lg px-3 py-2 text-[14px] font-semibold text-link hover:bg-success-tint">
-            + Set up a new organisation
-          </Link>
-        </div>
       </div>
     </details>
   );

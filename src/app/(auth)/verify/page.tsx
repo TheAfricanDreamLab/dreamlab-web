@@ -15,6 +15,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
   const isEmail = pending.identifier.includes('@');
   return (
     <CenteredCard
+      back={{ href: `/signup?next=${encodeURIComponent(next)}`, label: 'your details' }}
       eyebrow="Step 2 of 2 · Confirm it’s you"
       title={isEmail ? 'Check your email' : 'Check your messages'}
       intro={

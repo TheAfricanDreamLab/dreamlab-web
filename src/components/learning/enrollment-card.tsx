@@ -14,7 +14,7 @@ export function EnrollmentCard({ e, compact = false }: { e: EnrollmentSummary; c
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-[16.5px] font-bold">
-              <Link href={`/courses/${e.course.slug}`} className="hover:underline">
+              <Link href={`/learn/${e.id}`} className="hover:underline">
                 {e.course.title}
               </Link>
             </h3>
@@ -38,19 +38,20 @@ export function EnrollmentCard({ e, compact = false }: { e: EnrollmentSummary; c
             </span>
           </p>
         )}
-        {e.nextItem ? (
-          <Link
-            href={`/learn/${e.id}/${e.nextItem.id}`}
-            className="inline-flex h-10 items-center rounded-[var(--radius-field)] bg-primary px-4 text-[14px] font-semibold text-white hover:bg-primary-hover"
-            aria-label={`Continue ${e.course.title}`}
-          >
-            Continue <span aria-hidden className="ml-1.5">→</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {e.nextItem && (
+            <Link
+              href={`/learn/${e.id}/${e.nextItem.id}`}
+              className="inline-flex h-10 items-center rounded-[var(--radius-field)] bg-primary px-4 text-[14px] font-semibold text-white hover:bg-primary-hover"
+              aria-label={`Continue ${e.course.title}`}
+            >
+              Continue <span aria-hidden className="ml-1.5">→</span>
+            </Link>
+          )}
+          <Link href={`/learn/${e.id}`} className="inline-flex h-10 items-center text-[14px] font-semibold text-link hover:underline" aria-label={`Course home: ${e.course.title}`}>
+            Course home
           </Link>
-        ) : (
-          <Link href={`/courses/${e.course.slug}`} className="inline-flex h-10 items-center text-[14px] font-semibold text-link hover:underline">
-            Review the course →
-          </Link>
-        )}
+        </div>
       </div>
     </Card>
   );

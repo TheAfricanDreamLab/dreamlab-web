@@ -4,7 +4,6 @@ import type {
   AssignmentSubmission,
   BlockResponse,
   BlockResult,
-  CourseProgress,
   Discussion,
   Enrollment,
   QuizAttempt,
@@ -27,16 +26,15 @@ function itemPath(enrollmentId: string, itemId: string, tail: string): string | 
   return `/v1/learning/enrollments/${enrollmentId}/items/${itemId}/${tail}`;
 }
 
-/** Enrol (idempotent), then open the first item that isn't done. */
+/** Enrol (idempotent), then open the course home. */
 export async function enrol(_: FormState, fd: FormData): Promise<FormState> {
   const slug = str(fd, 'courseSlug');
   if (!SLUG.test(slug)) return { error: 'That course link isn’t right.' };
   if (!(await getClaims())) redirect(`/signup?next=${encodeURIComponent(`/courses/${slug}`)}`);
   const res = await api<Enrollment>('POST', '/v1/learning/enrollments', { courseSlug: slug });
   if (!res.ok) return { error: friendlyError(res.error) };
-  const progress = await api<CourseProgress>('GET', `/v1/learning/courses/${slug}`);
-  const first = progress.ok ? (progress.data.nextItem ?? progress.data.course.modules[0]?.items[0] ?? null) : null;
-  redirect(first ? `/learn/${res.data.id}/${first.id}` : `/courses/${slug}`);
+  // Land on the course home first: orientation, then the learner chooses to start.
+  redirect(`/learn/${res.data.id}`);
 }
 
 /** Answer one interactive block in a lesson. */
