@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
+  adminLogin,
   login,
   requestLoginCode,
   requestPasswordReset,
@@ -211,5 +212,37 @@ export function ResetForm() {
       <SubmitButton pending="Saving…">Save new password</SubmitButton>
       <p className="text-center font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted">This signs you out everywhere else</p>
     </form>
+  );
+}
+
+/** Platform admin sign-in: email and password only. */
+export function AdminLoginForm({ next, banner }: { next: string; banner?: React.ReactNode }) {
+  const [state, action] = useActionState(adminLogin, initial);
+  return (
+    <div className="space-y-5">
+      {banner}
+      <form action={action} className="space-y-4">
+        <input type="hidden" name="next" value={next} />
+        <TextInput label="Email or phone" name="identifier" autoComplete="username" required defaultValue={state.values?.identifier} placeholder="admin@example.com" />
+        <PasswordInput
+          name="password"
+          autoComplete="current-password"
+          required
+          aside={
+            <Link href="/forgot-password" className="text-[12.5px] font-semibold text-link">
+              Forgot?
+            </Link>
+          }
+        />
+        {state.error && <Notice tone="error">{state.error}</Notice>}
+        <SubmitButton pending="Checking…">Sign in to the admin console</SubmitButton>
+      </form>
+      <p className="text-center text-[13px] text-muted">
+        Not a platform admin?{' '}
+        <Link href="/login" className="font-semibold text-link">
+          Sign in here instead
+        </Link>
+      </p>
+    </div>
   );
 }

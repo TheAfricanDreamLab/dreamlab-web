@@ -5,7 +5,7 @@ import type { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { friendlyError, fieldErrors } from '@/lib/errors';
 import { FormState, normaliseIdentifier, PRIVACY_VERSION, safeNext, str, TERMS_VERSION } from '@/lib/forms';
-import { api } from '@/lib/gateway';
+import { api, callGateway, incomingRequest } from '@/lib/gateway';
 import {
   clearMfaChallenge,
   clearPending,
@@ -201,4 +201,33 @@ export async function switchOrg(fd: FormData): Promise<void> {
   const res = await api<TokenResponse>('POST', '/v1/auth/switch-org', { orgId });
   if (res.ok) await saveTokens(res.data);
   redirect(safeNext(str(fd, 'next'), '/app'));
+}
+
+/** Whether an access token belongs to a platform admin (read from its claims; the API re-checks every call). */
+function isPlatformAdminToken(accessToken: string): boolean {
+  try {
+    const payload = JSON.parse(Buffer.from(accessToken.split('.')[1] ?? '', 'base64url').toString('utf8')) as { pla?: boolean };
+    return payload.pla === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Platform admin sign-in (/admin/login). Only platform admins get a session here: anyone else's new
+ * session is ended at once, so this page never signs a learner in. Admins land in the console.
+ */
+export async function adminLogin(_: FormState, fd: FormData): Promise<FormState> {
+  const identifier = normaliseIdentifier(str(fd, 'identifier'));
+  const values = { identifier: str(fd, 'identifier') };
+  const res = await api<SignInResponse>('POST', '/v1/auth/login', { identifier, password: String(fd.get('password') ?? '') });
+  if (!res.ok) return { error: friendlyError(res.error), values };
+  const next = safeNext(str(fd, 'next'), '/app/admin');
+  // With an authenticator app, the second step decides; the console itself refuses non-admins.
+  if (isMfaChallenge(res.data)) return completeSignIn(res.data, next);
+  if (!isPlatformAdminToken(res.data.accessToken)) {
+    await callGateway('POST', '/v1/auth/logout', { body: {}, token: res.data.accessToken, request: await incomingRequest() });
+    return { error: 'This sign-in is for platform admins only. To learn or manage your organisation, sign in on the main sign-in page.', values };
+  }
+  return completeSignIn(res.data, next.startsWith('/app/admin') ? next : '/app/admin');
 }

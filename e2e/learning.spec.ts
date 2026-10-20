@@ -236,3 +236,41 @@ test.describe('ways out', () => {
     await expect(page).toHaveURL(/\/signup/);
   });
 });
+
+test.describe('admin sign-in at /admin/login', () => {
+  test('signed-out visitors to /admin and the console are sent to /admin/login', async ({ page }) => {
+    await page.goto('/admin');
+    await expect(page).toHaveURL(/\/admin\/login$/);
+    await expect(page.getByRole('heading', { name: 'Admin sign-in' })).toBeVisible();
+    await page.goto('/app/admin/users');
+    await expect(page).toHaveURL(/\/admin\/login\?next=%2Fapp%2Fadmin%2Fusers$/);
+  });
+
+  test('a learner cannot sign in there, and is not left signed in', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const email = unique('not-admin');
+    await signUpWithEmail(page, 'Not An Admin', email);
+    await context.clearCookies();
+    await page.goto('/admin/login');
+    await page.getByLabel('Email or phone').fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Sign in to the admin console' }).click();
+    await expect(page.getByText('This sign-in is for platform admins only.')).toBeVisible();
+    await page.goto('/app');
+    await expect(page).toHaveURL(/\/login\?next=%2Fapp$/);
+    await context.close();
+  });
+
+  test('a platform admin signs in and lands in the console', async ({ page }) => {
+    const { email, password } = adminCredentials();
+    await page.goto('/admin/login');
+    await page.getByLabel('Email or phone').fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Sign in to the admin console' }).click();
+    await expect(page).toHaveURL(/\/app\/admin$/);
+    await expect(page.getByRole('heading', { name: 'Platform overview' })).toBeVisible();
+    await page.goto('/admin/login');
+    await expect(page).toHaveURL(/\/app\/admin$/);
+  });
+});
