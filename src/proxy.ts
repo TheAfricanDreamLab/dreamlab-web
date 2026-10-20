@@ -12,7 +12,7 @@ const REFRESH_BEFORE_SECONDS = 60;
 const GATEWAY_URL = process.env.GATEWAY_URL ?? 'http://localhost:3000';
 
 // /courses and /programs are public; the course player needs an account.
-const SIGNED_IN_ONLY = ['/app', '/orgs/new', '/learn'];
+const SIGNED_IN_ONLY = ['/app', '/orgs/new', '/learn', '/admin'];
 const SIGNED_OUT_ONLY = ['/login', '/signup'];
 
 function expiresAt(token: string | undefined): number {
@@ -98,7 +98,15 @@ export async function proxy(request: NextRequest) {
     const kind = request.nextUrl.searchParams.get('kind');
     if (kind) start.searchParams.set('kind', kind);
     response = NextResponse.redirect(start);
-  } else if (!signedIn && SIGNED_IN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
+  } else if (!signedIn && (path === '/admin' || path === '/app/admin' || path.startsWith('/app/admin/'))) {
+    // The admin console has its own sign-in page.
+    const login = new URL('/admin/login', request.url);
+    if (path !== '/admin') login.searchParams.set('next', path + request.nextUrl.search);
+    response = NextResponse.redirect(login);
+  } else if (signedIn && path === '/admin/login') {
+    // Already signed in: the console decides (it sends anyone who isn't a platform admin to /app).
+    response = NextResponse.redirect(new URL('/app/admin', request.url));
+  } else if (!signedIn && path !== '/admin/login' && SIGNED_IN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
     const login = new URL('/login', request.url);
     login.searchParams.set('next', path + request.nextUrl.search);
     response = NextResponse.redirect(login);
