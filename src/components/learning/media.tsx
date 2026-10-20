@@ -13,7 +13,9 @@ export function VideoFacade({ video, caption, className }: { video: VideoRef; ca
   const [playing, setPlaying] = useState(false);
   const thumb = videoThumbnail(video.videoId);
   const src = videoEmbedUrl(video);
-  const duration = formatDuration(video.endS && video.startS !== undefined ? video.endS - video.startS : video.durationS);
+  // A clip runs from startS (or 0) to endS; show a length only when it is positive.
+  const clip = video.endS ? video.endS - (video.startS ?? 0) : video.durationS;
+  const duration = clip && clip > 0 ? formatDuration(clip) : null;
   if (!src) return null;
   return (
     <figure className={cx('space-y-2', className)} data-media="video">

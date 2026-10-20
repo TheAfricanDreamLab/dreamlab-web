@@ -48,7 +48,7 @@ export function PublicFooter() {
         <Link href="/courses" className="hover:text-ink">
           Courses
         </Link>
-        <a href="/organisations" className="hover:text-ink">
+        <a href="/orgs/start" className="hover:text-ink">
           For organisations
         </a>
         <Link href="/terms" className="hover:text-ink">
