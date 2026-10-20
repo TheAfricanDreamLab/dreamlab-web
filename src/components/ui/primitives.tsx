@@ -9,22 +9,55 @@ export function Eyebrow({ children, tone = 'muted', className }: { children: Rea
   return <p className={cx('font-mono text-[10.5px] uppercase tracking-[0.14em]', color, className)}>{children}</p>;
 }
 
+/**
+ * The African Dream Network mark on a white tile (TADIS style: one squared corner), matching the
+ * public site. Decorative: the link or text around it carries the name.
+ */
 export function LogoMark({ size = 40, className }: { size?: number; className?: string }) {
+  const h = Math.round(size * 0.775);
+  const w = Math.round((h * 123) / 128);
   return (
     <span
       aria-hidden
-      style={{ width: size, height: size, fontSize: size * 0.42 }}
-      className={cx('inline-grid place-items-center rounded-[10px] bg-gold font-display font-extrabold text-forest', className)}
+      style={{ width: size, height: size }}
+      className={cx('inline-grid shrink-0 place-items-center rounded-[12px_12px_12px_3px] bg-white shadow-[0_2px_8px_rgba(10,61,41,0.12)] ring-1 ring-line', className)}
     >
-      D
+      {/* eslint-disable-next-line @next/next/no-img-element -- a 6 KB PNG, the only size there is */}
+      <img src="/brand/adn-logo.png" alt="" width={w} height={h} decoding="async" />
     </span>
   );
 }
 
-export function Brand({ subtitle, light = false }: { subtitle?: string; light?: boolean }) {
+/** An organisation's avatar: its initials (or "Me" for the personal space). Not the platform logo. */
+export function OrgMark({ name, size = 30, personal = false, className }: { name: string; size?: number; personal?: boolean; className?: string }) {
+  const letters = personal
+    ? 'Me'
+    : name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0]!.toUpperCase())
+        .join('');
   return (
-    <Link href="/" className="inline-flex items-center gap-3">
-      <LogoMark size={36} />
+    <span
+      aria-hidden
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+      className={cx(
+        'inline-grid shrink-0 place-items-center rounded-[10px] font-display font-bold ring-1',
+        personal ? 'bg-success-tint text-link ring-success-line' : 'bg-gold-tint text-gold-ink ring-gold-line',
+        className,
+      )}
+    >
+      {letters}
+    </span>
+  );
+}
+
+/** The logo. Always a link home: the site for visitors, the signed-in space (/app) for members. */
+export function Brand({ subtitle, light = false, href = '/' }: { subtitle?: string; light?: boolean; href?: string }) {
+  return (
+    <Link href={href} aria-label="The African Dream Lab: home" className="inline-flex items-center gap-3">
+      <LogoMark size={40} />
       <span className="leading-tight">
         <span className={cx('block font-display text-[15px] font-bold', light ? 'text-white' : 'text-ink')}>The African Dream Lab</span>
         {subtitle && <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-gold">{subtitle}</span>}

@@ -9,6 +9,7 @@ import { DiscussionPostForm, ReplyForm } from '@/components/learning/discussion-
 import { LessonPlayer } from '@/components/learning/lesson-player';
 import { QuizPlayer } from '@/components/learning/quiz-player';
 import { RichText } from '@/components/learning/rich-text';
+import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, cx, Eyebrow, LogoMark, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -34,8 +35,8 @@ export default async function PlayerPage({ params }: Params) {
     return (
       <main className="mx-auto max-w-[680px] space-y-4 px-4 py-16">
         <Notice tone="error">{friendlyError(res.error)}</Notice>
-        <Link href="/app/learning" className="text-[14px] font-semibold text-link hover:underline">
-          ← Back to my learning
+        <Link href={`/learn/${enrollmentId}`} className="text-[14px] font-semibold text-link hover:underline">
+          ← Back to the course home
         </Link>
       </main>
     );
@@ -52,12 +53,12 @@ export default async function PlayerPage({ params }: Params) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-line bg-page/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
-          <Link href={`/courses/${course.slug}`} className="flex min-w-0 items-center gap-2.5 rounded-lg pr-2 hover:bg-surface" aria-label={`Back to ${course.title}`}>
-            <LogoMark size={30} />
+          <Link href={`/learn/${enrollmentId}`} className="flex min-w-0 items-center gap-2.5 rounded-lg pr-2 hover:bg-surface" aria-label={`Back to the course home of ${course.title}`}>
+            <LogoMark size={36} />
             <span className="min-w-0">
               <span className="block truncate font-display text-[14px] font-bold text-ink">{course.title}</span>
               <span className="block text-[11.5px] text-muted">
-                <span aria-hidden>←</span> Course page
+                <span aria-hidden>←</span> Course home
               </span>
             </span>
           </Link>
@@ -65,6 +66,17 @@ export default async function PlayerPage({ params }: Params) {
             <ProgressBar pct={enrollment.progressPct} label={`Course progress: ${enrollment.progressPct}%`} />
             <span className="font-mono text-[11px] text-muted">{enrollment.progressPct}%</span>
           </div>
+          <Link
+            href={`/learn/${enrollmentId}`}
+            aria-label="Exit to course home"
+            data-nav="exit"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-card px-3 text-[13px] font-semibold text-ink ring-1 ring-line-strong hover:ring-line-heavy"
+          >
+            <span aria-hidden className="text-[17px] leading-none">
+              ×
+            </span>
+            <span className="hidden sm:inline">Exit</span>
+          </Link>
         </div>
         {outline.ok && (
           <details className="group mx-auto max-w-5xl px-4 pb-2">
@@ -78,6 +90,9 @@ export default async function PlayerPage({ params }: Params) {
               </span>
             </summary>
             <nav aria-label="Course outline" className="mt-2 max-h-[65vh] space-y-4 overflow-y-auto rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-panel)] ring-1 ring-line">
+              <Link href={`/learn/${enrollmentId}`} className="flex items-center gap-2 rounded-lg px-2 py-2 text-[14px] font-semibold text-link hover:bg-success-tint">
+                <span aria-hidden>⌂</span> Course home
+              </Link>
               {outline.data.course.modules.map((m, mi) => (
                 <div key={m.id} className="space-y-1">
                   <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted">
@@ -108,6 +123,13 @@ export default async function PlayerPage({ params }: Params) {
 
       <main className="mx-auto max-w-[680px] space-y-6 px-4 pb-16 pt-6">
         <header className="space-y-2">
+          <Breadcrumbs
+            items={[
+              { label: course.title, href: `/learn/${enrollmentId}` },
+              { label: `Module ${moduleNo}`, href: `/learn/${enrollmentId}` },
+              { label: item.title },
+            ]}
+          />
           <Eyebrow tone="green">
             {module.title} · {ITEM_LABELS[item.type]} · {item.minutes} min
           </Eyebrow>
@@ -124,6 +146,8 @@ export default async function PlayerPage({ params }: Params) {
             enrollmentId={enrollmentId}
             itemId={itemId}
             courseSlug={course.slug}
+            title={item.title}
+            minutes={item.minutes}
             steps={content.steps}
             initial={view.state}
             completed={view.status === 'completed'}
@@ -257,8 +281,8 @@ export default async function PlayerPage({ params }: Params) {
               <span className="block truncate text-[13.5px] font-semibold text-ink">{next.title}</span>
             </Link>
           ) : (
-            <ButtonLink href={`/courses/${course.slug}`} variant="secondary" className="h-auto py-3 text-[13.5px]">
-              Back to the course
+            <ButtonLink href={`/learn/${enrollmentId}`} variant="secondary" className="h-auto py-3 text-[13.5px]">
+              Back to course home
             </ButtonLink>
           )}
         </nav>

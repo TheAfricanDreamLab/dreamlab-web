@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { BackLink } from '@/components/ui/nav';
 import { Brand, Eyebrow } from '@/components/ui/primitives';
 import { currentTenant } from '@/lib/tenant';
 
@@ -8,6 +9,9 @@ const PILLARS = [
   { value: 'Lead', label: 'Certificates & network' },
 ];
 
+type Back = { href: string; label: string };
+const HOME: Back = { href: '/', label: 'home' };
+
 /** Split screen from the design: forest panel with the promise on the left, the form on the right. */
 export async function AuthShell({
   eyebrow,
@@ -15,6 +19,7 @@ export async function AuthShell({
   intro,
   panelTitle = 'Dream. Lead. Transform.',
   panelText = 'The learning platform born from TADIS, the African Dream Network International Summit. Courses, cohorts and mentors, for a self-sustaining continent.',
+  back = HOME,
   children,
 }: {
   eyebrow: string;
@@ -22,6 +27,8 @@ export async function AuthShell({
   intro?: ReactNode;
   panelTitle?: string;
   panelText?: string;
+  /** The way out, shown above the heading. */
+  back?: Back;
   children: ReactNode;
 }) {
   const tenant = await currentTenant();
@@ -53,6 +60,7 @@ export async function AuthShell({
             <div className="lg:hidden">
               <Brand subtitle={tenant ? tenant.name : undefined} />
             </div>
+            <BackLink href={back.href} label={back.label} className="-ml-0.5" />
             <header className="space-y-2">
               <Eyebrow>{tenant ? `${eyebrow} · ${tenant.name}` : eyebrow}</Eyebrow>
               <h1 className="text-[30px] font-extrabold leading-tight">{title}</h1>
@@ -74,6 +82,7 @@ export function CenteredCard({
   intro,
   children,
   width = 'narrow',
+  back = HOME,
 }: {
   eyebrow?: string;
   eyebrowTone?: 'muted' | 'gold' | 'green' | 'danger';
@@ -81,11 +90,16 @@ export function CenteredCard({
   intro?: ReactNode;
   children: ReactNode;
   width?: 'narrow' | 'wide';
+  /** The way out: home by default, or the previous step. */
+  back?: Back;
 }) {
   return (
     <main className="grid min-h-dvh place-items-center bg-[radial-gradient(80%_60%_at_20%_0%,#e6f4ec_0%,transparent_60%),radial-gradient(60%_50%_at_100%_100%,#e2f1f2_0%,transparent_60%)] px-4 py-10">
       <div className={`w-full ${width === 'wide' ? 'max-w-[520px]' : 'max-w-[440px]'} animate-rise space-y-6 rounded-[var(--radius-panel)] bg-surface p-7 shadow-[var(--shadow-panel)] ring-1 ring-line sm:p-9`}>
-        <Brand />
+        <div className="flex flex-col items-start gap-3">
+          <Brand />
+          <BackLink href={back.href} label={back.label} className="-ml-0.5" />
+        </div>
         <header className="space-y-2">
           {eyebrow && <Eyebrow tone={eyebrowTone}>{eyebrow}</Eyebrow>}
           <h1 className="text-[28px] font-extrabold leading-tight">{title}</h1>

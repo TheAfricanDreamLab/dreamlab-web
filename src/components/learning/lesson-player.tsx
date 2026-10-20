@@ -16,6 +16,8 @@ export function LessonPlayer({
   enrollmentId,
   itemId,
   courseSlug,
+  title,
+  minutes,
   steps,
   initial,
   completed,
@@ -24,6 +26,8 @@ export function LessonPlayer({
   enrollmentId: string;
   itemId: string;
   courseSlug: string;
+  title: string;
+  minutes: number;
   steps: LessonStep[];
   initial: ItemState;
   completed: boolean;
@@ -42,6 +46,7 @@ export function LessonPlayer({
   const step = steps[current]!;
   const open = step.blocks.filter(isInteractive).filter((b) => !isSettled(results[b.id]));
   const canContinue = open.length === 0;
+  const questions = steps.reduce((n, s) => n + s.blocks.filter(isInteractive).length, 0);
 
   const go = (index: number) => {
     setCurrent(index);
@@ -79,7 +84,7 @@ export function LessonPlayer({
     }
     if (res.data.courseCompleted) router.push(`/courses/${courseSlug}?completed=1`);
     else if (next) router.push(`/learn/${enrollmentId}/${next.id}`);
-    else router.push(`/courses/${courseSlug}`);
+    else router.push(`/learn/${enrollmentId}`);
   };
 
   return (
@@ -107,6 +112,22 @@ export function LessonPlayer({
           {step.title ? ` · ${step.title}` : ''}
         </p>
       </div>
+
+      {current === 0 && (
+        <section aria-label="About this lesson" className="flex items-start gap-3 rounded-[var(--radius-card)] bg-surface p-4 ring-1 ring-line">
+          <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-success-tint font-display text-[15px] font-bold text-link ring-1 ring-success-line">
+            ✦
+          </span>
+          <div className="space-y-0.5">
+            <p className="text-[14.5px] font-semibold text-ink">{title}</p>
+            <p className="text-[13px] text-muted">
+              {minutes} min · {steps.length} {steps.length === 1 ? 'step' : 'steps'}
+              {questions > 0 && ` · ${questions} ${questions === 1 ? 'question' : 'questions'} to try in this lesson`}
+            </p>
+            <p className="text-[13px] leading-relaxed text-body">Read and watch first, then have a go. A wrong answer is fine: you’ll see why, and try again.</p>
+          </div>
+        </section>
+      )}
 
       <div key={step.id} className="animate-rise space-y-6">
         {step.title && <h2 className="text-[24px] font-extrabold leading-tight">{step.title}</h2>}

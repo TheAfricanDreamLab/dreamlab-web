@@ -1,10 +1,11 @@
 import type { Block } from '@dreamlab/contracts';
 import { cx } from '@/components/ui/primitives';
+import { ImageFigure, VideoFacade } from './media';
 import { RichText } from './rich-text';
 
 /* Blocks that teach (no answer needed). Plain components: usable from the client lesson player. */
 
-type Teaching = Extract<Block, { type: 'text' | 'callout' | 'quote' | 'example' | 'key_terms' | 'reveal' | 'framework' }>;
+type Teaching = Extract<Block, { type: 'text' | 'callout' | 'quote' | 'example' | 'key_terms' | 'reveal' | 'framework' | 'video' | 'image' }>;
 
 const CALLOUTS = {
   insight: { label: 'Key idea', icon: '✦', box: 'bg-success-tint ring-success-line', badge: 'bg-primary text-white', title: 'text-forest' },
@@ -14,7 +15,7 @@ const CALLOUTS = {
   context: { label: 'In context', icon: '◎', box: 'bg-[#f3eefa] ring-[#e0d3f0]', badge: 'bg-[#6b4aa0] text-white', title: 'text-[#46306b]' },
 } as const;
 
-export const isTeachingBlock = (b: Block): b is Teaching => ['text', 'callout', 'quote', 'example', 'key_terms', 'reveal', 'framework'].includes(b.type);
+export const isTeachingBlock = (b: Block): b is Teaching => ['text', 'callout', 'quote', 'example', 'key_terms', 'reveal', 'framework', 'video', 'image'].includes(b.type);
 
 export function TeachingBlock({ block }: { block: Teaching }) {
   switch (block.type) {
@@ -82,6 +83,10 @@ export function TeachingBlock({ block }: { block: Teaching }) {
           </div>
         </details>
       );
+    case 'video':
+      return <VideoFacade video={block} caption={block.caption} />;
+    case 'image':
+      return <ImageFigure url={block.url} alt={block.alt} caption={block.caption} credit={block.credit} />;
     case 'framework':
       return (
         <section className="space-y-4 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">

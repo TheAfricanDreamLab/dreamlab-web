@@ -10,7 +10,7 @@ export default async function ResetPasswordPage() {
   const pending = await getPending();
   if (!pending || pending.purpose !== 'reset') {
     return (
-      <CenteredCard eyebrow="Code expired" eyebrowTone="danger" title="This reset has expired" intro="Reset codes last 10 minutes and work once.">
+      <CenteredCard back={{ href: '/login', label: 'sign in' }} eyebrow="Code expired" eyebrowTone="danger" title="This reset has expired" intro="Reset codes last 10 minutes and work once.">
         <Notice tone="error">Your password has not changed. Nothing on your account was touched.</Notice>
         <ButtonLink href="/forgot-password" className="w-full">
           Send me a new code
@@ -20,6 +20,7 @@ export default async function ResetPasswordPage() {
   }
   return (
     <CenteredCard
+      back={{ href: '/forgot-password', label: 'the previous step' }}
       eyebrow="Reset password"
       title="Choose a new password"
       intro={

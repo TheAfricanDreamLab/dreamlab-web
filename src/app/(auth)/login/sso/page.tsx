@@ -12,6 +12,7 @@ export default async function SsoPage({ searchParams }: { searchParams: Promise<
   const next = safeNext(sp.next);
   return (
     <CenteredCard
+      back={{ href: `/login?next=${encodeURIComponent(next)}`, label: 'sign in' }}
       eyebrow="Single sign-on"
       eyebrowTone="green"
       title="Sign in with your organisation"

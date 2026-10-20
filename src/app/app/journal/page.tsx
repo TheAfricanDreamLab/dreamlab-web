@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BackLink } from '@/components/ui/nav';
 import { ButtonLink, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -21,6 +22,7 @@ export default async function JournalPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <header className="space-y-1">
+        <BackLink href="/app/learning" label="My learning" className="-ml-0.5 mb-1" />
         <Eyebrow tone="gold">Only you can see this</Eyebrow>
         <h1 className="text-[30px] font-extrabold">My journal</h1>
         <p className="text-[14.5px] text-muted">Every reflection you write in a lesson lands here, so you can see how your thinking grows.</p>

@@ -1,11 +1,11 @@
 import type { ProgramDetail } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { CourseCard, CourseCover } from '@/components/learning/course-ui';
 import { RichText } from '@/components/learning/rich-text';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
+import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -53,14 +53,9 @@ export default async function ProgramPage({ params }: Params) {
     <div className="min-h-dvh">
       <PublicHeader next={here} />
       <main>
-        <CourseCover cover={p.cover} symbolSize={140}>
+        <CourseCover cover={p.cover} symbolSize={140} showCredit eager>
           <div className="relative mx-auto max-w-6xl space-y-4 px-4 py-12 sm:px-6 sm:py-16">
-            <nav aria-label="Breadcrumb" className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/75">
-              <Link href="/courses" className="hover:text-white">
-                Courses
-              </Link>{' '}
-              / Programme
-            </nav>
+            <Breadcrumbs tone="light" items={[{ label: 'Courses', href: '/courses' }, { label: p.title }]} />
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
               {PROGRAM_TYPE_LABELS[p.programType]} · {DELIVERY_LABELS[p.deliveryMode]}
             </p>

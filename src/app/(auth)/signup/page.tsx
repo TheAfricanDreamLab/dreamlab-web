@@ -8,8 +8,8 @@ export const metadata: Metadata = { title: 'Create your account' };
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const next = safeNext((await searchParams).next);
-  // Coming from "Bring your organisation": the account comes first, then the organisation.
-  const forOrg = next.startsWith('/orgs/new');
+  // Coming from the organisations route (/orgs/start): the account comes first, then the organisation.
+  const forOrg = next.startsWith('/orgs/');
   return (
     <AuthShell
       eyebrow={forOrg ? 'Step 1 of 3 · Your own account' : 'Step 1 of 2 · Free to start'}
@@ -19,7 +19,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       panelText={
         forOrg
           ? 'Every organisation is run by people with their own accounts. Create yours, confirm it, then name your organisation. You’ll be its admin.'
-          : 'You don’t need a school or an employer to begin. Create an account, and you can join or start an organisation any time.'
+          : 'You don’t need a school or an employer to begin. Create an account and start learning. If your school or team uses Dream Lab, they can invite you.'
       }
     >
       {forOrg ? (

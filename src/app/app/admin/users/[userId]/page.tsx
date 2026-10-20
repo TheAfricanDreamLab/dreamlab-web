@@ -1,8 +1,8 @@
 import type { PlatformUserDetail } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { UserStatusForm } from '@/components/admin/admin-forms';
+import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -23,9 +23,7 @@ export default async function PlatformUserPage({ params }: { params: Promise<{ u
 
   return (
     <div className="space-y-6">
-      <Link href="/app/admin/users" className="text-[13.5px] font-semibold text-link hover:underline">
-        ← All people
-      </Link>
+      <BackLink href="/app/admin/users" label="People" className="-ml-0.5" />
       {!res.ok ? (
         <Notice tone="error">{friendlyError(res.error)}</Notice>
       ) : (

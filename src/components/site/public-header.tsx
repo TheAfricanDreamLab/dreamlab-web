@@ -10,7 +10,7 @@ export async function PublicHeader({ next }: { next?: string }) {
   return (
     <header className="border-b border-line bg-page/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-        <Brand />
+        <Brand href={signedIn ? '/app' : '/'} />
         <nav className="flex items-center gap-1 text-[14px] font-semibold sm:gap-4" aria-label="Site">
           <Link href="/courses" className="px-2 text-body hover:text-ink">
             Courses
@@ -48,6 +48,9 @@ export function PublicFooter() {
         <Link href="/courses" className="hover:text-ink">
           Courses
         </Link>
+        <a href="/organisations" className="hover:text-ink">
+          For organisations
+        </a>
         <Link href="/terms" className="hover:text-ink">
           Terms
         </Link>

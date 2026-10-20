@@ -5,8 +5,10 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { CourseCover, ItemIcon, ProgressBar, StatusTick } from '@/components/learning/course-ui';
 import { EnrolForm } from '@/components/learning/enrol-form';
+import { VideoFacade } from '@/components/learning/media';
 import { RichText } from '@/components/learning/rich-text';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
+import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api, type ApiResult } from '@/lib/gateway';
@@ -22,7 +24,7 @@ const loadCourse = cache(async (slug: string): Promise<ApiResult<CourseProgress>
   if (res.ok || res.status === 404) return res;
   const plain = await api<CourseDetail>('GET', `/v1/catalog/courses/${slug}`);
   if (!plain.ok) return res;
-  return { ok: true, status: 200, data: { course: plain.data, enrollment: null, itemStatus: {}, nextItem: null, learnerCount: 0 } };
+  return { ok: true, status: 200, data: { course: { ...plain.data, trailer: plain.data.trailer ?? null }, enrollment: null, itemStatus: {}, nextItem: null, learnerCount: 0 } };
 });
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -70,15 +72,16 @@ export default async function CoursePage({ params, searchParams }: Params) {
         </span>
       </div>
       <ProgressBar pct={enrollment.progressPct} label={`Course progress: ${enrollment.progressPct}%`} />
-      {nextItem ? (
-        <ButtonLink href={`/learn/${enrollment.id}/${nextItem.id}`} className="w-full">
-          <span className="truncate">Continue: {nextItem.title}</span>
+      <ButtonLink href={`/learn/${enrollment.id}`} className="w-full">
+        Go to course home
+      </ButtonLink>
+      {nextItem && (
+        <ButtonLink href={`/learn/${enrollment.id}/${nextItem.id}`} variant="secondary" className="w-full">
+          <span className="truncate">
+            {enrollment.completedItems > 0 ? 'Continue' : 'Start'}: {nextItem.title}
+          </span>
         </ButtonLink>
-      ) : items[0] ? (
-        <ButtonLink href={`/learn/${enrollment.id}/${items[0].id}`} variant="secondary" className="w-full">
-          Review the course
-        </ButtonLink>
-      ) : null}
+      )}
     </div>
   ) : claims ? (
     <EnrolForm courseSlug={slug} />
@@ -92,21 +95,16 @@ export default async function CoursePage({ params, searchParams }: Params) {
     <div className="min-h-dvh">
       <PublicHeader next={here} />
       <main className="pb-6">
-        <CourseCover cover={course.cover} symbolSize={120} className="text-white">
+        <CourseCover cover={course.cover} symbolSize={120} className="text-white" showCredit eager>
           <div className="relative mx-auto max-w-6xl space-y-4 px-4 py-10 sm:px-6 sm:py-14">
-            <nav aria-label="Breadcrumb" className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/75">
-              <Link href="/courses" className="hover:text-white">
-                Courses
-              </Link>
-              {course.programs[0] && (
-                <>
-                  {' / '}
-                  <Link href={`/programs/${course.programs[0].slug}`} className="hover:text-white">
-                    {course.programs[0].title}
-                  </Link>
-                </>
-              )}
-            </nav>
+            <Breadcrumbs
+              tone="light"
+              items={[
+                { label: 'Courses', href: '/courses' },
+                ...(course.programs[0] ? [{ label: course.programs[0].title, href: `/programs/${course.programs[0].slug}` }] : []),
+                { label: course.title },
+              ]}
+            />
             {comingSoon && <Badge tone="gold">Coming soon</Badge>}
             <h1 className="max-w-3xl text-[36px] font-extrabold leading-[1.05] text-white sm:text-[48px]">{course.title}</h1>
             <p className="max-w-2xl text-[16.5px] leading-relaxed text-white/85">{course.subtitle}</p>
@@ -146,6 +144,15 @@ export default async function CoursePage({ params, searchParams }: Params) {
                 </div>
               ))}
             </dl>
+
+            {course.trailer && (
+              <section className="space-y-3" aria-labelledby="trailer">
+                <h2 id="trailer" className="text-[22px] font-bold">
+                  Watch the introduction
+                </h2>
+                <VideoFacade video={course.trailer} />
+              </section>
+            )}
 
             <section className="space-y-3" aria-labelledby="outcomes">
               <h2 id="outcomes" className="text-[22px] font-bold">

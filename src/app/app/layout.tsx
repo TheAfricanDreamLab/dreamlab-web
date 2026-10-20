@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-line bg-page/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-          <Brand />
+          <Brand href="/app" />
           <div className="ml-auto flex items-center gap-2">
             <OrgSwitcher
               current={active ? { id: active.org.id, name: active.org.name, status: active.org.status } : null}
