@@ -10,7 +10,8 @@ export type Me = z.infer<typeof MeSchema>;
 /** The signed-in user, once per request. Sends signed-out visitors to sign in. */
 export const getMe = cache(async (): Promise<Me> => {
   const res = await api<Me>('GET', '/v1/me');
-  if (!res.ok) redirect('/login');
+  // The session may have ended elsewhere (signed out everywhere, suspended): clear it, then sign in.
+  if (!res.ok) redirect(res.status === 401 ? '/auth/expired' : '/login');
   return res.data;
 });
 
