@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -68,7 +69,18 @@ export async function enterCode(page: Page, code: string): Promise<void> {
   await expect(page.getByLabel('Digit 6')).toHaveValue(code[5]!);
 }
 
+/**
+ * Local runs only (E2E_RESET_RATE_LIMITS=1): clear IAM's per-network rate limits in the local Redis,
+ * so a full suite (more sign-ups than the 20-per-hour network limit) can run from one machine.
+ */
+export function resetRateLimits(): void {
+  if (process.env.E2E_RESET_RATE_LIMITS !== '1') return;
+  const compose = join(__dirname, '..', '..', 'dreamlab-api', 'docker-compose.yml');
+  execFileSync('docker', ['compose', '-f', compose, 'exec', '-T', 'redis', 'sh', '-c', "redis-cli --scan --pattern 'iam:rl:*' | xargs -r -n 50 redis-cli del"], { stdio: 'ignore' });
+}
+
 export async function signUpWithEmail(page: Page, name: string, email: string, password = PASSWORD, path = '/signup'): Promise<void> {
+  resetRateLimits();
   await page.goto(path);
   await page.getByLabel('Your full name').fill(name);
   await page.getByLabel('Email', { exact: true }).fill(email);
