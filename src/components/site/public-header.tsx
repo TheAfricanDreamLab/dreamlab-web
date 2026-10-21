@@ -23,6 +23,11 @@ export async function PublicHeader({ next }: { next?: string }) {
               <ButtonLink href="/app" className="h-10 px-4 text-[14px]">
                 My space
               </ButtonLink>
+              <form action="/auth/logout" method="post">
+                <button type="submit" className="px-2 text-body hover:text-ink">
+                  Sign out
+                </button>
+              </form>
             </>
           ) : (
             <>

@@ -5,20 +5,36 @@ import { cookies } from 'next/headers';
 /**
  * Tokens never reach browser JavaScript: they live in httpOnly cookies set by Server Actions,
  * and every API call is made by the Next.js server on the user's behalf.
+ *
+ * One session covers the platform site and every organisation's site: the cookies belong to
+ * SESSION_COOKIE_DOMAIN (e.g. learn.theafricandreamlab.com, so <org>.learn.theafricandreamlab.com
+ * shares them). Each environment has its own cookie names (SESSION_COOKIE_PREFIX), because staging
+ * lives under the production domain and must never read production's cookies. Read at runtime, so
+ * one image serves every environment. Unset in development: cookies stay on the exact host.
  */
-export const ACCESS_COOKIE = 'dl_at';
-export const REFRESH_COOKIE = 'dl_rt';
+const PREFIX = process.env.SESSION_COOKIE_PREFIX || 'dl';
+const DOMAIN = process.env.SESSION_COOKIE_DOMAIN || undefined;
+
+export const ACCESS_COOKIE = `${PREFIX}_at`;
+export const REFRESH_COOKIE = `${PREFIX}_rt`;
 /** Identifier waiting for an OTP (sign-up verification, code sign-in, reset). */
-export const PENDING_COOKIE = 'dl_pending';
+export const PENDING_COOKIE = `${PREFIX}_pending`;
 /** Invitation token kept across sign-in / sign-up so the invitation can be accepted afterwards. */
-export const INVITE_COOKIE = 'dl_invite';
+export const INVITE_COOKIE = `${PREFIX}_invite`;
 /** A password or code passed; the account has an authenticator app, so this waits for its code. */
-export const MFA_COOKIE = 'dl_mfa';
+export const MFA_COOKIE = `${PREFIX}_mfa`;
 /** Single sign-on in progress: compared when the identity provider sends the browser back. */
-export const SSO_COOKIE = 'dl_sso';
+export const SSO_COOKIE = `${PREFIX}_sso`;
 
 const secure = process.env.NODE_ENV === 'production';
-const base = { httpOnly: true, secure, sameSite: 'lax' as const, path: '/' };
+const base = { httpOnly: true, secure, sameSite: 'lax' as const, path: '/', ...(DOMAIN ? { domain: DOMAIN } : {}) };
+
+/** Remove a cookie everywhere it may live: the shared domain, and this host alone (older sessions). */
+async function removeCookie(name: string): Promise<void> {
+  const jar = await cookies();
+  jar.set(name, '', { ...base, maxAge: 0 });
+  if (DOMAIN) jar.set({ name, value: '', path: '/', maxAge: 0 });
+}
 
 export interface AccessClaims {
   sub: string;
@@ -63,9 +79,9 @@ export async function saveTokens(tokens: TokenResponse): Promise<void> {
 }
 
 export async function clearTokens(): Promise<void> {
-  const jar = await cookies();
-  jar.delete(ACCESS_COOKIE);
-  jar.delete(REFRESH_COOKIE);
+  await removeCookie(ACCESS_COOKIE);
+  await removeCookie(REFRESH_COOKIE);
+  await removeCookie(MFA_COOKIE);
 }
 
 export async function setPending(identifier: string, purpose: 'verify' | 'login' | 'reset'): Promise<void> {
@@ -83,7 +99,7 @@ export async function getPending(): Promise<{ identifier: string; purpose: 'veri
 }
 
 export async function clearPending(): Promise<void> {
-  (await cookies()).delete(PENDING_COOKIE);
+  await removeCookie(PENDING_COOKIE);
 }
 
 export async function setInvite(token: string): Promise<void> {
@@ -95,7 +111,7 @@ export async function getInvite(): Promise<string | null> {
 }
 
 export async function clearInvite(): Promise<void> {
-  (await cookies()).delete(INVITE_COOKIE);
+  await removeCookie(INVITE_COOKIE);
 }
 
 export async function setMfaChallenge(mfaToken: string, expiresIn: number): Promise<void> {
@@ -107,7 +123,7 @@ export async function getMfaChallenge(): Promise<string | null> {
 }
 
 export async function clearMfaChallenge(): Promise<void> {
-  (await cookies()).delete(MFA_COOKIE);
+  await removeCookie(MFA_COOKIE);
 }
 
 /**
@@ -121,7 +137,7 @@ export async function setSsoState(state: string, expiresIn: number, mode: 'signi
 export async function takeSsoState(): Promise<{ state: string; mode: 'signin' | 'test' } | null> {
   const jar = await cookies();
   const raw = jar.get(SSO_COOKIE)?.value;
-  jar.delete(SSO_COOKIE);
+  await removeCookie(SSO_COOKIE);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as { state: string; mode: 'signin' | 'test' };
