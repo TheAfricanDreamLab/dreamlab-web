@@ -9,7 +9,6 @@ import { api, callGateway, incomingRequest } from '@/lib/gateway';
 import {
   clearMfaChallenge,
   clearPending,
-  clearTokens,
   getInvite,
   getMfaChallenge,
   getPending,
@@ -190,11 +189,6 @@ export async function googleSignIn(_: FormState, fd: FormData): Promise<FormStat
   return completeSignIn(res.data, str(fd, 'next'));
 }
 
-export async function logout(): Promise<void> {
-  await api('POST', '/v1/auth/logout', {});
-  await clearTokens();
-  redirect('/');
-}
 
 export async function switchOrg(fd: FormData): Promise<void> {
   const orgId = str(fd, 'orgId') || null;

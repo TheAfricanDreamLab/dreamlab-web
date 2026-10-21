@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { InvitationActions } from '@/components/directory/invitation-actions';
 import { CenteredCard } from '@/components/auth/shells';
 import { Badge, ButtonLink, Notice, OrgMark } from '@/components/ui/primitives';
-import { callGateway, incomingRequest } from '@/lib/gateway';
+import { api } from '@/lib/gateway';
 import { KIND_LABELS, PERMISSION_LABELS } from '@/lib/labels';
 import { getClaims, getInvite } from '@/lib/session';
 
@@ -16,6 +16,8 @@ interface Preview {
   destination: string;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
   expiresAt: string;
+  accountExists?: boolean;
+  matchesSignedInUser?: boolean | null;
 }
 
 export default async function InvitationPage() {
@@ -30,7 +32,8 @@ export default async function InvitationPage() {
     );
   }
 
-  const res = await callGateway<Preview>('POST', '/v1/invitations/preview', { body: { token }, request: await incomingRequest() });
+  // Sent with this browser's session (if any), so the API can say whether the invitation is for whoever is signed in.
+  const res = await api<Preview>('POST', '/v1/invitations/preview', { token });
   if (!res.ok || res.data.status !== 'pending') {
     const status = res.ok ? res.data.status : 'invalid';
     return (
@@ -51,6 +54,8 @@ export default async function InvitationPage() {
 
   const invite = res.data;
   const signedIn = Boolean(await getClaims());
+  const me = signedIn ? await api<{ user: { email: string | null; phone: string | null } }>('GET', '/v1/me') : null;
+  const signedInAs = me?.ok ? (me.data.user.email ?? me.data.user.phone) : null;
   const permissions = [...new Set(invite.roles.flatMap((r) => r.permissions))].filter((p) => PERMISSION_LABELS[p]);
   const expires = new Date(invite.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
 
@@ -100,7 +105,14 @@ export default async function InvitationPage() {
         </div>
       )}
 
-      <InvitationActions signedIn={signedIn} channel={invite.channel} />
+      <InvitationActions
+        signedIn={signedIn}
+        channel={invite.channel}
+        destination={invite.destination}
+        accountExists={invite.accountExists ?? false}
+        forSomeoneElse={signedIn && invite.matchesSignedInUser === false}
+        signedInAs={signedInAs}
+      />
 
       <Notice tone="info">
         This invitation expires on {expires}. After that, {invite.invitedBy?.split(' ')[0] ?? 'they'} will need to send a new one.

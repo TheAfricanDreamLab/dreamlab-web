@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { logout } from '@/app/actions/auth';
 import { NavLink } from '@/components/app/nav-link';
 import { OrgSwitcher } from '@/components/app/org-switcher';
 import { Brand } from '@/components/ui/primitives';
@@ -50,7 +49,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 <Link href="/courses" className="block rounded-lg px-3 py-2 text-[14px] text-body hover:bg-surface">
                   Explore courses
                 </Link>
-                <form action={logout}>
+                <form action="/auth/logout" method="post">
                   <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-[14px] text-danger-ink hover:bg-danger-tint">
                     Sign out
                   </button>
