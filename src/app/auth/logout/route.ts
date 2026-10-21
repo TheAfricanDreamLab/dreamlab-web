@@ -1,7 +1,13 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { safeNext } from '@/lib/forms';
 import { callGateway, incomingRequest } from '@/lib/gateway';
 import { clearTokens, getAccessToken } from '@/lib/session';
+
+/*
+ * Redirects here use a relative Location: behind the edge proxy the server only knows its internal
+ * address (e.g. 0.0.0.0:4100), so an absolute URL built from request.url would send people there.
+ */
+const goTo = (path: string) => new Response(null, { status: 303, headers: { Location: path, 'Cache-Control': 'no-store' } });
 
 /**
  * Sign out: end the session at the API, then remove the session cookies everywhere they live (the
@@ -14,11 +20,11 @@ export async function POST(request: NextRequest) {
   if (token) await callGateway('POST', '/v1/auth/logout', { body: {}, token, request: await incomingRequest() }).catch(() => undefined);
   await clearTokens();
   const form = await request.formData().catch(() => null);
-  const next = safeNext(typeof form?.get('next') === 'string' ? (form.get('next') as string) : null, '/');
-  return NextResponse.redirect(new URL(next, request.url), { status: 303, headers: { 'Cache-Control': 'no-store' } });
+  const next = form?.get('next');
+  return goTo(safeNext(typeof next === 'string' ? next : null, '/'));
 }
 
-/** A link can't sign anyone out (a page could embed it); show the way to the real button instead. */
-export function GET(request: NextRequest) {
-  return NextResponse.redirect(new URL('/app', request.url), 303);
+/** A link can't sign anyone out (a page could embed it); go to your space instead. */
+export function GET() {
+  return goTo('/app');
 }
