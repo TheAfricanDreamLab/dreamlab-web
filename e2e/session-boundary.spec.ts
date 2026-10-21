@@ -63,6 +63,12 @@ test.describe('sign-in and sign-out boundary', () => {
     expect(state).toMatchObject({ signedIn: true, firstName: 'Kemi', initials: 'KS' });
   });
 
+  test('sign-out redirects within the site (never to the server’s internal address)', async ({ request }) => {
+    const res = await request.post('/auth/logout', { form: { next: '/login' }, maxRedirects: 0 });
+    expect(res.status()).toBe(303);
+    expect(res.headers()['location']).toBe('/login');
+  });
+
   test('a link cannot sign anyone out', async ({ page }) => {
     await signUpWithEmail(page, 'Link Safe', unique('linksafe'));
     await page.goto('/auth/logout');
