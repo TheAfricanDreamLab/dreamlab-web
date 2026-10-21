@@ -29,11 +29,12 @@ export const SSO_COOKIE = `${PREFIX}_sso`;
 const secure = process.env.NODE_ENV === 'production';
 const base = { httpOnly: true, secure, sameSite: 'lax' as const, path: '/', ...(DOMAIN ? { domain: DOMAIN } : {}) };
 
-/** Remove a cookie everywhere it may live: the shared domain, and this host alone (older sessions). */
+/**
+ * Remove a cookie. One write per name: the cookie jar keeps only the last write for a name, so a
+ * second "host-only" removal would cancel this one. (Older host-only cookies used other names.)
+ */
 async function removeCookie(name: string): Promise<void> {
-  const jar = await cookies();
-  jar.set(name, '', { ...base, maxAge: 0 });
-  if (DOMAIN) jar.set({ name, value: '', path: '/', maxAge: 0 });
+  (await cookies()).set(name, '', { ...base, maxAge: 0 });
 }
 
 export interface AccessClaims {
