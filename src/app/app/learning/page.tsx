@@ -48,7 +48,7 @@ export default async function MyLearningPage() {
               <h2 id="in-progress" className="text-[19px] font-bold">
                 In progress
               </h2>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {active.map((e) => (
                   <EnrollmentCard key={e.id} e={e} />
                 ))}
@@ -60,7 +60,7 @@ export default async function MyLearningPage() {
               <h2 id="completed" className="text-[19px] font-bold">
                 Completed
               </h2>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {done.map((e) => (
                   <EnrollmentCard key={e.id} e={e} />
                 ))}

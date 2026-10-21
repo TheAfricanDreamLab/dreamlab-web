@@ -142,7 +142,7 @@ export function LessonPlayer({
 
       {error && <Notice tone="error">{error}</Notice>}
 
-      <div className="sticky bottom-0 -mx-4 border-t border-line bg-page/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+      <div className="sticky bottom-0 z-10 -mx-4 border-t border-line bg-page/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         <div className="flex items-center gap-3">
           {current > 0 && (
             <button type="button" onClick={() => go(current - 1)} className="h-12 rounded-[var(--radius-field)] bg-card px-4 text-[15px] font-semibold text-ink ring-1 ring-line-strong hover:ring-line-heavy">

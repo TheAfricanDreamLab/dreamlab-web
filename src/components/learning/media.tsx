@@ -38,15 +38,15 @@ export function VideoFacade({ video, caption, className }: { video: VideoRef; ca
               <img src={thumb} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
             )}
             <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-            <span aria-hidden className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-forest shadow-lg ring-4 ring-white/30 transition-transform group-hover:scale-105 group-focus-visible:ring-primary">
-              <svg viewBox="0 0 24 24" className="ml-1 h-7 w-7" fill="currentColor">
+            <span aria-hidden className="absolute left-1/2 top-[42%] grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 sm:top-1/2 sm:h-16 sm:w-16 text-forest shadow-lg ring-4 ring-white/30 transition-transform group-hover:scale-105 group-focus-visible:ring-primary">
+              <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6 sm:h-7 sm:w-7" fill="currentColor">
                 <path d="M8 5.5v13l11-6.5z" />
               </svg>
             </span>
             {duration && <span className="absolute right-3 top-3 rounded-md bg-black/70 px-2 py-0.5 font-mono text-[11.5px] text-white">{duration}</span>}
-            <span className="absolute inset-x-0 bottom-0 space-y-0.5 p-4 text-white">
-              <span className="block font-display text-[16px] font-bold leading-snug">{video.title}</span>
-              <span className="block text-[12.5px] text-white/80">{video.channel}</span>
+            <span className="absolute inset-x-0 bottom-0 space-y-0.5 p-3 text-white sm:p-4">
+              <span className="line-clamp-1 block font-display text-[15px] font-bold leading-snug sm:line-clamp-2 sm:text-[16px]">{video.title}</span>
+              <span className="block text-[13px] text-white/80">{video.channel}</span>
             </span>
           </button>
         )}
@@ -67,11 +67,11 @@ export function ImageFigure({ url, alt, caption, credit }: { url: string; alt: s
   return (
     <figure className="space-y-2">
       {/* eslint-disable-next-line @next/next/no-img-element -- remote images from allowed hosts, served as they are */}
-      <img src={src} alt={alt} loading="lazy" decoding="async" className="h-auto w-full rounded-[var(--radius-card)] bg-surface ring-1 ring-line" />
+      <img src={src} alt={alt} loading="lazy" decoding="async" className="h-auto w-full max-w-full rounded-[var(--radius-card)] bg-surface ring-1 ring-line" />
       {(caption || credit) && (
         <figcaption className="space-y-0.5">
           {caption && <p className="text-[14px] leading-relaxed text-body">{caption}</p>}
-          {credit && <p className="text-[11.5px] text-faint">{credit}</p>}
+          {credit && <p className="break-words text-[12px] text-faint">{credit}</p>}
         </figcaption>
       )}
     </figure>

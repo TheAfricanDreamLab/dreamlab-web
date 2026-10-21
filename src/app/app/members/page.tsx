@@ -49,7 +49,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
       {!members.ok && <Notice tone="error">{members.error.message}</Notice>}
       {sp.error && <Notice tone="error">{messageForCode(sp.error)}</Notice>}
 
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <h2 className="text-[17px] font-bold">Members</h2>
@@ -74,7 +74,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                             {canRevoke && (
                               <form action={revokeRole}>
                                 <input type="hidden" name="assignmentId" value={r.id} />
-                                <button type="submit" className="grid h-5 w-5 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink" aria-label={`Remove ${roleName(r.roleKey)} role`}>
+                                <button type="submit" className="-my-1 grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink sm:h-5 sm:w-5" aria-label={`Remove ${roleName(r.roleKey)} role`}>
                                   ×
                                 </button>
                               </form>
@@ -89,7 +89,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                       {canRemove && !isMe && (
                         <form action={removeMember}>
                           <input type="hidden" name="membershipId" value={m.id} />
-                          <button type="submit" className="rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold text-danger-ink hover:bg-danger-tint">
+                          <button type="submit" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-danger-ink hover:bg-danger-tint">
                             Remove
                           </button>
                         </form>
@@ -114,10 +114,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                     </div>
                     <form action={answerJoinRequest} className="flex gap-1">
                       <input type="hidden" name="membershipId" value={m.id} />
-                      <button type="submit" name="answer" value="approve" className="rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-primary-hover">
+                      <button type="submit" name="answer" value="approve" className="min-h-10 rounded-lg bg-primary px-3 text-[13.5px] font-semibold text-white hover:bg-primary-hover">
                         Let in
                       </button>
-                      <button type="submit" name="answer" value="decline" className="rounded-lg px-3 py-1.5 text-[12.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
+                      <button type="submit" name="answer" value="decline" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
                         Decline
                       </button>
                     </form>
@@ -147,7 +147,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                     </div>
                     <form action={revokeInvitation}>
                       <input type="hidden" name="invitationId" value={inv.id} />
-                      <button type="submit" className="rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
+                      <button type="submit" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
                         Cancel
                       </button>
                     </form>

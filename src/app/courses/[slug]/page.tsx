@@ -76,8 +76,8 @@ export default async function CoursePage({ params, searchParams }: Params) {
         Go to course home
       </ButtonLink>
       {nextItem && (
-        <ButtonLink href={`/learn/${enrollment.id}/${nextItem.id}`} variant="secondary" className="w-full">
-          <span className="truncate">
+        <ButtonLink href={`/learn/${enrollment.id}/${nextItem.id}`} variant="secondary" className="w-full min-w-0">
+          <span className="min-w-0 truncate">
             {enrollment.completedItems > 0 ? 'Continue' : 'Start'}: {nextItem.title}
           </span>
         </ButtonLink>
@@ -106,7 +106,7 @@ export default async function CoursePage({ params, searchParams }: Params) {
               ]}
             />
             {comingSoon && <Badge tone="gold">Coming soon</Badge>}
-            <h1 className="max-w-3xl text-[36px] font-extrabold leading-[1.05] text-white sm:text-[48px]">{course.title}</h1>
+            <h1 className="max-w-3xl text-[32px] font-extrabold leading-[1.05] text-white min-[375px]:text-[36px] sm:text-[48px]">{course.title}</h1>
             <p className="max-w-2xl text-[16.5px] leading-relaxed text-white/85">{course.subtitle}</p>
             <p className="text-[14px] text-white/80">
               From <span className="font-semibold text-white">{course.provider}</span>
@@ -128,7 +128,7 @@ export default async function CoursePage({ params, searchParams }: Params) {
           </div>
         )}
 
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px]">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] [&>*]:min-w-0">
           <div className="order-2 space-y-8 lg:order-1">
             <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {[

@@ -33,7 +33,7 @@ export async function AuthShell({
 }) {
   const tenant = await currentTenant();
   return (
-    <main className="grid min-h-dvh place-items-center px-4 py-8 sm:px-8">
+    <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] place-items-center px-4 py-6 sm:px-8 sm:py-8">
       <div className="grid w-full max-w-[1080px] overflow-hidden rounded-[var(--radius-panel)] bg-surface shadow-[var(--shadow-panel)] ring-1 ring-line lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
         <aside className="relative hidden flex-col justify-between overflow-hidden bg-[radial-gradient(120%_80%_at_20%_10%,#0f6a49_0%,#0a3d29_60%,#072b1d_100%)] p-10 text-white lg:flex">
           <div aria-hidden className="absolute -left-16 top-24 h-72 w-72 rounded-full bg-white/[0.04] ring-1 ring-white/10" />
@@ -55,7 +55,7 @@ export async function AuthShell({
             </dl>
           </div>
         </aside>
-        <section className="flex items-center justify-center px-6 py-10 sm:px-12 lg:py-16">
+        <section className="flex min-w-0 items-center justify-center px-5 py-8 sm:px-12 sm:py-10 lg:py-16">
           <div className="w-full max-w-[400px] animate-rise space-y-6">
             <div className="lg:hidden">
               <Brand subtitle={tenant ? tenant.name : undefined} />
@@ -64,7 +64,7 @@ export async function AuthShell({
             <header className="space-y-2">
               <Eyebrow>{tenant ? `${eyebrow} · ${tenant.name}` : eyebrow}</Eyebrow>
               <h1 className="text-[30px] font-extrabold leading-tight">{title}</h1>
-              {intro && <div className="text-[14.5px] leading-relaxed text-muted">{intro}</div>}
+              {intro && <div className="text-[14.5px] leading-relaxed text-muted [overflow-wrap:anywhere]">{intro}</div>}
             </header>
             {children}
           </div>
@@ -94,8 +94,8 @@ export function CenteredCard({
   back?: Back;
 }) {
   return (
-    <main className="grid min-h-dvh place-items-center bg-[radial-gradient(80%_60%_at_20%_0%,#e6f4ec_0%,transparent_60%),radial-gradient(60%_50%_at_100%_100%,#e2f1f2_0%,transparent_60%)] px-4 py-10">
-      <div className={`w-full ${width === 'wide' ? 'max-w-[520px]' : 'max-w-[440px]'} animate-rise space-y-6 rounded-[var(--radius-panel)] bg-surface p-7 shadow-[var(--shadow-panel)] ring-1 ring-line sm:p-9`}>
+    <main className="grid min-h-dvh place-items-center bg-[radial-gradient(80%_60%_at_20%_0%,#e6f4ec_0%,transparent_60%),radial-gradient(60%_50%_at_100%_100%,#e2f1f2_0%,transparent_60%)] px-4 py-6 grid-cols-[minmax(0,1fr)] sm:py-10">
+      <div className={`w-full ${width === 'wide' ? 'max-w-[520px]' : 'max-w-[440px]'} animate-rise space-y-6 rounded-[var(--radius-panel)] bg-surface p-5 shadow-[var(--shadow-panel)] ring-1 ring-line min-[375px]:p-7 sm:p-9`}>
         <div className="flex flex-col items-start gap-3">
           <Brand />
           <BackLink href={back.href} label={back.label} className="-ml-0.5" />
@@ -103,7 +103,7 @@ export function CenteredCard({
         <header className="space-y-2">
           {eyebrow && <Eyebrow tone={eyebrowTone}>{eyebrow}</Eyebrow>}
           <h1 className="text-[28px] font-extrabold leading-tight">{title}</h1>
-          {intro && <div className="text-[14.5px] leading-relaxed text-muted">{intro}</div>}
+          {intro && <div className="text-[14.5px] leading-relaxed text-muted [overflow-wrap:anywhere]">{intro}</div>}
         </header>
         {children}
       </div>

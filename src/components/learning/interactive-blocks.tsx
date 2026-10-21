@@ -121,8 +121,8 @@ function Distribution({ rows, mine, total }: { rows: { key: string; label: strin
         const isMine = r.key === mine;
         return (
           <li key={r.key} className="space-y-1">
-            <div className="flex items-baseline justify-between gap-3 text-[13.5px]">
-              <span className={cx(isMine ? 'font-semibold text-ink' : 'text-body')}>
+            <div className="flex items-baseline justify-between gap-3 text-[14px]">
+              <span className={cx('min-w-0 break-words', isMine ? 'font-semibold text-ink' : 'text-body')}>
                 {r.label}
                 {isMine && <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.1em] text-link">Your answer</span>}
               </span>
@@ -134,7 +134,7 @@ function Distribution({ rows, mine, total }: { rows: { key: string; label: strin
           </li>
         );
       })}
-      <li className="pt-1 text-[12px] text-muted">{plural(total, 'learner')} answered</li>
+      <li className="pt-1 text-[13px] text-muted">{plural(total, 'learner')} answered</li>
     </ul>
   );
 }
@@ -205,7 +205,7 @@ function ScaleBlock({ block, result, response, onCheck }: { block: Extract<Inter
               </button>
             ))}
           </div>
-          <div className="flex justify-between gap-4 text-[12.5px] text-muted">
+          <div className="flex justify-between gap-4 text-[13px] text-muted">
             <span>1 · {block.minLabel}</span>
             <span className="text-right">5 · {block.maxLabel}</span>
           </div>
@@ -312,7 +312,7 @@ function ScenarioBlock({ block, result, response, onCheck }: { block: Extract<In
               )}
             >
               <span aria-hidden className={cx('mt-0.5 h-4 w-4 shrink-0 rounded-full ring-2', chosen === o.id ? 'bg-primary ring-primary' : 'ring-line-heavy')} />
-              <span className="flex-1">{o.text}</span>
+              <span className="min-w-0 flex-1 break-words">{o.text}</span>
               {isChosen && result?.outcome?.best && <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-white">Best choice</span>}
             </button>
           );

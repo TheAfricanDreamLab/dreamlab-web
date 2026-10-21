@@ -20,7 +20,7 @@ export function InviteForm({ orgPending, canAssignRoles, customRoles = [] }: { o
       <TextInput label="Email or phone" name="identifier" required placeholder="ada@company.com or 0803 000 0000" defaultValue={state.values?.identifier} />
       <fieldset className="space-y-2">
         <legend className="text-[13px] font-semibold text-ink">As</legend>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2 min-[400px]:grid-cols-2">
           {roles.map((r, i) => (
             <label key={r.key} className="flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-field)] bg-card px-3 py-2.5 ring-1 ring-line has-[:checked]:ring-2 has-[:checked]:ring-primary">
               <input type="radio" name="role" value={r.key} defaultChecked={(state.values?.role ?? roles[0]?.key) === r.key || (!state.values && i === 0)} className="mt-1 accent-[var(--color-primary)]" />
@@ -44,16 +44,16 @@ export function AddRoleForm({ membershipId, has, customRoles = [] }: { membershi
   const options = [...INVITABLE_ROLES, ...customRoles].filter((r) => !has.includes(r.key));
   if (options.length === 0) return null;
   return (
-    <form action={action} className="flex items-center gap-2">
+    <form action={action} className="flex min-w-0 flex-wrap items-center gap-2">
       <input type="hidden" name="membershipId" value={membershipId} />
-      <select name="roleKey" className="h-8 rounded-lg bg-card px-2 text-[12.5px] ring-1 ring-line-strong" aria-label="Add a role">
+      <select name="roleKey" className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]" aria-label="Add a role">
         {options.map((r) => (
           <option key={r.key} value={r.key}>
             {r.label}
           </option>
         ))}
       </select>
-      <button type="submit" className="h-8 rounded-lg px-2.5 text-[12.5px] font-semibold text-link hover:bg-success-tint">
+      <button type="submit" className="h-10 rounded-lg px-3 text-[13.5px] font-semibold text-link hover:bg-success-tint sm:h-8 sm:px-2.5 sm:text-[12.5px]">
         Add
       </button>
       {state.error && <span className="text-[12px] text-danger-ink">{state.error}</span>}

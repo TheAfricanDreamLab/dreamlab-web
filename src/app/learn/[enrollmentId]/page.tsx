@@ -74,8 +74,8 @@ export default async function CourseHomePage({ params }: Params) {
       </ButtonLink>
     )
   ) : nextItem && started ? (
-    <ButtonLink href={href(nextItem.id)} className="w-full max-w-full sm:w-auto sm:px-7">
-      <span className="truncate">Continue: {nextItem.title}</span>
+    <ButtonLink href={href(nextItem.id)} className="w-full min-w-0 max-w-full sm:w-auto sm:px-7">
+      <span className="min-w-0 truncate">Continue: {nextItem.title}</span>
     </ButtonLink>
   ) : (
     (nextItem ?? first) && (
@@ -93,7 +93,7 @@ export default async function CourseHomePage({ params }: Params) {
             <LogoMark size={36} />
           </Link>
           <BackLink href="/app/learning" label="My learning" />
-          <Link href={`/courses/${course.slug}`} className="ml-auto text-[13px] font-semibold text-link hover:underline">
+          <Link href={`/courses/${course.slug}`} className="ml-auto inline-flex min-h-11 shrink-0 items-center text-[14px] font-semibold text-link hover:underline">
             Course page
           </Link>
         </div>
@@ -103,7 +103,7 @@ export default async function CourseHomePage({ params }: Params) {
         <div className="relative mx-auto max-w-5xl space-y-4 px-4 py-10 sm:py-14">
           <Breadcrumbs tone="light" items={[{ label: 'My learning', href: '/app/learning' }, { label: course.title, href: `/courses/${course.slug}` }, { label: 'Course home' }]} />
           <Eyebrow tone="gold">Course home · {course.provider}</Eyebrow>
-          <h1 className="max-w-3xl text-[32px] font-extrabold leading-[1.05] text-white sm:text-[44px]">Welcome to {course.title}</h1>
+          <h1 className="max-w-3xl text-[28px] font-extrabold leading-[1.08] text-white min-[375px]:text-[32px] sm:text-[44px]">Welcome to {course.title}</h1>
           <p className="max-w-2xl text-[16px] leading-relaxed text-white/85">{course.subtitle}</p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {cta}
@@ -112,7 +112,7 @@ export default async function CourseHomePage({ params }: Params) {
         </div>
       </CourseCover>
 
-      <main className="mx-auto grid max-w-5xl gap-8 px-4 py-8 lg:grid-cols-[1fr_300px]">
+      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_300px] [&>*]:min-w-0">
         <div className="space-y-8">
           <section className="space-y-4" aria-labelledby="how">
             <h2 id="how" className="text-[22px] font-bold">
@@ -182,7 +182,7 @@ export default async function CourseHomePage({ params }: Params) {
                 return (
                   <li key={m.id}>
                     <Card className="overflow-hidden">
-                      <div className="space-y-2 p-5">
+                      <div className="space-y-2 p-4 sm:p-5">
                         <div className="flex items-start gap-3">
                           <span className={cx('grid h-9 w-9 shrink-0 place-items-center rounded-xl font-display text-[15px] font-bold ring-1', done === m.items.length && m.items.length ? 'bg-primary text-white ring-primary' : 'bg-surface text-link ring-line')}>
                             {done === m.items.length && m.items.length ? '✓' : mi + 1}
@@ -192,7 +192,7 @@ export default async function CourseHomePage({ params }: Params) {
                             <p className="text-[13.5px] leading-relaxed text-muted">{m.summary}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 pl-12">
+                        <div className="flex items-center gap-3 sm:pl-12">
                           <ProgressBar pct={pct} label={`${m.title}: ${done} of ${m.items.length} done`} className="h-1.5" />
                           <span className="shrink-0 font-mono text-[11px] text-muted">
                             {done}/{m.items.length}
@@ -205,7 +205,7 @@ export default async function CourseHomePage({ params }: Params) {
                           <li key={i.id}>
                             <Link
                               href={href(i.id)}
-                              className={cx('flex items-center gap-3 px-5 py-3 hover:bg-surface', i.id === nextItem?.id && 'bg-success-tint/60')}
+                              className={cx('flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-surface sm:px-5', i.id === nextItem?.id && 'bg-success-tint/60')}
                             >
                               <StatusTick status={itemStatus[i.id]} />
                               <ItemIcon type={i.type} className="text-link" />

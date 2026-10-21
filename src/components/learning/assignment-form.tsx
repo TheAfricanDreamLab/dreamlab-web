@@ -32,7 +32,7 @@ export function AssignmentForm({
 
       <fieldset className="space-y-2 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
         <legend className="float-left mb-2 w-full font-display text-[17px] font-bold text-ink">Check your work against the rubric</legend>
-        <p className="clear-both text-[13px] text-muted">Tick each one you believe you’ve met. Faculty use the same rubric.</p>
+        <p className="clear-both text-[14px] text-muted">Tick each one you believe you’ve met. Faculty use the same rubric.</p>
         {assignment.rubric.map((r) => (
           <label key={r.id} className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-field)] bg-surface px-4 py-3 ring-1 ring-line has-[:checked]:ring-primary">
             <input
@@ -45,7 +45,7 @@ export function AssignmentForm({
             />
             <span>
               <span className="block text-[14.5px] font-semibold text-ink">{r.criterion}</span>
-              <span className="block text-[13px] leading-relaxed text-body">{r.description}</span>
+              <span className="block text-[14px] leading-relaxed text-body">{r.description}</span>
             </span>
           </label>
         ))}
@@ -86,7 +86,7 @@ export function AssignmentForm({
           placeholder="https://docs.google.com/…"
           className="h-12 w-full rounded-[var(--radius-field)] bg-card px-4 text-[15px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <p className="text-[12.5px] text-muted">A document, slides or a video, if your work lives somewhere else too.</p>
+        <p className="text-[13px] text-muted">A document, slides or a video, if your work lives somewhere else too.</p>
       </div>
 
       <div aria-live="polite" className="space-y-3 empty:hidden">

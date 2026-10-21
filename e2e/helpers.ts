@@ -49,6 +49,9 @@ export function adminCredentials(): { email: string; password: string } {
   return { email: env.BOOTSTRAP_ADMIN_EMAIL!, password: env.BOOTSTRAP_ADMIN_PASSWORD! };
 }
 
+/** The web app under test (playwright.config.ts uses the same). */
+export const WEB_URL = process.env.WEB_URL ?? 'http://localhost:3100';
+
 export const unique = (prefix: string) => `${prefix}+${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}@example.com`;
 export const PASSWORD = 'learning-is-a-journey';
 

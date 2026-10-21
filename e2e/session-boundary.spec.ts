@@ -1,12 +1,13 @@
 import { expect, type Browser, type Page, test } from '@playwright/test';
-import { createCompany, latestInviteLink, PASSWORD, signedIn, signIn, signUpWithEmail, switchTo, unique } from './helpers';
+import { createCompany, latestInviteLink, PASSWORD, signedIn, signIn, signUpWithEmail, switchTo, unique, WEB_URL } from './helpers';
 
 /*
  * Where signed-in ends and signed-out begins, and how a person with a personal account joins an
  * organisation without the two getting mixed up.
  */
 
-const BASE = 'http://localhost:3100';
+const BASE = WEB_URL;
+const PORT = new URL(WEB_URL).port;
 
 async function freshPage(browser: Browser): Promise<{ page: Page; close: () => Promise<void> }> {
   const context = await browser.newContext({ baseURL: BASE });
@@ -137,7 +138,7 @@ test.describe('joining an organisation with a personal account', () => {
   test('on an organisation’s own site, a member works in it and a non-member is told so', async ({ browser }) => {
     const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const member = await freshPage(browser);
-    await member.page.goto(`http://${slug}.localhost:3100/login`);
+    await member.page.goto(`http://${slug}.localhost:${PORT}/login`);
     await member.page.getByLabel('Email or phone').fill(learner);
     await member.page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await member.page.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -146,9 +147,9 @@ test.describe('joining an organisation with a personal account', () => {
 
     const outsider = await freshPage(browser);
     const stranger = unique('stranger');
-    await outsider.page.goto(`http://${slug}.localhost:3100/signup`);
-    await signUpWithEmail(outsider.page, 'Not A Member', stranger, PASSWORD, `http://${slug}.localhost:3100/signup`);
-    await outsider.page.goto(`http://${slug}.localhost:3100/app`);
+    await outsider.page.goto(`http://${slug}.localhost:${PORT}/signup`);
+    await signUpWithEmail(outsider.page, 'Not A Member', stranger, PASSWORD, `http://${slug}.localhost:${PORT}/signup`);
+    await outsider.page.goto(`http://${slug}.localhost:${PORT}/app`);
     await expect(outsider.page).toHaveURL(/\/app\/no-access\?org=/);
     await expect(outsider.page.getByRole('heading', { name: new RegExp(`You’re not in ${orgName}`) })).toBeVisible();
     await outsider.close();

@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
-import { adminCredentials, PASSWORD, signedIn, signUpWithEmail, unique } from './helpers';
+import { adminCredentials, PASSWORD, signedIn, signUpWithEmail, unique, WEB_URL } from './helpers';
 
 /*
  * Catalogue → course page → sign up → enrol → first lesson → my learning → journal, and the
@@ -163,7 +163,7 @@ test.describe('learning', () => {
   });
 
   test('the player needs an account', async ({ browser }) => {
-    const guest = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const guest = await browser.newContext({ baseURL: WEB_URL });
     const page = await guest.newPage();
     await page.goto('/learn/00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000000');
     await expect(page).toHaveURL(/\/login\?next=%2Flearn%2F/);
@@ -175,7 +175,7 @@ test.describe('platform admin console', () => {
   test('overview, catalogue switches and people search', async ({ page }) => {
     const { email, password } = adminCredentials();
     await signedIn(page, email, password);
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Platform admin' }).click();
+    await page.getByRole('navigation', { name: 'Platform admin' }).getByRole('link', { name: 'Overview' }).click();
     await expect(page.getByRole('heading', { name: 'Platform overview' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Sign-ups, last 14 days' })).toBeVisible();
     const admin = page.getByRole('navigation', { name: 'Platform admin' });

@@ -55,7 +55,7 @@ export function LoginForm({ next, banner, organisationSso }: { next: string; ban
           autoComplete="current-password"
           required
           aside={
-            <Link href="/forgot-password" className="text-[12.5px] font-semibold text-link">
+            <Link href="/forgot-password" className="-my-3 inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-link">
               Forgot?
             </Link>
           }
@@ -123,7 +123,7 @@ export function SignupForm({ next, banner }: { next: string; banner?: React.Reac
                 role="tab"
                 aria-selected={method === m}
                 onClick={() => setMethod(m)}
-                className={cx('rounded-full px-4 py-1.5 text-[13px] font-semibold', method === m ? 'bg-forest text-white' : 'text-muted hover:text-ink')}
+                className={cx('min-h-10 rounded-full px-5 py-2 text-[13.5px] font-semibold', method === m ? 'bg-forest text-white' : 'text-muted hover:text-ink')}
               >
                 {m === 'email' ? 'Email' : 'Phone'}
               </button>
@@ -229,7 +229,7 @@ export function AdminLoginForm({ next, banner }: { next: string; banner?: React.
           autoComplete="current-password"
           required
           aside={
-            <Link href="/forgot-password" className="text-[12.5px] font-semibold text-link">
+            <Link href="/forgot-password" className="-my-3 inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-link">
               Forgot?
             </Link>
           }
