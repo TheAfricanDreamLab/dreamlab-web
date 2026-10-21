@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { FakeIdp } from './fake-idp';
-import { createCompany, latestCode, PASSWORD, signedIn, signOut, signUpWithEmail, switchTo, totp, unique } from './helpers';
+import { createCompany, latestCode, PASSWORD, signedIn, signOut, signUpWithEmail, switchTo, totp, unique, WEB_URL } from './helpers';
 
 /*
  * Enterprise identity in the browser. Needs the local API with DOMAIN_VERIFY_MODE=trust (domains
@@ -99,7 +99,7 @@ test.describe('company sign-in and security', () => {
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
     // A colleague with an address at the domain sees the organisation and joins it.
-    const ctx = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const ctx = await browser.newContext({ baseURL: WEB_URL });
     const colleague = await ctx.newPage();
     await signUpWithEmail(colleague, 'Emeka Colleague', `emeka@${domain}`);
     const offer = colleague.locator('form').filter({ hasText: company });
@@ -143,7 +143,7 @@ test.describe('company sign-in and security', () => {
     await expect(page.getByText('Required for your domains')).toBeVisible();
 
     // A new colleague: passwords are refused for the domain, and sign-on lets them in.
-    const ctx = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const ctx = await browser.newContext({ baseURL: WEB_URL });
     const amaka = await ctx.newPage();
     await amaka.goto('/login');
     await amaka.getByRole('link', { name: 'Sign in with your organisation' }).click();

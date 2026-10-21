@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SiteNav } from '@/components/site/public-header';
 import { Brand, ButtonLink, Eyebrow, LogoMark } from '@/components/ui/primitives';
 import { getClaims } from '@/lib/session';
 
@@ -38,40 +39,25 @@ export default async function LandingPage() {
   const signedIn = Boolean(await getClaims());
   return (
     <div className="min-h-dvh">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+      <header className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-8 sm:py-5">
         <Brand href={signedIn ? '/app' : '/'} />
-        <nav className="flex items-center gap-2 text-[14px] font-semibold sm:gap-6">
-          <Link href="/courses" className="px-2 text-body hover:text-ink">
-            Courses
-          </Link>
-          <a href="#ways-in" className="hidden text-body hover:text-ink sm:inline">
-            Who it’s for
-          </a>
-          <a href="#how" className="hidden text-body hover:text-ink sm:inline">
-            How it works
-          </a>
-          {signedIn ? (
-            <ButtonLink href="/app" className="h-10 px-4 text-[14px]">
-              Open my space
-            </ButtonLink>
-          ) : (
-            <>
-              <Link href="/login" className="px-3 text-ink hover:text-link">
-                Sign in
-              </Link>
-              <ButtonLink href="/signup" className="h-10 px-4 text-[14px]">
-                Get started
-              </ButtonLink>
-            </>
-          )}
-        </nav>
+        <SiteNav
+          links={[
+            { href: '/courses', label: 'Courses' },
+            { href: '#ways-in', label: 'Who it’s for' },
+            { href: '#how', label: 'How it works' },
+            ...(signedIn ? [] : [{ href: '/login', label: 'Sign in' }]),
+          ]}
+          cta={signedIn ? { href: '/app', label: 'Open my space' } : { href: '/signup', label: 'Get started' }}
+          signOut={signedIn}
+        />
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pt-16">
+        <section className="mx-auto grid max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-20 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:pt-16">
           <div className="animate-rise space-y-6">
             <Eyebrow tone="gold">Born from TADIS · The African Dream Network International Summit</Eyebrow>
-            <h1 className="text-[44px] font-extrabold leading-[1.02] sm:text-[60px]">
+            <h1 className="text-[38px] font-extrabold leading-[1.04] min-[375px]:text-[44px] sm:text-[60px]">
               Learn to build
               <br />
               <span className="text-link">the Africa you want.</span>
@@ -132,7 +118,7 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        <section id="ways-in" className="mx-auto max-w-6xl scroll-mt-8 px-5 pb-20 sm:px-8">
+        <section id="ways-in" className="mx-auto max-w-6xl scroll-mt-8 px-4 pb-20 sm:px-8">
           <div className="mb-8 max-w-2xl space-y-2">
             <Eyebrow>Three ways in</Eyebrow>
             <h2 className="text-[32px] font-extrabold leading-tight">One platform, every kind of learner.</h2>
@@ -151,19 +137,19 @@ export default async function LandingPage() {
                   <h3 className="text-[21px] font-bold">{a.title}</h3>
                   <p className="text-[14.5px] leading-relaxed text-body">{a.text}</p>
                 </div>
-                <Link href={a.cta.href} className="inline-flex items-center gap-1.5 text-[14.5px] font-semibold text-link hover:gap-2.5 transition-all">
+                <Link href={a.cta.href} className="inline-flex min-h-11 items-center gap-1.5 self-start text-[15px] font-semibold text-link transition-all hover:gap-2.5">
                   {a.cta.label} <span aria-hidden>→</span>
                 </Link>
               </article>
             ))}
           </div>
-          <p className="mt-5 text-[13.5px] text-muted">
+          <p className="mt-5 text-[14px] text-muted">
             Content partners and sponsors can join too. They start with a short review so learners can trust what they see.
           </p>
         </section>
 
-        <section id="how" className="mx-auto max-w-6xl scroll-mt-8 px-5 pb-20 sm:px-8">
-          <div className="grid gap-10 rounded-[var(--radius-panel)] bg-surface p-7 ring-1 ring-line sm:p-10 lg:grid-cols-[0.8fr_1.2fr]">
+        <section id="how" className="mx-auto max-w-6xl scroll-mt-8 px-4 pb-20 sm:px-8">
+          <div className="grid gap-10 rounded-[var(--radius-panel)] bg-surface p-5 ring-1 ring-line sm:p-10 lg:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-3">
               <Eyebrow>How it works</Eyebrow>
               <h2 className="text-[30px] font-extrabold leading-tight">Three small steps. No paperwork.</h2>
@@ -174,7 +160,7 @@ export default async function LandingPage() {
                 <li key={s.n} className="space-y-2 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-primary font-display text-sm font-bold text-white">{s.n}</span>
                   <h3 className="text-[16px] font-bold">{s.title}</h3>
-                  <p className="text-[13.5px] leading-relaxed text-body">{s.text}</p>
+                  <p className="text-[14px] leading-relaxed text-body">{s.text}</p>
                 </li>
               ))}
             </ol>
@@ -182,7 +168,7 @@ export default async function LandingPage() {
         </section>
 
         <section className="bg-forest text-white">
-          <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-3">
               <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-gold">Born from TADIS</p>
               <h2 className="text-[30px] font-extrabold leading-tight text-white">Dream. Lead. Transform.</h2>
@@ -208,24 +194,27 @@ export default async function LandingPage() {
         </section>
       </main>
 
-      <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <footer className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-[13.5px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-10">
         <span>© {new Date().getFullYear()} The African Dream Network</span>
-        <nav className="flex gap-5">
-          <Link href="/courses" className="hover:text-ink">
-            Courses
-          </Link>
-          <a href="/orgs/start" className="hover:text-ink">
-            For organisations
-          </a>
-          <Link href="/terms" className="hover:text-ink">
-            Terms
-          </Link>
-          <Link href="/privacy" className="hover:text-ink">
-            Privacy
-          </Link>
-          <Link href="/login" className="hover:text-ink">
-            Sign in
-          </Link>
+        <nav className="-mx-2 flex flex-wrap gap-x-1 sm:gap-x-3" aria-label="Footer">
+          {[
+            ['/courses', 'Courses'],
+            ['/orgs/start', 'For organisations'],
+            ['/terms', 'Terms'],
+            ['/privacy', 'Privacy'],
+            ['/login', 'Sign in'],
+          ].map(([href, label]) =>
+            // A plain link for /orgs/start, as before: it is not prefetched.
+            href === '/orgs/start' ? (
+              <a key={href} href={href} className="inline-flex min-h-11 items-center px-2 hover:text-ink">
+                {label}
+              </a>
+            ) : (
+              <Link key={href} href={href!} className="inline-flex min-h-11 items-center px-2 hover:text-ink">
+                {label}
+              </Link>
+            ),
+          )}
         </nav>
       </footer>
     </div>

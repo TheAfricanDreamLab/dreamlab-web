@@ -36,7 +36,7 @@ export default async function RolesPage() {
       </header>
       {!roles.ok && <Notice tone="error">{roles.error.message}</Notice>}
 
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Card className="overflow-hidden">
             <h2 className="border-b border-line px-6 py-4 text-[17px] font-bold">Your custom roles</h2>

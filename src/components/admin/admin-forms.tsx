@@ -12,7 +12,7 @@ export function ImportForm() {
     <form action={action} className="space-y-4">
       <fieldset className="space-y-2">
         <legend className="text-[13px] font-semibold text-ink">What’s in the file</legend>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2 min-[400px]:grid-cols-2">
           {[
             { value: 'course', label: 'A course', hint: 'Course file (CourseAuthoring)' },
             { value: 'program', label: 'A programme', hint: 'Its courses must exist first' },
@@ -21,7 +21,7 @@ export function ImportForm() {
               <input type="radio" name="kind" value={k.value} defaultChecked={(state.values?.kind ?? 'course') === k.value} className="mt-1 accent-[var(--color-primary)]" />
               <span>
                 <span className="block text-[13.5px] font-semibold text-ink">{k.label}</span>
-                <span className="block text-[12px] text-muted">{k.hint}</span>
+                <span className="block text-[12.5px] text-muted">{k.hint}</span>
               </span>
             </label>
           ))}

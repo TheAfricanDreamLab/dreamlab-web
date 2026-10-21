@@ -52,7 +52,7 @@ export default async function PlayerPage({ params }: Params) {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-line bg-page/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
+        <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4">
           <Link href={`/learn/${enrollmentId}`} className="flex min-w-0 items-center gap-2.5 rounded-lg pr-2 hover:bg-surface" aria-label={`Back to the course home of ${course.title}`}>
             <LogoMark size={36} />
             <span className="min-w-0">
@@ -62,7 +62,7 @@ export default async function PlayerPage({ params }: Params) {
               </span>
             </span>
           </Link>
-          <div className="ml-auto flex w-28 shrink-0 items-center gap-2 sm:w-44">
+          <div className="ml-auto flex w-[4.5rem] shrink-0 items-center gap-1.5 sm:w-44 sm:gap-2">
             <ProgressBar pct={enrollment.progressPct} label={`Course progress: ${enrollment.progressPct}%`} />
             <span className="font-mono text-[11px] text-muted">{enrollment.progressPct}%</span>
           </div>
@@ -80,7 +80,7 @@ export default async function PlayerPage({ params }: Params) {
         </div>
         {outline.ok && (
           <details className="group mx-auto max-w-5xl px-4 pb-2">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-1 text-[13px] font-semibold text-link hover:bg-success-tint">
+            <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-1 text-[13.5px] font-semibold text-link hover:bg-success-tint">
               <span aria-hidden className="transition-transform group-open:rotate-90">
                 ▸
               </span>
@@ -90,7 +90,7 @@ export default async function PlayerPage({ params }: Params) {
               </span>
             </summary>
             <nav aria-label="Course outline" className="mt-2 max-h-[65vh] space-y-4 overflow-y-auto rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-panel)] ring-1 ring-line">
-              <Link href={`/learn/${enrollmentId}`} className="flex items-center gap-2 rounded-lg px-2 py-2 text-[14px] font-semibold text-link hover:bg-success-tint">
+              <Link href={`/learn/${enrollmentId}`} className="flex min-h-11 items-center gap-2 rounded-lg px-2 py-2 text-[14px] font-semibold text-link hover:bg-success-tint">
                 <span aria-hidden>⌂</span> Course home
               </Link>
               {outline.data.course.modules.map((m, mi) => (
@@ -104,7 +104,7 @@ export default async function PlayerPage({ params }: Params) {
                         <Link
                           href={href(i.id)}
                           aria-current={i.id === item.id ? 'page' : undefined}
-                          className={cx('flex items-center gap-3 rounded-lg px-2 py-2 text-[14px]', i.id === item.id ? 'bg-success-tint font-semibold text-ink' : 'text-body hover:bg-surface')}
+                          className={cx('flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 text-[14px]', i.id === item.id ? 'bg-success-tint font-semibold text-ink' : 'text-body hover:bg-surface')}
                         >
                           <StatusTick status={outline.data.itemStatus[i.id]} />
                           <ItemIcon type={i.type} className="text-muted" />
@@ -266,7 +266,7 @@ export default async function PlayerPage({ params }: Params) {
           </div>
         )}
 
-        <nav className="grid grid-cols-2 gap-3 border-t border-line pt-6" aria-label="Previous and next">
+        <nav className="grid grid-cols-2 gap-3 border-t border-line pt-6 [&>*]:min-w-0" aria-label="Previous and next">
           {previous ? (
             <Link href={href(previous.id)} className="group rounded-[var(--radius-field)] bg-card p-3 ring-1 ring-line hover:ring-line-heavy">
               <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">← Previous</span>

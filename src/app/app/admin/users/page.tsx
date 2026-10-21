@@ -46,12 +46,12 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
           defaultValue={q}
           maxLength={120}
           placeholder="Name, email or phone"
-          className="h-11 min-w-0 flex-1 rounded-[var(--radius-field)] bg-card px-4 text-[14.5px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
+          className="h-11 w-full min-w-0 flex-1 basis-full rounded-[var(--radius-field)] bg-card px-4 text-[15px] sm:basis-auto text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <label htmlFor="user-status" className="sr-only">
           Status
         </label>
-        <select id="user-status" name="status" defaultValue={status ?? ''} className="h-11 rounded-[var(--radius-field)] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong">
+        <select id="user-status" name="status" defaultValue={status ?? ''} className="h-11 flex-1 rounded sm:flex-none-[var(--radius-field)] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong">
           <option value="">Everyone</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
@@ -67,7 +67,7 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
         <Card className="p-10 text-center text-[14.5px] text-muted">{q ? `Nobody matches “${q}”.` : 'Nobody here.'}</Card>
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-[14px]">
+          <table className="stack-table w-full text-left text-[14px]">
             <thead className="bg-surface font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted">
               <tr>
                 <th scope="col" className="px-5 py-3">
@@ -91,12 +91,12 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
               {res.data.items.map((u) => (
                 <tr key={u.id} className="hover:bg-surface">
                   <td className="px-5 py-3">
-                    <Link href={`/app/admin/users/${u.id}`} className="font-semibold text-ink hover:underline">
+                    <Link href={`/app/admin/users/${u.id}`} className="inline-flex min-h-8 items-center break-words font-semibold text-ink hover:underline">
                       {u.fullName}
                     </Link>
-                    <span className="block text-[12.5px] text-muted">{u.email ?? u.phone}</span>
+                    <span className="block break-all text-[13px] text-muted">{u.email ?? u.phone}</span>
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="Status" className="px-5 py-3">
                     <span className="flex flex-wrap gap-1">
                       {u.status === 'suspended' ? <Badge tone="danger">Suspended</Badge> : <Badge tone="green">Active</Badge>}
                       {!u.verified && <Badge tone="gold">Unverified</Badge>}
@@ -104,9 +104,9 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
                       {u.platformAdmin && <Badge tone="gold">Admin</Badge>}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-right font-mono">{u.membershipCount}</td>
-                  <td className="px-5 py-3 text-muted">{shortDate(u.createdAt)}</td>
-                  <td className="px-5 py-3 text-muted">{u.lastSignInAt ? shortDate(u.lastSignInAt) : 'Never'}</td>
+                  <td data-label="Spaces" className="px-5 py-3 text-right font-mono">{u.membershipCount}</td>
+                  <td data-label="Joined" className="px-5 py-3 text-muted">{shortDate(u.createdAt)}</td>
+                  <td data-label="Last sign-in" className="px-5 py-3 text-muted">{u.lastSignInAt ? shortDate(u.lastSignInAt) : 'Never'}</td>
                 </tr>
               ))}
             </tbody>
@@ -115,7 +115,7 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
       )}
 
       {res.ok && (cursor || res.data.nextCursor) && (
-        <nav className="flex justify-between text-[14px] font-semibold" aria-label="Pages">
+        <nav className="flex justify-between text-[14px] font-semibold [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center" aria-label="Pages">
           {cursor ? (
             <Link href={`/app/admin/users?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}) })}`} className="text-link hover:underline">
               ← First page

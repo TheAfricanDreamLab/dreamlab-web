@@ -53,7 +53,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           <BackLink href="/" label="home" className="-mb-2" />
           <div className="max-w-2xl space-y-2">
             <Eyebrow tone="gold">The African Dream Lab · Courses</Eyebrow>
-            <h1 className="text-[34px] font-extrabold leading-[1.05] sm:text-[44px]">Learn the skills to build what you dream.</h1>
+            <h1 className="text-[30px] font-extrabold leading-[1.05] min-[375px]:text-[34px] sm:text-[44px]">Learn the skills to build what you dream.</h1>
             <p className="text-[15.5px] leading-relaxed text-body">Short, practical courses you can take at your own pace, on your phone. Free to start.</p>
           </div>
 
@@ -69,10 +69,10 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               name="q"
               defaultValue={q}
               maxLength={80}
-              placeholder="Search: problem solving, negotiation, AI…"
+              placeholder="Search courses"
               className="h-12 min-w-0 flex-1 rounded-[var(--radius-field)] bg-card px-4 text-[15px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <button type="submit" className="h-12 rounded-[var(--radius-field)] bg-primary px-5 text-[15px] font-semibold text-white hover:bg-primary-hover">
+            <button type="submit" className="h-12 shrink-0 rounded-[var(--radius-field)] bg-primary px-4 sm:px-5 text-[15px] font-semibold text-white hover:bg-primary-hover">
               Search
             </button>
           </form>
@@ -84,7 +84,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                 href={chipHref(c.key)}
                 aria-current={level === c.key ? 'page' : undefined}
                 className={cx(
-                  'rounded-full px-4 py-2 text-[13.5px] font-semibold ring-1',
+                  'inline-flex min-h-11 items-center rounded-full px-4 text-[14px] font-semibold ring-1',
                   level === c.key ? 'bg-forest text-white ring-forest' : 'bg-card text-body ring-line hover:ring-line-heavy',
                 )}
               >

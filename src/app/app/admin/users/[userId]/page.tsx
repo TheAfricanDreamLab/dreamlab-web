@@ -42,7 +42,7 @@ export default async function PlatformUserPage({ params }: { params: Promise<{ u
             </div>
           </header>
 
-          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div className="space-y-5">
               <Card className="p-6">
                 <h2 className="mb-3 text-[17px] font-bold">Details</h2>

@@ -75,7 +75,7 @@ export function ChoiceInput({ q, value, onChange, disabled, marks, name }: { q: 
   return (
     <fieldset className="space-y-2" disabled={disabled}>
       <legend className="sr-only">{q.multiple ? 'Choose all that apply' : 'Choose one'}</legend>
-      {q.multiple && <p className="text-[12.5px] font-semibold text-muted">Choose all that apply</p>}
+      {q.multiple && <p className="text-[13.5px] font-semibold text-muted">Choose all that apply</p>}
       {q.options.map((o) => {
         const checked = value.includes(o.id);
         return (
@@ -95,7 +95,7 @@ export function ChoiceInput({ q, value, onChange, disabled, marks, name }: { q: 
               onChange={(e) => onChange(q.multiple ? (e.target.checked ? [...value, o.id] : value.filter((v) => v !== o.id)) : [o.id])}
               className="h-4 w-4 shrink-0 accent-[var(--color-primary)]"
             />
-            <span className="flex-1">{o.text}</span>
+            <span className="min-w-0 flex-1 break-words">{o.text}</span>
             <MarkIcon mark={marks[o.id]} />
           </label>
         );
@@ -130,12 +130,12 @@ export function OrderInput({ q, value, onChange, disabled, marks }: { q: Order; 
 
   return (
     <div className="space-y-2">
-      <p className="text-[12.5px] font-semibold text-muted">Use the arrows to put these in order, first at the top.</p>
+      <p className="text-[13.5px] font-semibold text-muted">Use the arrows to put these in order, first at the top.</p>
       <ol ref={listRef} className="space-y-2">
         {value.map((id, i) => (
           <li key={id} className={cx('flex items-center gap-3 rounded-[var(--radius-field)] py-2 pl-3 pr-2 text-[15px] text-ink', markRing(marks[id], false))}>
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface font-mono text-[12px] text-muted ring-1 ring-line">{i + 1}</span>
-            <span className="flex-1">{text[id]}</span>
+            <span className="min-w-0 flex-1 break-words">{text[id]}</span>
             <MarkIcon mark={marks[id]} />
             {!disabled && (
               <span className="flex shrink-0 flex-col gap-1">
@@ -145,7 +145,7 @@ export function OrderInput({ q, value, onChange, disabled, marks }: { q: Order; 
                   onClick={() => move(i, 'up')}
                   disabled={i === 0}
                   aria-label={`Move “${text[id]}” up`}
-                  className="grid h-8 w-10 place-items-center rounded-lg text-[14px] text-link ring-1 ring-line hover:bg-success-tint disabled:text-faint disabled:hover:bg-transparent"
+                  className="grid h-10 w-11 place-items-center rounded-lg text-[15px] text-link ring-1 ring-line hover:bg-success-tint sm:h-8 sm:w-10 sm:text-[14px] disabled:text-faint disabled:hover:bg-transparent"
                 >
                   ▲
                 </button>
@@ -155,7 +155,7 @@ export function OrderInput({ q, value, onChange, disabled, marks }: { q: Order; 
                   onClick={() => move(i, 'down')}
                   disabled={i === value.length - 1}
                   aria-label={`Move “${text[id]}” down`}
-                  className="grid h-8 w-10 place-items-center rounded-lg text-[14px] text-link ring-1 ring-line hover:bg-success-tint disabled:text-faint disabled:hover:bg-transparent"
+                  className="grid h-10 w-11 place-items-center rounded-lg text-[15px] text-link ring-1 ring-line hover:bg-success-tint sm:h-8 sm:w-10 sm:text-[14px] disabled:text-faint disabled:hover:bg-transparent"
                 >
                   ▼
                 </button>
@@ -175,7 +175,7 @@ export function MatchInput({ q, value, onChange, disabled, marks }: { q: Match; 
   return (
     <div className="space-y-2">
       {q.left.map((l) => (
-        <div key={l.id} className={cx('grid gap-2 rounded-[var(--radius-field)] p-3 sm:grid-cols-[1fr_1fr] sm:items-center', markRing(marks[l.id], false))}>
+        <div key={l.id} className={cx('grid gap-2 rounded-[var(--radius-field)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-center', markRing(marks[l.id], false))}>
           <label htmlFor={`${q.id}-${l.id}`} className="flex items-center gap-2 text-[14.5px] font-medium text-ink">
             {l.text}
             <MarkIcon mark={marks[l.id]} />
@@ -185,7 +185,7 @@ export function MatchInput({ q, value, onChange, disabled, marks }: { q: Match; 
             value={value[l.id] ?? ''}
             disabled={disabled}
             onChange={(e) => onChange({ ...value, [l.id]: e.target.value })}
-            className="h-11 w-full rounded-[10px] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-80"
+            className="h-11 w-full min-w-0 rounded-[10px] bg-card px-3 text-[15px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-80"
           >
             <option value="">Choose…</option>
             {q.right.map((r) => (

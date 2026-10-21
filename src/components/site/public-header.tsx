@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Dropdown, MenuIcon } from '@/components/ui/dropdown';
 import { Brand, ButtonLink } from '@/components/ui/primitives';
 import { getClaims } from '@/lib/session';
 
@@ -8,58 +9,89 @@ export async function PublicHeader({ next }: { next?: string }) {
   const login = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
   const signup = next ? `/signup?next=${encodeURIComponent(next)}` : '/signup';
   return (
-    <header className="border-b border-line bg-page/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+    <header className="relative border-b border-line bg-page/85 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <Brand href={signedIn ? '/app' : '/'} />
-        <nav className="flex items-center gap-1 text-[14px] font-semibold sm:gap-4" aria-label="Site">
-          <Link href="/courses" className="px-2 text-body hover:text-ink">
-            Courses
-          </Link>
-          {signedIn ? (
-            <>
-              <Link href="/app/learning" className="hidden px-2 text-body hover:text-ink sm:inline">
-                My learning
-              </Link>
-              <ButtonLink href="/app" className="h-10 px-4 text-[14px]">
-                My space
-              </ButtonLink>
-              <form action="/auth/logout" method="post">
-                <button type="submit" className="px-2 text-body hover:text-ink">
-                  Sign out
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href={login} className="px-2 text-ink hover:text-link">
-                Sign in
-              </Link>
-              <ButtonLink href={signup} className="h-10 px-4 text-[14px]">
-                Get started
-              </ButtonLink>
-            </>
-          )}
-        </nav>
+        <SiteNav
+          links={[{ href: '/courses', label: 'Courses' }, ...(signedIn ? [{ href: '/app/learning', label: 'My learning' }] : [{ href: login, label: 'Sign in' }])]}
+          cta={signedIn ? { href: '/app', label: 'My space' } : { href: signup, label: 'Get started' }}
+          signOut={signedIn}
+        />
       </div>
     </header>
   );
 }
 
+type SiteLink = { href: string; label: string };
+
+/**
+ * The public navigation: inline links from 640px up, a menu button on phones (the brand and three
+ * links don't fit side by side at 320–414px).
+ */
+export function SiteNav({ links, cta, signOut = false }: { links: SiteLink[]; cta: SiteLink; /** Signed in: offer sign-out too. */ signOut?: boolean }) {
+  return (
+    <>
+      <nav className="hidden items-center gap-1 text-[14px] font-semibold sm:flex md:gap-3" aria-label="Site">
+        {links.map((l) => (
+          <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center px-2 text-body hover:text-ink">
+            {l.label}
+          </Link>
+        ))}
+        <ButtonLink href={cta.href} className="ml-1 h-11 px-4 text-[14px]">
+          {cta.label}
+        </ButtonLink>
+        {signOut && (
+          <form action="/auth/logout" method="post">
+            <button type="submit" className="inline-flex min-h-11 items-center px-2 text-body hover:text-ink">
+              Sign out
+            </button>
+          </form>
+        )}
+      </nav>
+      <Dropdown
+        className="sm:hidden"
+        summaryLabel="Menu"
+        summaryClassName="grid h-11 w-11 place-items-center rounded-full bg-card text-ink ring-1 ring-line-strong"
+        summary={<MenuIcon />}
+        panelClassName="absolute inset-x-3 top-full z-40 mt-1 rounded-[var(--radius-card)] bg-card p-2 shadow-[var(--shadow-panel)] ring-1 ring-line"
+      >
+        <nav aria-label="Site" className="grid gap-1">
+          {links.map((l) => (
+            <Link key={l.href} href={l.href} className="flex min-h-12 items-center rounded-lg px-3 text-[15px] font-semibold text-ink hover:bg-surface">
+              {l.label}
+            </Link>
+          ))}
+          <ButtonLink href={cta.href} className="mt-1 w-full">
+            {cta.label}
+          </ButtonLink>
+          {signOut && (
+            <form action="/auth/logout" method="post">
+              <button type="submit" className="flex min-h-12 w-full items-center rounded-lg px-3 text-left text-[15px] font-semibold text-danger-ink hover:bg-danger-tint">
+                Sign out
+              </button>
+            </form>
+          )}
+        </nav>
+      </Dropdown>
+    </>
+  );
+}
+
 export function PublicFooter() {
   return (
-    <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <footer className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-[13.5px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-10">
       <span>© {new Date().getFullYear()} The African Dream Network</span>
-      <nav className="flex gap-5" aria-label="Footer">
-        <Link href="/courses" className="hover:text-ink">
+      <nav className="-mx-2 flex flex-wrap gap-x-1 sm:gap-x-3" aria-label="Footer">
+        <Link href="/courses" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
           Courses
         </Link>
-        <a href="/orgs/start" className="hover:text-ink">
+        <a href="/orgs/start" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
           For organisations
         </a>
-        <Link href="/terms" className="hover:text-ink">
+        <Link href="/terms" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
           Terms
         </Link>
-        <Link href="/privacy" className="hover:text-ink">
+        <Link href="/privacy" className="inline-flex min-h-11 items-center px-2 hover:text-ink">
           Privacy
         </Link>
       </nav>

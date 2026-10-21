@@ -85,7 +85,7 @@ export default async function ProgramPage({ params }: Params) {
         </CourseCover>
 
         <div className="mx-auto max-w-6xl space-y-14 px-4 py-10 sm:px-6">
-          <section className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]" aria-labelledby="overview">
+          <section className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]" aria-labelledby="overview">
             <div className="space-y-3">
               <h2 id="overview" className="text-[24px] font-bold">
                 Overview
@@ -177,7 +177,7 @@ export default async function ProgramPage({ params }: Params) {
                 {calendar.length}-week calendar
               </h2>
               <Card className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-left text-[13.5px]">
+                <table className="stack-table w-full text-left text-[14px] sm:min-w-[560px] sm:text-[13.5px]">
                   <thead className="bg-surface font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted">
                     <tr>
                       <th scope="col" className="px-4 py-3">
@@ -197,8 +197,8 @@ export default async function ProgramPage({ params }: Params) {
                   <tbody className="divide-y divide-line">
                     {calendar.map((w, i) => (
                       <tr key={w.weekNo} className={cx(i > 0 && calendar[i - 1]!.phase !== w.phase && 'border-t-2 border-t-line-heavy')}>
-                        <td className="px-4 py-3 font-mono text-ink">{w.weekNo}</td>
-                        <td className="px-4 py-3 text-muted">{w.phase}</td>
+                        <td data-label="Week" className="px-4 py-3 font-mono text-ink">{w.weekNo}</td>
+                        <td data-label="Phase" className="px-4 py-3 text-muted">{w.phase}</td>
                         <td className="px-4 py-3 font-medium text-ink">{w.focus}</td>
                         <td className="px-4 py-3 text-body">{w.majorOutput}</td>
                       </tr>

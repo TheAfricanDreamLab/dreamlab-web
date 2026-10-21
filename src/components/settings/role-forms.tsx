@@ -18,7 +18,7 @@ function PermissionPicker({ selected = [] }: { selected?: string[] }) {
           <legend className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted">{g.title}</legend>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {g.permissions.map((p) => (
-              <label key={p} className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 text-[13px] text-body hover:bg-surface">
+              <label key={p} className="flex min-h-11 items-start gap-2.5 rounded-lg px-2 py-2.5 text-[14px] text-body hover:bg-surface sm:min-h-0 sm:py-1.5 sm:text-[13px]">
                 <input type="checkbox" name="permissions" value={p} defaultChecked={selected.includes(p)} className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" />
                 <span>{PERMISSION_LABELS[p] ?? p}</span>
               </label>

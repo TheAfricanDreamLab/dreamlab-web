@@ -68,7 +68,7 @@ export function ReplyForm({ enrollmentId, itemId, parentId, name }: { enrollment
   if (!open)
     return (
       <div className="flex items-center gap-3">
-        <button type="button" onClick={() => setOpen(true)} className="text-[13px] font-semibold text-link hover:underline">
+        <button type="button" onClick={() => setOpen(true)} className="-my-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-link hover:underline">
           Reply
         </button>
         {state.notice && <span className="text-[12.5px] text-muted">{state.notice}</span>}
@@ -96,10 +96,10 @@ export function ReplyForm({ enrollmentId, itemId, parentId, name }: { enrollment
       />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <div className="flex gap-2">
-        <button type="submit" disabled={!body.trim()} className="h-9 rounded-[10px] bg-primary px-4 text-[13.5px] font-semibold text-white hover:bg-primary-hover disabled:bg-line-heavy">
+        <button type="submit" disabled={!body.trim()} className="h-11 rounded-[10px] bg-primary px-4 text-[14px] sm:h-9 sm:text-[13.5px] font-semibold text-white hover:bg-primary-hover disabled:bg-line-heavy">
           Post reply
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="h-9 rounded-[10px] px-3 text-[13.5px] font-semibold text-muted hover:text-ink">
+        <button type="button" onClick={() => setOpen(false)} className="h-11 rounded-[10px] px-3 text-[14px] sm:h-9 sm:text-[13.5px] font-semibold text-muted hover:text-ink">
           Cancel
         </button>
       </div>

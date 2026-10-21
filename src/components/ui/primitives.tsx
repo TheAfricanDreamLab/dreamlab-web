@@ -54,12 +54,13 @@ export function OrgMark({ name, size = 30, personal = false, className }: { name
 }
 
 /** The logo. Always a link home: the site for visitors, the signed-in space (/app) for members. */
-export function Brand({ subtitle, light = false, href = '/' }: { subtitle?: string; light?: boolean; href?: string }) {
+export function Brand({ subtitle, light = false, href = '/', compact = false }: { subtitle?: string; light?: boolean; href?: string; compact?: boolean }) {
   return (
-    <Link href={href} aria-label="The African Dream Lab: home" className="inline-flex items-center gap-3">
+    <Link href={href} aria-label="The African Dream Lab: home" className="inline-flex min-h-11 shrink-0 items-center gap-3">
       <LogoMark size={40} />
-      <span className="leading-tight">
-        <span className={cx('block font-display text-[15px] font-bold', light ? 'text-white' : 'text-ink')}>The African Dream Lab</span>
+      {/* compact: the mark alone on phones, where the header needs the room for menus. */}
+      <span className={cx('leading-tight', compact && 'hidden sm:block')}>
+        <span className={cx('block whitespace-nowrap font-display text-[15px] font-bold', light ? 'text-white' : 'text-ink')}>The African Dream Lab</span>
         {subtitle && <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-gold">{subtitle}</span>}
       </span>
     </Link>

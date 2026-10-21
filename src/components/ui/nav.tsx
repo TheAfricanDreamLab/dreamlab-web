@@ -16,7 +16,7 @@ export function BackLink({ href, label, tone = 'default', className }: { href: s
       href={href}
       data-nav="back"
       className={cx(
-        'inline-flex min-h-9 items-center gap-1.5 rounded-lg py-1 pr-2 text-[13.5px] font-semibold hover:underline',
+        'inline-flex min-h-11 items-center gap-1.5 rounded-lg py-1 pr-2 text-[14px] font-semibold hover:underline',
         tone === 'light' ? 'text-white/85 hover:text-white' : 'text-link',
         className,
       )}

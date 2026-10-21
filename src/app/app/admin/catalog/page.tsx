@@ -19,7 +19,7 @@ function Toggle({ course, flag, on, label }: { course: AdminCourse; flag: 'liste
         type="submit"
         aria-pressed={on}
         aria-label={`${label}: ${course.title}`}
-        className="group inline-flex items-center gap-2 rounded-full py-1 pr-1 text-[13px] font-semibold text-body"
+        className="group inline-flex min-h-11 items-center gap-2 rounded-full pr-1 text-[13px] font-semibold text-body"
       >
         <span className={cx('relative inline-block h-6 w-11 rounded-full transition-colors', on ? 'bg-primary' : 'bg-line-heavy')}>
           <span className={cx('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left]', on ? 'left-[22px]' : 'left-0.5')} />
@@ -52,7 +52,7 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
         <Card className="p-10 text-center text-[14.5px] text-muted">No courses yet. Import one below.</Card>
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-[14px]">
+          <table className="stack-table w-full text-left text-[14px]">
             <thead className="bg-surface font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted">
               <tr>
                 <th scope="col" className="px-5 py-3">
@@ -79,24 +79,24 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
                     <Link href={`/courses/${c.slug}`} className="font-semibold text-ink hover:underline">
                       {c.title}
                     </Link>
-                    <span className="block text-[12.5px] text-muted">
+                    <span className="block break-all text-[13px] text-muted">
                       {c.provider} · <span className="font-mono">{c.slug}</span>
                     </span>
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="State" className="px-5 py-3">
                     <span className="flex flex-wrap gap-1">
                       {c.availability === 'available' ? <Badge tone="green">Open</Badge> : <Badge tone="gold">Coming soon</Badge>}
                       {c.visibility !== 'public' && <Badge>{c.visibility === 'org_private' ? 'Organisation only' : 'Unlisted'}</Badge>}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-muted">
+                  <td data-label="Version" className="px-5 py-3 text-muted">
                     {c.versionNo ? `v${c.versionNo}` : '—'}
                     {c.publishedAt && <span className="block text-[12px]">{shortDate(c.publishedAt)}</span>}
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="Listed" className="px-5 py-3">
                     <Toggle course={c} flag="listed" on={c.listed} label="Listed" />
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="Featured" className="px-5 py-3">
                     <Toggle course={c} flag="featured" on={c.featured} label="Featured" />
                   </td>
                 </tr>
@@ -106,7 +106,7 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
         </Card>
       )}
 
-      <Card className="max-w-2xl space-y-4 p-6">
+      <Card className="max-w-2xl space-y-4 p-5 sm:p-6">
         <div className="space-y-1">
           <h2 className="text-[19px] font-bold">Import a course or programme</h2>
           <p className="text-[13.5px] text-muted">Upload an authored file. Importing the same slug again updates it.</p>

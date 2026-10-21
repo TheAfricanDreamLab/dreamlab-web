@@ -11,6 +11,7 @@ import {
   signOut,
   signUpWithEmail,
   unique,
+  WEB_URL,
 } from './helpers';
 
 test.describe('public pages', () => {
@@ -165,7 +166,7 @@ test.describe('organisations', () => {
     await expect(page.getByText('Waiting to join')).toBeVisible();
 
     const link = await latestInviteLink(inviteeEmail);
-    const guest = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const guest = await browser.newContext({ baseURL: WEB_URL });
     const invitee = await guest.newPage();
     await invitee.goto(link.replace(/^https?:\/\/[^/]+/, ''));
     await expect(invitee).toHaveURL(/\/invitations\/accept$/); // the token left the URL
@@ -189,7 +190,7 @@ test.describe('organisations', () => {
   });
 
   test('the organisation’s own site greets people by name', async ({ page }) => {
-    await page.goto(`http://${orgSlug}.localhost:3100/login`);
+    await page.goto(`http://${orgSlug}.localhost:${new URL(WEB_URL).port}/login`);
     await expect(page.getByText(new RegExp(`Welcome back · ${orgName}`, 'i'))).toBeVisible();
   });
 
@@ -210,11 +211,11 @@ test.describe('organisations', () => {
     await expect(page.getByText('While you’re in review, you can invite co-admins.')).toBeVisible();
     await expect(page.getByRole('radio', { name: /Learner/ })).toHaveCount(0);
 
-    const adminContext = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const adminContext = await browser.newContext({ baseURL: WEB_URL });
     const admin = await adminContext.newPage();
     const { email, password } = adminCredentials();
     await signedIn(admin, email, password);
-    await admin.getByRole('link', { name: 'Platform admin' }).click();
+    await admin.getByRole('navigation', { name: 'Platform admin' }).getByRole('link', { name: 'Overview' }).click();
     await admin.getByRole('navigation', { name: 'Platform admin' }).getByRole('link', { name: 'Organisations' }).click();
     const row = admin.locator('li').filter({ hasText: school });
     await expect(row).toBeVisible();

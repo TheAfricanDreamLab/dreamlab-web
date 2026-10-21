@@ -35,6 +35,13 @@
   --color-danger-tint: #fce9e3;
   --color-danger-line: #f2c4b5;
 
+  /* Soft tints for dashboard tiles: the sky blue already used by "Tip" callouts, and a sage green. */
+  --color-sky-tint: #eef4fb;
+  --color-sky-line: #cfe0f2;
+  --color-sky-ink: #1c4673;
+  --color-sage-tint: #e4eee9;
+  --color-sage-line: #c8dcd2;
+
   --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -42,9 +49,11 @@
   --radius-field: 14px;
   --radius-card: 18px;
   --radius-panel: 22px;
+  --radius-tile: 28px;
 
   --shadow-card: 0 12px 40px rgba(10, 61, 41, 0.1);
   --shadow-panel: 0 20px 60px rgba(10, 61, 41, 0.12);
+  --shadow-soft: 0 6px 24px rgba(10, 61, 41, 0.07);
   --shadow-focus: 0 0 0 4px rgba(21, 155, 98, 0.14);
 
   --animate-rise: dl-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -71,6 +80,11 @@
 
   body {
     font-family: var(--font-sans);
+    /* Long words, emails and links wrap instead of pushing the page wider than the phone. */
+    overflow-wrap: break-word;
+    /* Phones in landscape: keep the page from growing its own text. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   h1,
@@ -98,5 +112,96 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Tables that turn into stacked cards on phones. Put `stack-table` on the <table> and a
+ * `data-label` on each <td> that needs its column name shown. Unlayered on purpose: it must win
+ * over the padding and alignment utilities on the cells.
+ */
+@media (max-width: 639.98px) {
+  table.stack-table {
+    display: block;
+    min-width: 0;
+  }
+  table.stack-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  table.stack-table tbody,
+  table.stack-table tr,
+  table.stack-table td {
+    display: block;
+  }
+  table.stack-table tr {
+    padding: 14px 16px;
+  }
+  table.stack-table td {
+    padding: 3px 0;
+    text-align: left;
+  }
+  table.stack-table td[data-label] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+  }
+  table.stack-table td[data-label]::before {
+    content: attr(data-label);
+    min-width: 88px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+}
+
+/*
+ * The signed-in app shell (components/app/shell.tsx). From 1024px the sidebar floats on the left
+ * and the page makes room for it; collapsed, it shrinks to its icons and the labels stay for
+ * screen readers only.
+ */
+.dl-shell {
+  background:
+    radial-gradient(1100px 520px at 100% -8%, rgba(230, 244, 236, 0.95) 0%, transparent 62%),
+    radial-gradient(800px 480px at -10% 105%, rgba(251, 242, 222, 0.7) 0%, transparent 60%),
+    var(--color-page);
+}
+@media (min-width: 1024px) {
+  .dl-shell {
+    --side-w: 268px;
+  }
+  .dl-shell[data-collapsed='true'] {
+    --side-w: 84px;
+  }
+  .dl-sidebar {
+    width: var(--side-w);
+  }
+  .dl-shell-main {
+    padding-left: calc(var(--side-w) + 12px);
+  }
+  .dl-shell[data-collapsed='true'] .dl-side-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .dl-shell[data-collapsed='true'] .dl-side-hide {
+    display: none;
+  }
+  .dl-shell[data-collapsed='true'] .dl-side-item {
+    justify-content: center;
+    padding-right: 4px;
+  }
+  .dl-shell[data-collapsed='true'] .dl-side-stack {
+    flex-direction: column;
   }
 }
