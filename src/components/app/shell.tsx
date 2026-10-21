@@ -81,7 +81,7 @@ export function AppShell({ initialCollapsed, sidebar, topbar, children }: { init
 
         <div className="dl-shell-main transition-[padding] duration-300">
           <div className="sticky top-0 z-20 border-b border-line/80 bg-page/75 backdrop-blur-xl lg:border-0 lg:bg-transparent lg:backdrop-blur-none">
-            <div className="mx-auto flex max-w-[1240px] items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-6 lg:px-8 lg:pt-4">
+            <div className="flex w-full items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-6 lg:px-8 lg:pt-4 2xl:px-12">
               <button
                 ref={menuButton}
                 type="button"
@@ -96,7 +96,7 @@ export function AppShell({ initialCollapsed, sidebar, topbar, children }: { init
               {topbar}
             </div>
           </div>
-          <main id="main" tabIndex={-1} className="mx-auto max-w-[1240px] px-4 pb-12 pt-4 focus:outline-none sm:px-6 lg:px-8 lg:pt-6">
+          <main id="main" tabIndex={-1} className="w-full px-4 pb-12 pt-4 focus:outline-none sm:px-6 lg:px-8 lg:pt-6 2xl:px-12">
             {children}
           </main>
         </div>
