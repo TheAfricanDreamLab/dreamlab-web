@@ -103,9 +103,13 @@ async function tenantId(request: NextRequest, slug: string): Promise<string | nu
       signal: AbortSignal.timeout(5000),
     });
     const id = res.ok ? ((await res.json()) as { id: string }).id : null;
+    // Slugs come from the Host header: keep the cache bounded.
+    if (tenantIds.size > 1000) tenantIds.clear();
     tenantIds.set(slug, { id, until: Date.now() + (id ? 5 * 60_000 : 30_000) });
     return id;
   } catch {
+    // Gateway unreachable: don't retry on every request for a few seconds.
+    tenantIds.set(slug, { id: null, until: Date.now() + 5_000 });
     return null;
   }
 }
