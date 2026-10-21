@@ -165,7 +165,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       <section className="space-y-4" aria-labelledby="my-summary">
         <SummaryHeader id="my-summary" title="My summary" period={period} action="/app" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {tiles.map((t) => (
             <SummaryTile key={t.title} {...t} />
           ))}
@@ -182,7 +182,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               All my courses →
             </Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {continuing.slice(0, 3).map((e) => (
               <MediaCard
                 key={e.id}
@@ -209,7 +209,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Browse the catalogue →
             </Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[...discover.filter((c) => c.featured), ...discover.filter((c) => !c.featured)].slice(0, 3).map((c) => (
               <MediaCard
                 key={c.id}
@@ -224,7 +224,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </section>
       )}
 
-      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] [&>*]:min-w-0">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] [&>*]:min-w-0">
         <Card className="space-y-5 rounded-[var(--radius-tile)] p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-[20px] font-bold">{active ? 'Get your organisation going' : 'Your next steps'}</h2>

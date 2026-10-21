@@ -77,7 +77,7 @@ export function ProfileCard({
     .join('');
   return (
     <section aria-label="Your profile" className="overflow-hidden rounded-[var(--radius-tile)] bg-card/90 shadow-[var(--shadow-soft)] ring-1 ring-line">
-      <div className="grid gap-5 p-5 sm:p-6 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] 2xl:items-center">
+      <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:items-center">
         <div className="flex min-w-0 items-start gap-4">
           <span aria-hidden className="grid h-16 w-16 shrink-0 place-items-center rounded-[22px] bg-[radial-gradient(120%_120%_at_0%_0%,#0f6a49_0%,#0a3d29_70%)] font-display text-[22px] font-bold text-white shadow-[0_10px_24px_rgba(10,61,41,0.25)] sm:h-20 sm:w-20 sm:text-[26px]">
             {letters}
@@ -259,10 +259,10 @@ export type FeedEntry = {
 
 const AVATAR = { jade: 'bg-success-tint text-link ring-success-line', gold: 'bg-gold-tint text-gold-ink ring-gold-line', sky: 'bg-sky-tint text-sky-ink ring-sky-line', sage: 'bg-sage-tint text-forest ring-sage-line' } as const;
 
-/** The right-hand timeline of recent activity. Below 1280px it sits under the page. */
+/** Recent activity: a full-width section of cards, newest first. */
 export function ActivityFeed({ title = 'Recent activity', entries, empty }: { title?: string; entries: FeedEntry[]; empty: string }) {
   return (
-    <section id="recent-activity" aria-labelledby="recent-activity-title" className="scroll-mt-24 rounded-[var(--radius-tile)] bg-card/80 p-5 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur xl:sticky xl:top-6">
+    <section id="recent-activity" aria-labelledby="recent-activity-title" className="scroll-mt-24 rounded-[var(--radius-tile)] bg-card/80 p-5 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 id="recent-activity-title" className="text-[20px] font-bold">
           {title}
@@ -274,7 +274,7 @@ export function ActivityFeed({ title = 'Recent activity', entries, empty }: { ti
       {entries.length === 0 ? (
         <p className="rounded-[20px] bg-surface p-4 text-[14px] text-muted ring-1 ring-line">{empty}</p>
       ) : (
-        <ol className="space-y-3">
+        <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {entries.map((e) => (
             <li key={e.id} className="grid grid-cols-[52px_minmax(0,1fr)] gap-3">
               <time dateTime={e.at} className="pt-3 text-right font-mono text-[11px] leading-tight text-muted">
@@ -316,12 +316,12 @@ export function ActivityFeed({ title = 'Recent activity', entries, empty }: { ti
   );
 }
 
-/** Main column + the feed column (side by side from 1280px). */
+/** One column: the page, then recent activity as a full-width section underneath. */
 export function DashboardGrid({ main, feed }: { main: ReactNode; feed: ReactNode }) {
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
-      <div className="min-w-0 space-y-8">{main}</div>
-      <div className="min-w-0">{feed}</div>
+    <div className="space-y-8">
+      {main}
+      {feed}
     </div>
   );
 }

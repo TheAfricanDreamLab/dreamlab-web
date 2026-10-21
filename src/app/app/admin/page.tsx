@@ -99,7 +99,7 @@ export default async function PlatformOverviewPage({ searchParams }: { searchPar
 
       <section className="space-y-4" aria-labelledby="platform-summary">
         <SummaryHeader id="platform-summary" title="Summary" period={period} action="/app/admin" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryTile
             title="Pending organisations"
             text="Schools, partners and sponsors to check."
@@ -137,7 +137,7 @@ export default async function PlatformOverviewPage({ searchParams }: { searchPar
             <Stat label="Suspended" value={overview.data.users.suspended} hint="Can’t sign in until reactivated" href="/app/admin/users?status=suspended" />
           </section>
 
-          <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] [&>*]:min-w-0">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] [&>*]:min-w-0">
             <Card className="space-y-4 rounded-[var(--radius-tile)] p-5 sm:p-6">
               <div className="flex items-baseline justify-between">
                 <h2 className="text-[18px] font-bold">Sign-ups, last 14 days</h2>
@@ -170,7 +170,7 @@ export default async function PlatformOverviewPage({ searchParams }: { searchPar
           <Notice tone="error">{friendlyError(stats.error)}</Notice>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 2xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               <Stat label="Enrolments" value={stats.data.enrollments} />
               <Stat label="Active learners" value={stats.data.activeLearners7d} hint="in the last 7 days" />
               <Stat label="Completions" value={stats.data.completions} />
