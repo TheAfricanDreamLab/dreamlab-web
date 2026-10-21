@@ -69,6 +69,26 @@ test.describe('sign-in and sign-out boundary', () => {
     expect(res.headers()['location']).toBe('/login');
   });
 
+  test('a session ended elsewhere sends this browser to sign-in, without a redirect loop', async ({ browser }) => {
+    const email = unique('twodevices');
+    const phone = await freshPage(browser);
+    await signUpWithEmail(phone.page, 'Two Devices', email);
+    const laptop = await freshPage(browser);
+    await signIn(laptop.page, email);
+    await expect(laptop.page).toHaveURL(/\/app/);
+    // On the phone: sign out everywhere.
+    await phone.page.goto('/app/account');
+    await phone.page.getByRole('button', { name: 'Sign out everywhere' }).click();
+    await expect(phone.page).toHaveURL(/\/login\?signedout=1/);
+    // The laptop's next page finds the session over and lands on sign-in.
+    await laptop.page.goto('/app/learning');
+    await expect(laptop.page).toHaveURL(/\/login/);
+    await laptop.page.goto('/app');
+    await expect(laptop.page).toHaveURL(/\/login\?next=%2Fapp$/);
+    await phone.close();
+    await laptop.close();
+  });
+
   test('a link cannot sign anyone out', async ({ page }) => {
     await signUpWithEmail(page, 'Link Safe', unique('linksafe'));
     await page.goto('/auth/logout');
