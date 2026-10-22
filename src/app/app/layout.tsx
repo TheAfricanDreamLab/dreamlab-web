@@ -20,12 +20,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const learning: Item[] = [
     { href: '/app', label: 'Home', icon: 'home', show: true, exact: true },
     { href: '/app/learning', label: 'My learning', icon: 'book', show: true },
+    { href: '/app/programme', label: 'My programme', icon: 'calendar', show: true },
     { href: '/app/journal', label: 'Journal', icon: 'journal', show: true },
     { href: '/courses', label: 'Courses', icon: 'compass', show: true },
     { href: '/app/account', label: 'Account', icon: 'user', show: true },
   ];
   const organisation: Item[] = [
     { href: '/app/members', label: 'People', icon: 'users', show: Boolean(active) && can(me, 'org.members.read') },
+    { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
     { href: '/app/roles', label: 'Roles', icon: 'shield', show: Boolean(active) && can(me, 'org.roles.manage') },
     { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage') },
   ].filter((i) => i.show) as Item[];
@@ -35,6 +37,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/admin/users', label: 'People', icon: 'users', show: true },
         { href: '/app/admin/organisations', label: 'Organisations', icon: 'building', show: true },
         { href: '/app/admin/catalog', label: 'Catalog', icon: 'grid', show: true },
+        { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: true },
       ]
     : [];
 
