@@ -47,7 +47,7 @@ export default async function CohortPage({ params, searchParams }: Props) {
           <Badge tone={COHORT_STATUS_TONES[c.status]}>{COHORT_STATUS_LABELS[c.status]}</Badge>
           <p className="text-[13px] text-muted">
             {c.learnerCount}
-            {c.capacity !== null && ` of ${c.capacity}`} learners{c.currentWeek ? ` · week ${c.currentWeek}` : ''}
+            {c.capacity !== null && ` of ${c.capacity}`} {c.learnerCount === 1 && c.capacity === null ? 'learner' : 'learners'}{c.currentWeek ? ` · week ${c.currentWeek}` : ''}
           </p>
         </div>
       </header>
