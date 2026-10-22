@@ -62,7 +62,7 @@ export default async function CohortsPage() {
                       <span className="flex items-center gap-3">
                         <span className="text-[13px] text-muted">
                           {c.learnerCount}
-                          {c.capacity !== null && ` / ${c.capacity}`} learners
+                          {c.capacity !== null && ` / ${c.capacity}`} {c.learnerCount === 1 && c.capacity === null ? 'learner' : 'learners'}
                         </span>
                         <Badge tone={COHORT_STATUS_TONES[c.status]}>{COHORT_STATUS_LABELS[c.status]}</Badge>
                       </span>

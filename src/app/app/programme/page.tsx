@@ -119,7 +119,7 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
                     <span className="block font-semibold text-ink">{c.course.title}</span>
                     <span className="block text-[13px] text-muted">
                       {c.phase}
-                      {!c.required && ' · Elective'}
+                      {!c.required && !/elective/i.test(c.phase) && ' · Elective'}
                     </span>
                   </span>
                   <span className="flex items-center gap-3">
