@@ -71,6 +71,22 @@ const MESSAGES: Record<string, string> = {
   role_in_use: 'People still hold this role. Take it away from them first.',
   permission_not_allowed: 'Custom roles can’t include platform-wide permissions.',
   role_limit: 'You’ve reached the limit of 50 custom roles.',
+  // Cohorts
+  cohort_not_found: 'We couldn’t find that cohort.',
+  cohort_not_open: 'This cohort isn’t taking learners right now.',
+  cohort_full: 'This cohort is full. Look out for the next intake.',
+  cohort_closed: 'A closed cohort can’t be reopened. Schedule a new cohort instead.',
+  cohort_has_learners: 'Learners have joined, so this cohort can’t go back to draft.',
+  capacity_below_learners: 'More learners have joined than that. Set a higher capacity.',
+  program_not_found: 'We couldn’t find that programme.',
+  program_has_no_calendar: 'This programme has no weekly calendar to schedule yet.',
+  invalid_time_zone: 'Choose a time zone from the list.',
+  org_context_required: 'Switch to the organisation first (use the switcher at the top of the menu).',
+  electives_locked: 'The deadline to choose these electives has passed.',
+  wrong_number_of_electives: 'Choose the number of courses this phase asks for.',
+  not_electives_of_one_group: 'Choose courses from one elective group.',
+  session_not_found: 'We couldn’t find that class.',
+  learner_not_in_cohort: 'Some of these people aren’t learners in this cohort.',
   network: 'We couldn’t reach Dream Lab. Check your connection and try again.',
 };
 

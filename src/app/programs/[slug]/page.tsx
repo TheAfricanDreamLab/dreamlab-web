@@ -1,12 +1,14 @@
-import type { ProgramDetail } from '@dreamlab/contracts';
+import type { Cohort, ProgramDetail } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
+import { JoinCohortForm } from '@/components/cohorts/cohort-forms';
 import { CourseCard, CourseCover } from '@/components/learning/course-ui';
 import { RichText } from '@/components/learning/rich-text';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
 import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
+import { calendarDate, COHORT_STATUS_LABELS, COHORT_STATUS_TONES, POLICY_LABELS } from '@/lib/cohorts';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { DELIVERY_LABELS, FEATURE_LABELS, plural, PROGRAM_TYPE_LABELS } from '@/lib/learning';
@@ -29,7 +31,7 @@ const weeks = (from: number | null, to: number | null) => (from && to ? (from ==
 export default async function ProgramPage({ params }: Params) {
   const { slug } = await params;
   if (!valid(slug)) notFound();
-  const [res, claims] = await Promise.all([loadProgram(slug), getClaims()]);
+  const [res, claims, intakes] = await Promise.all([loadProgram(slug), getClaims(), api<{ items: Cohort[] }>('GET', `/v1/learning/programs/${slug}/cohorts`)]);
   if (!res.ok && res.status === 404) notFound();
   const here = `/programs/${slug}`;
   if (!res.ok) {
@@ -48,6 +50,8 @@ export default async function ProgramPage({ params }: Params) {
   const requirements = [...p.graduationRequirements].sort((a, b) => a.position - b.position);
   const calendar = [...p.calendar].sort((a, b) => a.weekNo - b.weekNo);
   const firstCourse = phases[0]?.courses[0];
+  const cohorts = intakes.ok ? intakes.data.items : [];
+  const joinable = cohorts.filter((c) => c.status === 'open' || c.status === 'running');
 
   return (
     <div className="min-h-dvh">
@@ -74,7 +78,13 @@ export default async function ProgramPage({ params }: Params) {
                 </div>
               ))}
             </dl>
-            {firstCourse && (
+            {joinable[0] ? (
+              <div className="pt-2">
+                <ButtonLink href="#cohorts" variant="secondary" className="sm:px-7">
+                  Join {joinable[0].name}
+                </ButtonLink>
+              </div>
+            ) : firstCourse && (
               <div className="pt-2">
                 <ButtonLink href={claims ? `/courses/${firstCourse.slug}` : `/signup?next=${encodeURIComponent(`/courses/${firstCourse.slug}`)}`} variant="secondary" className="sm:px-7">
                   {claims ? `Start with ${firstCourse.title}` : 'Create a free account to start'}
@@ -109,6 +119,52 @@ export default async function ProgramPage({ params }: Params) {
               </ul>
             )}
           </section>
+
+          {cohorts.length > 0 && (
+            <section id="cohorts" className="scroll-mt-24 space-y-4" aria-labelledby="cohorts-title">
+              <div className="space-y-1">
+                <Eyebrow tone="gold">Learn together</Eyebrow>
+                <h2 id="cohorts-title" className="text-[24px] font-bold">
+                  Join a cohort
+                </h2>
+                <p className="text-[14px] text-muted">A cohort starts together, meets every week and moves through the calendar as one class.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {cohorts.map((c) => {
+                  const open = c.status === 'open' || c.status === 'running';
+                  const full = c.capacity !== null && c.learnerCount >= c.capacity;
+                  return (
+                    <Card key={c.id} className="flex flex-col gap-3 p-5" >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-[18px] font-bold">{c.name}</h3>
+                        <Badge tone={COHORT_STATUS_TONES[c.status]}>{COHORT_STATUS_LABELS[c.status]}</Badge>
+                      </div>
+                      <dl className="space-y-1 text-[13.5px]">
+                        <div className="flex justify-between gap-3"><dt className="text-muted">Starts</dt><dd className="font-semibold text-ink">{calendarDate(c.startsOn)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-muted">Ends</dt><dd className="text-ink">{calendarDate(c.endsOn)}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-muted">Hosted by</dt><dd className="text-right text-ink">{c.hostOrgName}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-muted">Places</dt><dd className="text-ink">{c.capacity === null ? `${c.learnerCount} joined` : `${Math.max(0, c.capacity - c.learnerCount)} of ${c.capacity} left`}</dd></div>
+                      </dl>
+                      <p className="text-[12.5px] text-muted">{POLICY_LABELS[c.enrollmentPolicy]}{c.currentWeek ? ` · now in week ${c.currentWeek}` : ''}</p>
+                      <div className="mt-auto">
+                        {!open ? (
+                          <p className="text-[13px] text-muted">Not taking learners yet.</p>
+                        ) : full ? (
+                          <p className="text-[13px] font-semibold text-danger-ink">This cohort is full.</p>
+                        ) : claims ? (
+                          <JoinCohortForm cohortId={c.id} programSlug={p.slug} label={`Join ${c.name}`} />
+                        ) : (
+                          <ButtonLink href={`/signup?next=${encodeURIComponent(`${here}#cohorts`)}`} className="w-full">
+                            Create a free account to join
+                          </ButtonLink>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <section className="space-y-6" aria-labelledby="phases">
             <div className="space-y-1">
