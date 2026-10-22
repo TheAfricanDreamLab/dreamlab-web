@@ -32,6 +32,13 @@ test('an organisation runs a cohort; a learner joins it, chooses an elective and
   await page.getByRole('button', { name: 'Save class' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 
+  // The second class is cancelled, and says so.
+  await page.getByRole('button', { name: /^Edit/ }).nth(1).click();
+  await page.getByLabel('Cancelled').nth(1).check();
+  await page.getByRole('button', { name: 'Save class' }).nth(1).click();
+  await expect(page.getByText('Cancelled', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('li').filter({ has: page.locator('.line-through') })).toHaveCount(1);
+
   // A learner finds the cohort on the programme page and joins it.
   const learnerContext = await browser.newContext();
   const learner = await learnerContext.newPage();

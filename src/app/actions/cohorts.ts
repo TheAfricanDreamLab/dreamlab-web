@@ -90,7 +90,8 @@ export async function updateSession(_: FormState, fd: FormData): Promise<FormSta
   if (!isUuid(cohortId) || !isUuid(sessionId)) return BAD_LINK;
   const body: Record<string, unknown> = {};
   if (fd.has('location')) body.location = str(fd, 'location') || null;
-  if (fd.has('cancelled')) body.cancelled = str(fd, 'cancelled') === 'true';
+  // The form sends a hidden "false" before the checkbox, so a ticked box adds "true" after it.
+  if (fd.has('cancelled')) body.cancelled = fd.getAll('cancelled').includes('true');
   if (fd.has('startsAt')) {
     const startsAt = fromLocalInput(str(fd, 'startsAt'), str(fd, 'timeZone') || 'Africa/Lagos');
     if (!startsAt) return { error: 'Choose a date and time.' };
