@@ -10,6 +10,7 @@ import { Badge, ButtonLink, Card, cx, Eyebrow, LogoMark, Notice } from '@/compon
 import { friendlyError } from '@/lib/errors';
 import { api, type ApiResult } from '@/lib/gateway';
 import { formatMinutes, hours, isUuid, ITEM_LABELS, plural, shortDate } from '@/lib/learning';
+import { formatScore } from '@/lib/grading';
 
 type Params = { params: Promise<{ enrollmentId: string }> };
 
@@ -235,6 +236,11 @@ export default async function CourseHomePage({ params }: Params) {
               <p className="font-display text-[30px] font-extrabold leading-none text-ink">{enrollment.progressPct}%</p>
             </div>
             <ProgressBar pct={enrollment.progressPct} label={`Course progress: ${enrollment.progressPct}%`} />
+            {enrollment.finalScore !== null && (
+              <p className="rounded-[var(--radius-field)] bg-success-tint px-3 py-2 text-[13.5px] text-forest ring-1 ring-success-line">
+                Final score <strong>{formatScore(enrollment.finalScore)}</strong> from your quizzes and graded assignments
+              </p>
+            )}
             <dl className="space-y-1.5 text-[13.5px]">
               <div className="flex justify-between">
                 <dt className="text-muted">Done</dt>

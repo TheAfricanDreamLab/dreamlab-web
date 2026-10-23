@@ -7,6 +7,7 @@ import { TextInput } from '@/components/ui/fields';
 import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { PERMISSION_GROUPS, PERMISSION_LABELS } from '@/lib/labels';
+import { OrgField } from '@/components/app/org-binding';
 
 const initial: FormState = {};
 
@@ -34,6 +35,7 @@ export function CreateRoleForm() {
   const [state, action] = useActionState(createRole, initial);
   return (
     <form action={action} className="space-y-4">
+      <OrgField />
       <TextInput label="Role name" name="name" required minLength={2} maxLength={80} placeholder="Regional lead" defaultValue={state.values?.name} error={state.fields?.name} />
       <TextInput label="What it’s for (optional)" name="description" maxLength={400} defaultValue={state.values?.description} />
       <div className="space-y-2">
@@ -53,6 +55,7 @@ export function EditRoleForm({ roleKey, permissions, assignedCount }: { roleKey:
   return (
     <div className="space-y-3">
       <form action={saveAction} className="space-y-3">
+        <OrgField />
         <input type="hidden" name="roleKey" value={roleKey} />
         <PermissionPicker selected={permissions} />
         {saved.error && <Notice tone="error">{saved.error}</Notice>}
@@ -62,6 +65,7 @@ export function EditRoleForm({ roleKey, permissions, assignedCount }: { roleKey:
         </SubmitButton>
       </form>
       <form action={removeAction}>
+        <OrgField />
         <input type="hidden" name="roleKey" value={roleKey} />
         {removed.error && <Notice tone="error" className="mb-2">{removed.error}</Notice>}
         <button type="submit" disabled={assignedCount > 0} className="text-[13px] font-semibold text-danger-ink disabled:cursor-not-allowed disabled:text-faint" title={assignedCount > 0 ? 'Take the role away from people first' : undefined}>

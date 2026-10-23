@@ -26,9 +26,9 @@ test('an organisation runs a cohort; a learner joins it, chooses an elective and
   await expect(page.getByText('Open to join', { exact: true })).toBeVisible();
   const cohortUrl = page.url().split('?')[0]!;
 
-  // The first class gets its join link.
+  // The first class gets its link (an online class) or place (the Saturday studio), depending on today's weekday.
   await page.getByRole('button', { name: /^Edit/ }).first().click();
-  await page.getByLabel('Join link').fill('https://meet.example.org/dream-lab');
+  await page.getByLabel(/^(Join link|Place)$/).fill('https://meet.example.org/dream-lab');
   await page.getByRole('button', { name: 'Save class' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 

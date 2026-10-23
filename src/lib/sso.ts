@@ -3,7 +3,7 @@ import type { SsoResult } from '@dreamlab/contracts';
 import { NextResponse } from 'next/server';
 import { safeNext } from './forms';
 import type { ApiResult } from './gateway';
-import { getInvite, saveTokens } from './session';
+import { getInvite, saveTokens, setMfaChallenge } from './session';
 
 /** Where a page lives on this site, for redirects from Route Handlers (which need absolute URLs). */
 export function here(request: Request, path: string): URL {
@@ -15,6 +15,11 @@ export async function finishSignOn(request: Request, res: ApiResult<SsoResult>, 
   if (!res.ok) return failed(request, res.error.code ?? 'sso_failed', mode);
   if (res.data.kind === 'test') {
     return NextResponse.redirect(here(request, '/app/settings?sso_tested=1#sign-on'), 303);
+  }
+  if (res.data.kind === 'mfa') {
+    // Sign-on vouched for the address; the person's own authenticator app is still asked for a code.
+    await setMfaChallenge(res.data.challenge.mfaToken, res.data.challenge.expiresIn);
+    return NextResponse.redirect(here(request, `/login/mfa?next=${encodeURIComponent(safeNext(res.data.returnTo))}`), 303);
   }
   await saveTokens(res.data.tokens);
   // A pending invitation still wins, as with every other way of signing in.

@@ -65,9 +65,20 @@ test.describe('sign-in and sign-out boundary', () => {
   });
 
   test('sign-out redirects within the site (never to the server’s internal address)', async ({ request }) => {
-    const res = await request.post('/auth/logout', { form: { next: '/login' }, maxRedirects: 0 });
+    // As a browser's own form sends it (fetch metadata says same-origin).
+    const res = await request.post('/auth/logout', { form: { next: '/login' }, headers: { 'sec-fetch-site': 'same-origin' }, maxRedirects: 0 });
     expect(res.status()).toBe(303);
     expect(res.headers()['location']).toBe('/login');
+  });
+
+  test('another site cannot sign anyone out, nor send them somewhere through sign-out', async ({ request }) => {
+    const attempts: Record<string, string>[] = [{ 'sec-fetch-site': 'cross-site' }, { origin: 'https://evil.example' }, {}];
+    for (const headers of attempts) {
+      const res = await request.post('/auth/logout', { form: { next: '/login' }, headers, maxRedirects: 0 });
+      expect(res.headers()['location']).toBe('/app');
+    }
+    const sneaky = await request.post('/auth/logout', { form: { next: '/\t/evil.example' }, headers: { 'sec-fetch-site': 'same-origin' }, maxRedirects: 0 });
+    expect(sneaky.headers()['location']).toBe('/');
   });
 
   test('a session ended elsewhere sends this browser to sign-in, without a redirect loop', async ({ browser }) => {

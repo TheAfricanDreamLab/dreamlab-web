@@ -10,6 +10,7 @@ import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { initials, ROLE_LABELS } from '@/lib/labels';
 import { activeMembership, can, getMe } from '@/lib/me';
+import { OrgField } from '@/components/app/org-binding';
 
 export const metadata: Metadata = { title: 'People' };
 
@@ -73,6 +74,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                             {roleName(r.roleKey)}
                             {canRevoke && (
                               <form action={revokeRole}>
+                                <OrgField />
                                 <input type="hidden" name="assignmentId" value={r.id} />
                                 <button type="submit" className="-my-1 grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink sm:h-5 sm:w-5" aria-label={`Remove ${roleName(r.roleKey)} role`}>
                                   ×
@@ -88,6 +90,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                       {m.status !== 'active' && <Badge tone={m.status === 'suspended' ? 'danger' : 'gold'}>{m.status}</Badge>}
                       {canRemove && !isMe && (
                         <form action={removeMember}>
+                          <OrgField />
                           <input type="hidden" name="membershipId" value={m.id} />
                           <button type="submit" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-danger-ink hover:bg-danger-tint">
                             Remove
@@ -113,6 +116,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                       <p className="truncate text-[12.5px] text-muted">{m.user.email}</p>
                     </div>
                     <form action={answerJoinRequest} className="flex gap-1">
+                      <OrgField />
                       <input type="hidden" name="membershipId" value={m.id} />
                       <button type="submit" name="answer" value="approve" className="min-h-10 rounded-lg bg-primary px-3 text-[13.5px] font-semibold text-white hover:bg-primary-hover">
                         Let in
@@ -146,6 +150,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                       </p>
                     </div>
                     <form action={revokeInvitation}>
+                      <OrgField />
                       <input type="hidden" name="invitationId" value={inv.id} />
                       <button type="submit" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
                         Cancel

@@ -141,6 +141,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <Notice tone="info">We’ve got your request. We review new organisations within two working days. Meanwhile you can set things up and invite co-admins.</Notice>
       )}
       {sp.joined && <Notice tone="success">You’ve joined. Welcome aboard!</Notice>}
+      {sp.org_changed && (
+        <Notice tone="error">Nothing was changed: you switched organisation (perhaps in another tab) after that page opened. Open it again and retry.</Notice>
+      )}
       {sp.requested && <Notice tone="info">We’ve asked the organisation’s admins. You’ll see it in your spaces once they say yes.</Notice>}
       {sp.join_error && <Notice tone="error">{messageForCode(sp.join_error)}</Notice>}
       {active?.org.status === 'pending' && (

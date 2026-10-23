@@ -42,14 +42,21 @@ export async function declineInvitation(): Promise<void> {
   redirect('/');
 }
 
-async function activeOrg(): Promise<string> {
+/**
+ * The organisation an org-admin action works on: the session's active one, provided it is the one the
+ * form was shown for (OrgField). If the session moved to another organisation since (another tab, or
+ * another organisation's site), nothing is changed.
+ */
+async function activeOrg(fd?: FormData): Promise<string> {
   const claims = await getClaims();
   if (!claims?.org) redirect('/app');
+  const shown = fd?.get('orgId');
+  if (typeof shown === 'string' && shown && shown !== claims.org) redirect('/app?org_changed=1');
   return claims.org;
 }
 
 export async function inviteMember(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const raw = str(fd, 'identifier');
   const identifier = normaliseIdentifier(raw);
   const role = str(fd, 'role') || 'learner';
@@ -63,13 +70,13 @@ export async function inviteMember(_: FormState, fd: FormData): Promise<FormStat
 }
 
 export async function revokeInvitation(fd: FormData): Promise<void> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('DELETE', `/v1/orgs/${orgId}/invitations/${str(fd, 'invitationId')}`);
   revalidatePath('/app/members');
 }
 
 export async function assignRole(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const res = await api('POST', `/v1/orgs/${orgId}/members/${str(fd, 'membershipId')}/roles`, { roleKey: str(fd, 'roleKey'), scopeType: 'org' });
   if (!res.ok) return { error: friendlyError(res.error) };
   revalidatePath('/app/members');
@@ -77,13 +84,13 @@ export async function assignRole(_: FormState, fd: FormData): Promise<FormState>
 }
 
 export async function revokeRole(fd: FormData): Promise<void> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('DELETE', `/v1/orgs/${orgId}/role-assignments/${str(fd, 'assignmentId')}`);
   revalidatePath('/app/members');
 }
 
 export async function removeMember(fd: FormData): Promise<void> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('DELETE', `/v1/orgs/${orgId}/members/${str(fd, 'membershipId')}`);
   revalidatePath('/app/members');
 }

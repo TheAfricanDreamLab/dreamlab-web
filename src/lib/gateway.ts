@@ -37,6 +37,12 @@ export async function callGateway<T>(
   options: { body?: unknown; token?: string | null; request: ForwardedRequest },
 ): Promise<ApiResult<T>> {
   const { request } = options;
+  // Paths carry ids from the URL. A crafted id with dot segments or encoded slashes could turn a call
+  // into a different endpoint (still with the user's token), so such paths are never sent.
+  // Control characters too: URL parsing drops tabs and newlines before it resolves dot segments.
+  if (/[\u0000-\u001f\u007f]|(^|\/)(\.|%2e){1,2}(\/|$|\?)|%2f|%5c|\\/i.test(path.split('?')[0]!)) {
+    return { ok: false, status: 400, error: { statusCode: 400, error: 'Bad Request', message: 'That link isn’t right.', code: 'bad_path' } };
+  }
   const headersOut: Record<string, string> = { accept: 'application/json' };
   if (options.body !== undefined) headersOut['content-type'] = 'application/json';
   if (options.token) headersOut.authorization = `Bearer ${options.token}`;

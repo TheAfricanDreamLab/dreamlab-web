@@ -30,8 +30,18 @@ export function normaliseIdentifier(raw: string): string {
   return value.includes('@') ? value.toLowerCase() : normalisePhone(value);
 }
 
-/** Only same-site relative paths, never //evil.com or absolute URLs. */
+/**
+ * Only same-site relative paths, never //evil.com or absolute URLs. Browsers drop tabs and newlines
+ * from URLs and read a backslash as a slash, so "/\t/evil.com" would become //evil.com: any control
+ * character or backslash is refused, and the result must still resolve to this origin.
+ */
 export function safeNext(next: string | null | undefined, fallback = '/app'): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return fallback;
-  return next;
+  if (!next || !next.startsWith('/') || /[\u0000-\u001f\u007f\\]/.test(next)) return fallback;
+  try {
+    const url = new URL(next, 'https://same.invalid');
+    if (url.origin !== 'https://same.invalid') return fallback;
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return fallback;
+  }
 }

@@ -85,15 +85,18 @@ export async function clearTokens(): Promise<void> {
   await removeCookie(MFA_COOKIE);
 }
 
-export async function setPending(identifier: string, purpose: 'verify' | 'login' | 'reset'): Promise<void> {
-  (await cookies()).set(PENDING_COOKIE, JSON.stringify({ identifier, purpose }), { ...base, maxAge: 30 * 60 });
+/** A code on its way. After sign-up it also keeps the registration token, which verify sends back. */
+type Pending = { identifier: string; purpose: 'verify' | 'login' | 'reset'; registrationToken?: string };
+
+export async function setPending(identifier: string, purpose: Pending['purpose'], registrationToken?: string): Promise<void> {
+  (await cookies()).set(PENDING_COOKIE, JSON.stringify({ identifier, purpose, ...(registrationToken && { registrationToken }) }), { ...base, maxAge: 30 * 60 });
 }
 
-export async function getPending(): Promise<{ identifier: string; purpose: 'verify' | 'login' | 'reset' } | null> {
+export async function getPending(): Promise<Pending | null> {
   const raw = (await cookies()).get(PENDING_COOKIE)?.value;
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as { identifier: string; purpose: 'verify' | 'login' | 'reset' };
+    return JSON.parse(raw) as Pending;
   } catch {
     return null;
   }

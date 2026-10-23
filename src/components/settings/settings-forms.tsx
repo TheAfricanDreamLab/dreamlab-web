@@ -18,6 +18,7 @@ import { SubmitButton } from '@/components/auth/forms';
 import { Field, TextInput } from '@/components/ui/fields';
 import { Badge, Button, cx, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
+import { OrgField } from '@/components/app/org-binding';
 
 const initial: FormState = {};
 
@@ -52,6 +53,7 @@ export function AddDomainForm() {
   const [state, action] = useActionState(addDomain, initial);
   return (
     <form action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <OrgField />
       <div className="flex-1">
         <TextInput label="Your email domain" name="domain" required placeholder="yourcompany.com" defaultValue={state.values?.domain} error={state.fields?.domain ?? state.error} hint={state.notice} />
       </div>
@@ -80,6 +82,7 @@ export function DomainRow({ d }: { d: DomainView }) {
         <span className="font-mono text-[14px] font-semibold text-ink">{d.domain}</span>
         {d.verified ? <Badge tone="green">Verified</Badge> : <Badge tone="gold">Waiting for DNS</Badge>}
         <form action={removeDomain} className="ml-auto">
+          <OrgField />
           <input type="hidden" name="domainId" value={d.id} />
           <button type="submit" className="rounded-lg px-2.5 py-1 text-[12.5px] font-semibold text-muted hover:bg-danger-tint hover:text-danger-ink">
             Remove
@@ -88,6 +91,7 @@ export function DomainRow({ d }: { d: DomainView }) {
       </div>
       {d.verified ? (
         <form action={setJoinPolicy} className="flex flex-wrap items-center gap-2 text-[13px]">
+          <OrgField />
           <input type="hidden" name="domainId" value={d.id} />
           <label htmlFor={`jp-${d.id}`} className="text-muted">
             People with an @{d.domain} address
@@ -107,6 +111,7 @@ export function DomainRow({ d }: { d: DomainView }) {
           <Copyable label="Name" value={d.verification.recordName} />
           <Copyable label="Value" value={d.verification.recordValue} testId={`txt-${d.domain}`} />
           <form action={action}>
+            <OrgField />
             <input type="hidden" name="domainId" value={d.id} />
             {state.error && <Notice tone="error" className="mb-3">{state.error}</Notice>}
             <SubmitButton pending="Checking DNS…" variant="secondary">
@@ -165,6 +170,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
           <p className="text-[13px] text-muted">{c.oidc ? `Issuer ${c.oidc.issuer} · client ${c.oidc.clientId}` : `IdP ${c.saml?.idpEntityId} · certificate ${c.saml?.certificateFingerprint.slice(0, 23)}…`}</p>
 
           <form action={testSso}>
+            <OrgField />
             <input type="hidden" name="orgId" value={orgId} />
             <Button type="submit" variant="secondary">
               Test sign-on with my account
@@ -172,6 +178,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
           </form>
 
           <form action={updateAction} className="space-y-3 rounded-[var(--radius-field)] bg-surface p-4 ring-1 ring-line">
+            <OrgField />
             <label className="flex items-start gap-3 text-[13.5px] text-body">
               <input type="hidden" name="enabled" value="false" />
               <input type="checkbox" name="enabled" value="true" defaultChecked={c.enabled} className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]" />
@@ -203,6 +210,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
             <SubmitButton pending="Saving…">Save sign-on settings</SubmitButton>
           </form>
           <form action={removeSso}>
+            <OrgField />
             <button type="submit" className="text-[13px] font-semibold text-danger-ink">
               Remove single sign-on
             </button>
@@ -212,6 +220,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
 
       {editing && (
         <form action={saveAction} className="space-y-4">
+          <OrgField />
           <input type="hidden" name="protocol" value={protocol} />
           <div className="inline-flex rounded-full bg-card p-1 ring-1 ring-line" role="tablist" aria-label="Protocol">
             {(['oidc', 'saml'] as const).map((p) => (
@@ -312,12 +321,14 @@ export function ScimSetup({ enabled, baseUrl, tokenHint, lastSyncAt, hasVerified
       )}
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <form action={action}>
+        <OrgField />
         <SubmitButton pending="Making a token…" variant={enabled ? 'secondary' : 'primary'}>
           {enabled ? 'Replace the token' : 'Turn on provisioning'}
         </SubmitButton>
       </form>
       {enabled && (
         <form action={disableScim}>
+          <OrgField />
           <button type="submit" className="text-[13px] font-semibold text-danger-ink">
             Turn off provisioning
           </button>
@@ -333,6 +344,7 @@ export function AdminMfaPolicy({ required, sessionHasMfa }: { required: boolean;
   const [state, action] = useActionState(setAdminMfa, initial);
   return (
     <form action={action} className="space-y-3">
+      <OrgField />
       <input type="hidden" name="requireAdminMfa" value={required ? 'false' : 'true'} />
       <p className="text-[13.5px] text-body">
         {required
