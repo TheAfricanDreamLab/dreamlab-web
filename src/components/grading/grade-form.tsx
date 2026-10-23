@@ -54,7 +54,8 @@ export function GradeForm({
                   type="radio"
                   name={`rubric:${r.id}`}
                   value={l.level}
-                  defaultChecked={initial?.rubricScores[r.id] === l.level}
+                  // Controlled: React resets uncontrolled fields after an action, which would clear the rubric on an error.
+                  checked={levels[r.id] === l.level}
                   onChange={() => setLevels((v) => ({ ...v, [r.id]: l.level }))}
                   className="sr-only"
                   aria-label={`${r.criterion}: ${l.label}`}
