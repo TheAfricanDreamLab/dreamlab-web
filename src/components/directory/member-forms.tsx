@@ -7,6 +7,7 @@ import { TextInput } from '@/components/ui/fields';
 import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { INVITABLE_ROLES } from '@/lib/labels';
+import { OrgField } from '@/components/app/org-binding';
 
 type RoleOption = { key: string; label: string; hint: string };
 
@@ -17,6 +18,7 @@ export function InviteForm({ orgPending, canAssignRoles, customRoles = [] }: { o
   const roles = orgPending ? INVITABLE_ROLES.filter((r) => r.key === 'org_admin') : canAssignRoles ? all : INVITABLE_ROLES.filter((r) => r.key === 'learner');
   return (
     <form action={action} className="space-y-4">
+      <OrgField />
       <TextInput label="Email or phone" name="identifier" required placeholder="ada@company.com or 0803 000 0000" defaultValue={state.values?.identifier} />
       <fieldset className="space-y-2">
         <legend className="text-[13px] font-semibold text-ink">As</legend>
@@ -45,6 +47,7 @@ export function AddRoleForm({ membershipId, has, customRoles = [] }: { membershi
   if (options.length === 0) return null;
   return (
     <form action={action} className="flex min-w-0 flex-wrap items-center gap-2">
+      <OrgField />
       <input type="hidden" name="membershipId" value={membershipId} />
       <select name="roleKey" className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]" aria-label="Add a role">
         {options.map((r) => (

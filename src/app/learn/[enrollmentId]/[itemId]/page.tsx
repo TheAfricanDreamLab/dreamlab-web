@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
 import { AssignmentForm } from '@/components/learning/assignment-form';
+import { GradeSummary } from '@/components/learning/grade-summary';
 import { ItemIcon, ProgressBar, StatusTick } from '@/components/learning/course-ui';
 import { DiscussionPostForm, ReplyForm } from '@/components/learning/discussion-forms';
 import { LessonPlayer } from '@/components/learning/lesson-player';
@@ -14,6 +15,7 @@ import { Badge, ButtonLink, cx, Eyebrow, LogoMark, Notice } from '@/components/u
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { dateTime, isUuid, ITEM_LABELS } from '@/lib/learning';
+import { webLink } from '@/lib/grading';
 
 type Params = { params: Promise<{ enrollmentId: string; itemId: string }> };
 
@@ -180,11 +182,16 @@ export default async function PlayerPage({ params }: Params) {
                 ))}
               </ol>
             </section>
-            {view.submissions.length > 0 && (
-              <Notice tone="success">
-                Submitted · version {Math.max(...view.submissions.map((s) => s.version))} · awaiting faculty review
-              </Notice>
-            )}
+            {(() => {
+              const latest = [...view.submissions].sort((a, b) => b.version - a.version)[0];
+              const graded = [...view.submissions].sort((a, b) => b.version - a.version).find((s) => s.grade);
+              return (
+                <>
+                  {latest && !latest.grade && <Notice tone="success">Submitted · version {latest.version} · awaiting faculty review</Notice>}
+                  {graded?.grade && <GradeSummary grade={graded.grade} version={graded.version} rubric={content.rubric} />}
+                </>
+              );
+            })()}
             <AssignmentForm
               key={itemId}
               enrollmentId={enrollmentId}
@@ -209,12 +216,12 @@ export default async function PlayerPage({ params }: Params) {
                           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px]">
                             <span className="font-semibold text-ink">Version {s.version}</span>
                             <span className="text-muted">{dateTime(s.submittedAt)}</span>
-                            <Badge tone="gold">Awaiting review</Badge>
+                            {s.grade ? <Badge tone="green">Graded · {s.grade.scorePct}%</Badge> : <Badge tone="gold">Awaiting review</Badge>}
                           </summary>
                           <div className="mt-3 space-y-2">
                             <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-body">{s.text}</p>
-                            {s.link && (
-                              <a href={s.link} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-[13.5px] font-semibold text-link hover:underline">
+                            {webLink(s.link) && (
+                              <a href={webLink(s.link)!} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-[13.5px] font-semibold text-link hover:underline">
                                 {s.link}
                               </a>
                             )}

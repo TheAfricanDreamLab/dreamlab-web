@@ -4,6 +4,7 @@ import { ElectiveForm } from '@/components/cohorts/cohort-forms';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate, classTime, type MyProgram } from '@/lib/cohorts';
 import { friendlyError } from '@/lib/errors';
+import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
 
 export const metadata: Metadata = { title: 'My programme' };
@@ -62,10 +63,14 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
             {p.cohort.currentWeek ? `Week ${p.cohort.currentWeek} of ${p.calendar.length}` : p.cohort.status === 'closed' ? 'Finished' : `Starts ${calendarDate(p.cohort.startsOn)}`}
           </Badge>
         </div>
-        <dl className="grid gap-3 sm:grid-cols-3">
+        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="This week" value={p.thisWeek?.focus ?? (p.cohort.currentWeek ? '—' : 'Not started')} />
           <Stat label="Major output" value={p.thisWeek?.majorOutput ?? '—'} />
           <Stat label="Attendance" value={attendancePct === null ? 'No classes yet' : `${attendancePct}% (${p.attendance.attended} of ${p.attendance.held})`} />
+          <Stat
+            label="Programme Score"
+            value={p.score.programmeScore === null ? 'After your first graded course' : `${formatScore(p.score.programmeScore)} · ${formatScore(p.score.scoredCredits)} of ${formatScore(p.score.totalCredits)} credits scored`}
+          />
         </dl>
       </Card>
 
@@ -123,7 +128,7 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
                     </span>
                   </span>
                   <span className="flex items-center gap-3">
-                    <span className="font-mono text-[12.5px] text-muted">{c.progressPct}%</span>
+                    <span className="font-mono text-[12.5px] text-muted">{c.score === null ? `${c.progressPct}%` : `Score ${formatScore(c.score)}`}</span>
                     {c.enrollmentId ? (
                       <Link href={`/learn/${c.enrollmentId}`} className="text-[13.5px] font-semibold text-link hover:underline">
                         {c.progressPct > 0 ? 'Continue' : 'Start'}

@@ -6,6 +6,7 @@ import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate, classTime, COHORT_STATUS_LABELS, COHORT_STATUS_TONES, type CohortDetail, isPast, POLICY_LABELS, type RosterEntry, WEEKDAYS } from '@/lib/cohorts';
 import { friendlyError } from '@/lib/errors';
+import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
@@ -139,6 +140,7 @@ export default async function CohortPage({ params, searchParams }: Props) {
                       </span>
                       <span className="text-right text-[12.5px] text-muted">
                         <span className="block">Progress {l.progressPct}%</span>
+                        <span className="block">Score {l.programmeScore === null ? '—' : formatScore(l.programmeScore)}</span>
                         <span className="block">Attendance {l.attendancePct === null ? '—' : `${l.attendancePct}%`}</span>
                       </span>
                     </li>

@@ -9,9 +9,16 @@ import { api } from '@/lib/gateway';
 import { cookies } from 'next/headers';
 import { getClaims, REFRESH_COOKIE, saveTokens } from '@/lib/session';
 
-async function activeOrg(): Promise<string> {
+/**
+ * The organisation an org-admin action works on: the session's active one, provided it is the one the
+ * form was shown for (OrgField). If the session moved to another organisation since (another tab, or
+ * another organisation's site), nothing is changed.
+ */
+async function activeOrg(fd?: FormData): Promise<string> {
   const claims = await getClaims();
   if (!claims?.org) redirect('/app');
+  const shown = fd?.get('orgId');
+  if (typeof shown === 'string' && shown && shown !== claims.org) redirect('/app?org_changed=1');
   return claims.org;
 }
 
@@ -67,7 +74,7 @@ export async function disableAuthenticator(_: FormState, fd: FormData): Promise<
 // ---------- Email domains ----------
 
 export async function addDomain(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const domain = str(fd, 'domain').toLowerCase().replace(/^https?:\/\//, '').replace(/^.*@/, '').replace(/\/.*$/, '');
   const res = await api('POST', `/v1/orgs/${orgId}/domains`, { domain });
   if (!res.ok) return { error: friendlyError(res.error), fields: fieldErrors(res.error), values: { domain } };
@@ -75,20 +82,20 @@ export async function addDomain(_: FormState, fd: FormData): Promise<FormState> 
 }
 
 export async function verifyDomain(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const res = await api<{ domain: string }>('POST', `/v1/orgs/${orgId}/domains/${str(fd, 'domainId')}/verify`);
   if (!res.ok) return { error: friendlyError(res.error) };
   return done('/app/settings', `${res.data.domain} is verified.`);
 }
 
 export async function setJoinPolicy(fd: FormData): Promise<void> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('PATCH', `/v1/orgs/${orgId}/domains/${str(fd, 'domainId')}`, { joinPolicy: str(fd, 'joinPolicy') });
   revalidatePath('/app/settings');
 }
 
 export async function removeDomain(fd: FormData): Promise<void> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('DELETE', `/v1/orgs/${orgId}/domains/${str(fd, 'domainId')}`);
   revalidatePath('/app/settings');
 }
@@ -96,7 +103,7 @@ export async function removeDomain(fd: FormData): Promise<void> {
 // ---------- Single sign-on ----------
 
 export async function saveSso(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const protocol = str(fd, 'protocol') === 'saml' ? 'saml' : 'oidc';
   const values = Object.fromEntries(['protocol', 'issuer', 'clientId', 'idpEntityId', 'idpSsoUrl', 'certificate'].map((k) => [k, str(fd, k)]));
   const body =
@@ -109,7 +116,7 @@ export async function saveSso(_: FormState, fd: FormData): Promise<FormState> {
 }
 
 export async function updateSso(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const patch: Record<string, unknown> = {};
   // Each checkbox sends a hidden "false" first, then "true" when ticked.
   if (fd.has('enabled')) patch.enabled = fd.getAll('enabled').includes('true');
@@ -122,15 +129,15 @@ export async function updateSso(_: FormState, fd: FormData): Promise<FormState> 
 
 export async function removeSso(fd: FormData): Promise<void> {
   void fd;
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('DELETE', `/v1/orgs/${orgId}/sso`);
   revalidatePath('/app/settings');
 }
 
 // ---------- SCIM ----------
 
-export async function createScimToken(): Promise<FormState> {
-  const orgId = await activeOrg();
+export async function createScimToken(_?: FormState, fd?: FormData): Promise<FormState> {
+  const orgId = await activeOrg(fd);
   const res = await api<{ token: string; baseUrl: string }>('POST', `/v1/orgs/${orgId}/scim/token`);
   if (!res.ok) return { error: friendlyError(res.error) };
   revalidatePath('/app/settings');
@@ -139,7 +146,7 @@ export async function createScimToken(): Promise<FormState> {
 
 export async function disableScim(fd: FormData): Promise<void> {
   void fd;
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   await api('DELETE', `/v1/orgs/${orgId}/scim`);
   revalidatePath('/app/settings');
 }
@@ -147,7 +154,7 @@ export async function disableScim(fd: FormData): Promise<void> {
 // ---------- Security policy ----------
 
 export async function setAdminMfa(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const res = await api('PATCH', `/v1/orgs/${orgId}/security`, { requireAdminMfa: str(fd, 'requireAdminMfa') === 'true' });
   if (!res.ok) return { error: friendlyError(res.error) };
   return done('/app/settings', 'Security policy updated.');
@@ -156,7 +163,7 @@ export async function setAdminMfa(_: FormState, fd: FormData): Promise<FormState
 // ---------- Custom roles ----------
 
 export async function createRole(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const values = { name: str(fd, 'name'), description: str(fd, 'description') };
   const permissions = fd.getAll('permissions').map(String);
   if (permissions.length === 0) return { error: 'Choose at least one thing this role can do.', values };
@@ -166,7 +173,7 @@ export async function createRole(_: FormState, fd: FormData): Promise<FormState>
 }
 
 export async function updateRole(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const permissions = fd.getAll('permissions').map(String);
   if (permissions.length === 0) return { error: 'Choose at least one thing this role can do.' };
   const res = await api('PATCH', `/v1/orgs/${orgId}/roles/${str(fd, 'roleKey')}`, { permissions: ['org.read', ...permissions.filter((p) => p !== 'org.read')] });
@@ -175,7 +182,7 @@ export async function updateRole(_: FormState, fd: FormData): Promise<FormState>
 }
 
 export async function deleteRole(_: FormState, fd: FormData): Promise<FormState> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const res = await api('DELETE', `/v1/orgs/${orgId}/roles/${str(fd, 'roleKey')}`);
   if (!res.ok) return { error: friendlyError(res.error) };
   return done('/app/roles', 'Role deleted.');
@@ -195,7 +202,7 @@ export async function joinOrganisation(fd: FormData): Promise<void> {
 }
 
 export async function answerJoinRequest(fd: FormData): Promise<void> {
-  const orgId = await activeOrg();
+  const orgId = await activeOrg(fd);
   const membershipId = str(fd, 'membershipId');
   // Stop at the first failure and say so, rather than leaving someone active without a role.
   const steps =

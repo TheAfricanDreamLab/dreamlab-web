@@ -95,14 +95,15 @@ export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
   const identifier = normaliseIdentifier(str(fd, method));
   const values = { fullName: str(fd, 'fullName'), [method]: str(fd, method), method };
   if (fd.get('terms') !== 'on') return { error: 'Please accept the terms and privacy policy to create your account.', values };
-  const res = await api('POST', '/v1/auth/register', {
+  const res = await api<{ registrationToken: string }>('POST', '/v1/auth/register', {
     fullName: values.fullName,
     [method]: identifier,
     password: String(fd.get('password') ?? ''),
     consent: { termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION, aiProcessing: fd.get('aiProcessing') === 'on', marketing: false },
   });
   if (!res.ok) return { error: friendlyError(res.error), fields: fieldErrors(res.error), values };
-  await setPending(identifier, 'verify');
+  // The password chosen here is kept only when verify brings this token back (see the API's register).
+  await setPending(identifier, 'verify', res.data.registrationToken);
   redirect(`/verify?next=${encodeURIComponent(safeNext(str(fd, 'next')))}`);
 }
 
@@ -113,7 +114,11 @@ export async function verifyCode(_: FormState, fd: FormData): Promise<FormState>
   if (!/^\d{6}$/.test(code)) return { error: 'Enter all six digits of the code.' };
   const path = { verify: '/v1/auth/verify', login: '/v1/auth/login/otp', reset: '' }[pending.purpose];
   if (!path) return { error: 'Something went wrong. Start again from sign in.' };
-  const res = await api<SignInResponse>('POST', path, { identifier: pending.identifier, code });
+  const res = await api<SignInResponse>('POST', path, {
+    identifier: pending.identifier,
+    code,
+    ...(pending.purpose === 'verify' && pending.registrationToken && { registrationToken: pending.registrationToken }),
+  });
   if (!res.ok) return { error: friendlyError(res.error) };
   await clearPending();
   return completeSignIn(res.data, str(fd, 'next'));

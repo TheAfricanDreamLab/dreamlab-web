@@ -87,6 +87,16 @@ const MESSAGES: Record<string, string> = {
   not_electives_of_one_group: 'Choose courses from one elective group.',
   session_not_found: 'We couldn’t find that class.',
   learner_not_in_cohort: 'Some of these people aren’t learners in this cohort.',
+  // Grading
+  submission_not_found: 'We couldn’t find that submission, or it isn’t yours to grade.',
+  rubric_incomplete: 'Choose a level for every criterion.',
+  not_latest_version: 'The learner has submitted a newer version. Grade that one.',
+  own_submission: 'You can’t grade your own work.',
+  program_enrollment_inactive: 'Your place in this programme is not active.',
+  // Security
+  grant_exceeds_own: 'You can only give people permissions you hold yourself.',
+  slug_owned_elsewhere: 'Another organisation already uses that web address for a course. Choose another slug.',
+  bad_path: 'That link isn’t right.',
   network: 'We couldn’t reach Dream Lab. Check your connection and try again.',
 };
 

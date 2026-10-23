@@ -16,6 +16,9 @@ const goTo = (path: string) => new Response(null, { status: 303, headers: { Loca
  * An invitation waiting in this browser is kept, so "sign out and continue as the invited person" works.
  */
 export async function POST(request: NextRequest) {
+  // Only our own pages (this site, organisation sites, the static site) may sign people out; another
+  // site's form could otherwise sign someone out and land them on a page of its choosing.
+  if (request.headers.get('sec-fetch-site') === 'cross-site') return goTo('/app');
   const token = await getAccessToken();
   if (token) await callGateway('POST', '/v1/auth/logout', { body: {}, token, request: await incomingRequest() }).catch(() => undefined);
   await clearTokens();
