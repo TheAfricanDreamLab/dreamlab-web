@@ -72,7 +72,8 @@ test.describe('sign-in and sign-out boundary', () => {
   });
 
   test('another site cannot sign anyone out, nor send them somewhere through sign-out', async ({ request }) => {
-    for (const headers of [{ 'sec-fetch-site': 'cross-site' }, { origin: 'https://evil.example' }, {}]) {
+    const attempts: Record<string, string>[] = [{ 'sec-fetch-site': 'cross-site' }, { origin: 'https://evil.example' }, {}];
+    for (const headers of attempts) {
       const res = await request.post('/auth/logout', { form: { next: '/login' }, headers, maxRedirects: 0 });
       expect(res.headers()['location']).toBe('/app');
     }
