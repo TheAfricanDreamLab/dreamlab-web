@@ -30,6 +30,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: '/app/members', label: 'People', icon: 'users', show: Boolean(active) && can(me, 'org.members.read') },
     { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
     { href: '/app/grading', label: 'Grading', icon: 'check', show: Boolean(active) && !me.platformAdmin && can(me, 'submission.grade') },
+    { href: '/app/authoring', label: 'Authoring', icon: 'grid', show: Boolean(active) && !me.platformAdmin && (can(me, 'course.content.edit') || can(me, 'course.publish')) },
     { href: '/app/roles', label: 'Roles', icon: 'shield', show: Boolean(active) && can(me, 'org.roles.manage') },
     { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage') },
   ].filter((i) => i.show) as Item[];
@@ -41,6 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/admin/catalog', label: 'Catalog', icon: 'grid', show: true },
         { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: true },
         { href: '/app/grading', label: 'Grading', icon: 'check', show: true },
+        { href: '/app/authoring', label: 'Authoring', icon: 'journal', show: true },
       ]
     : [];
 

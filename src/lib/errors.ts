@@ -93,6 +93,17 @@ const MESSAGES: Record<string, string> = {
   not_latest_version: 'The learner has submitted a newer version. Grade that one.',
   own_submission: 'You can’t grade your own work.',
   program_enrollment_inactive: 'Your place in this programme is not active.',
+  // Authoring
+  draft_not_found: 'We couldn’t find that draft.',
+  draft_exists: 'This course already has a draft. Open that one.',
+  draft_changed: 'Someone saved this draft after you opened it. Reload to see their changes, then make yours again.',
+  draft_in_review: 'This draft is waiting for review. Take it back from review to keep editing.',
+  draft_published: 'This draft has been published. Start a new draft to make more changes.',
+  draft_has_issues: 'Fix the issues listed before sending it for review.',
+  draft_not_in_review: 'This draft is not waiting for review.',
+  draft_not_editable: 'This draft can’t be changed now.',
+  draft_too_large: 'This course is too large to save in one piece (1 MB). Split it into more courses.',
+  course_slug_taken: 'A course already uses that web address. Choose another.',
   // Security
   grant_exceeds_own: 'You can only give people permissions you hold yourself.',
   slug_owned_elsewhere: 'Another organisation already uses that web address for a course. Choose another slug.',
