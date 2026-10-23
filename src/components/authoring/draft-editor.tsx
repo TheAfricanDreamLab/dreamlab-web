@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { discardDraft, draftStep, saveDraft } from '@/app/actions/authoring';
 import { Badge, Button, Card, cx, Notice } from '@/components/ui/primitives';
-import { type Doc, type Draft, DRAFT_STATUS_LABELS, DRAFT_STATUS_TONES, issueTarget, type ModuleDoc, VISIBILITY_LABELS } from '@/lib/authoring';
+import { type Doc, type Draft, DRAFT_STATUS_LABELS, DRAFT_STATUS_TONES, issueTarget, normaliseModules, VISIBILITY_LABELS } from '@/lib/authoring';
 import { DetailsEditor } from './details-editor';
 import { JsonField } from './fields';
 import { OutlineEditor } from './outline-editor';
@@ -27,13 +27,18 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   const [note, setNote] = useState('');
   const [jsonVersion, setJsonVersion] = useState(0);
   const editable = draft.can.edit;
+  // The document as it is now, for saves that finish after more edits were made.
+  const latest = useRef(doc);
+  useEffect(() => {
+    latest.current = doc;
+  }, [doc]);
 
   const setDoc = useCallback((next: Doc) => {
     setDocState(next);
     setDirty(true);
   }, []);
   const set = (key: string, value: unknown) => setDoc({ ...doc, [key]: value });
-  const modules = (Array.isArray(doc.modules) ? doc.modules : []) as ModuleDoc[];
+  const modules = normaliseModules(doc.modules);
 
   // Leaving with unsaved changes asks first.
   useEffect(() => {
@@ -45,14 +50,16 @@ export function DraftEditor({ initial }: { initial: Draft }) {
 
   const save = async (): Promise<Draft | null> => {
     setBusy('save');
-    const res = await saveDraft(draft.id, draft.revision, doc);
+    const sent = doc;
+    const res = await saveDraft(draft.id, draft.revision, sent);
     setBusy(null);
     if (!res.ok) {
       setMessage({ tone: 'error', text: res.error, reload: res.code === 'draft_changed' });
       return null;
     }
     setDraft(res.data);
-    setDirty(false);
+    // Edits made while the save was on its way are still unsaved.
+    setDirty(latest.current !== sent);
     setMessage({ tone: 'success', text: res.data.issues.length ? `Saved. ${res.data.issues.length} thing(s) to fix before review.` : 'Saved. Ready to send for review.' });
     return res.data;
   };
@@ -153,9 +160,13 @@ export function DraftEditor({ initial }: { initial: Draft }) {
               disabled={busy !== null}
               onClick={async () => {
                 if (!window.confirm('Discard this draft? Published versions are not affected.')) return;
+                const wasDirty = dirty;
                 setDirty(false);
                 const res = await discardDraft(draft.id);
-                if (res && !res.ok) setMessage({ tone: 'error', text: res.error });
+                if (res && !res.ok) {
+                  setDirty(wasDirty);
+                  setMessage({ tone: 'error', text: res.error });
+                }
               }}
             >
               Discard

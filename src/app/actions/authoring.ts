@@ -38,16 +38,18 @@ export async function editCourse(fd: FormData): Promise<void> {
 
 /** Save the whole document; the revision guards against overwriting someone else's save. */
 export async function saveDraft(draftId: string, revision: number, doc: Record<string, unknown>): Promise<Outcome<Draft>> {
-  if (!isUuid(draftId)) return BAD_LINK;
+  // Server Actions are public endpoints: check what TypeScript can't.
+  if (!isUuid(draftId) || !Number.isInteger(revision) || revision < 0 || !doc || typeof doc !== 'object' || Array.isArray(doc)) return BAD_LINK;
   const res = await api<Draft>('PUT', `/v1/catalog/authoring/drafts/${draftId}`, { revision, doc });
   return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error), code: res.error.code };
 }
 
-type Step = 'submit' | 'withdraw' | 'publish' | 'request-changes';
+const STEPS = ['submit', 'withdraw', 'publish', 'request-changes'] as const;
+type Step = (typeof STEPS)[number];
 
 /** Submit, withdraw, publish or request changes. Reviewers may add a note. */
 export async function draftStep(draftId: string, step: Step, note?: string): Promise<Outcome<Draft>> {
-  if (!isUuid(draftId)) return BAD_LINK;
+  if (!isUuid(draftId) || !(STEPS as readonly string[]).includes(step)) return BAD_LINK;
   const body = step === 'publish' || step === 'request-changes' ? { note: note?.trim() || null } : {};
   const res = await api<Draft>('POST', `/v1/catalog/authoring/drafts/${draftId}/${step}`, body);
   if (!res.ok) return { ok: false, error: friendlyError(res.error), code: res.error.code };

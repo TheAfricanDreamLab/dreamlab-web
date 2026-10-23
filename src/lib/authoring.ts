@@ -37,6 +37,33 @@ export type Doc = Record<string, unknown> & {
 export type ModuleDoc = { key: string; title: string; summary: string; weekNo: number | null; items: ItemDoc[] };
 export type ItemDoc = Record<string, unknown> & { key: string; type: ItemType; title: string; minutes: number; required?: boolean; gradeWeight?: number; payload: Record<string, unknown> };
 
+/**
+ * The outline as the editor can render it, whatever the JSON tab left behind: modules with item lists,
+ * items with a payload. Only shapes are mended; the API still reports what is wrong.
+ */
+export function normaliseModules(value: unknown): ModuleDoc[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((m): m is Record<string, unknown> => !!m && typeof m === 'object')
+    .map((m) => ({
+      ...(m as unknown as ModuleDoc),
+      key: typeof m.key === 'string' ? m.key : '',
+      title: typeof m.title === 'string' ? m.title : '',
+      summary: typeof m.summary === 'string' ? m.summary : '',
+      weekNo: typeof m.weekNo === 'number' ? m.weekNo : null,
+      items: (Array.isArray(m.items) ? m.items : [])
+        .filter((i): i is Record<string, unknown> => !!i && typeof i === 'object')
+        .map((i) => ({
+          ...(i as unknown as ItemDoc),
+          key: typeof i.key === 'string' ? i.key : '',
+          title: typeof i.title === 'string' ? i.title : '',
+          type: (ITEM_TYPES as readonly unknown[]).includes(i.type) ? (i.type as ItemType) : 'lesson',
+          minutes: typeof i.minutes === 'number' ? i.minutes : 1,
+          payload: i.payload && typeof i.payload === 'object' && !Array.isArray(i.payload) ? (i.payload as Record<string, unknown>) : {},
+        })),
+    }));
+}
+
 /** "Carving the wax" → "carving-the-wax" (block ids: lowercase letters, digits and hyphens, up to 48). */
 export function slugify(text: string, fallback = 'item'): string {
   const s = text
@@ -45,8 +72,8 @@ export function slugify(text: string, fallback = 'item'): string {
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_]+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 48);
+    .slice(0, 48)
+    .replace(/^-+|-+$/g, '');
   return /^[a-z0-9]/.test(s) ? s : fallback;
 }
 
