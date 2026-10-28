@@ -22,6 +22,7 @@ async function join(browser: Browser, link: string, name: string, email: string)
   const page = await context.newPage();
   await page.goto(link);
   await page.getByRole('link', { name: 'Create my account to accept' }).click();
+  await expect(page).toHaveURL(/\/signup/);
   await signUpWithEmail(page, name, email, PASSWORD, page.url());
   await page.getByRole('button', { name: 'Accept and join' }).click();
   await expect(page).toHaveURL(/\/app\?joined=1/);

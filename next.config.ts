@@ -15,6 +15,16 @@ const securityHeaders = [
  * sign-in button, uploads to Azure Blob Storage, no plugins,
  * no framing, and forms may only post here or hand over to an identity provider (https).
  */
+/** A production build tested locally uploads to Azurite (MEDIA_ORIGIN_URL); allow that origin too. */
+function localStorageOrigin(): string {
+  try {
+    const origin = new URL(process.env.MEDIA_ORIGIN_URL ?? '').origin;
+    return origin.endsWith('.blob.core.windows.net') ? '' : ` ${origin}`;
+  } catch {
+    return '';
+  }
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://accounts.google.com",
@@ -23,7 +33,7 @@ const contentSecurityPolicy = [
   "font-src 'self' data:",
   'frame-src https://www.youtube-nocookie.com https://accounts.google.com',
   // Uploads go from the browser straight to Azure Blob Storage with a short-lived link (MEDIA-1).
-  "connect-src 'self' https://accounts.google.com https://*.blob.core.windows.net",
+  `connect-src 'self' https://accounts.google.com https://*.blob.core.windows.net${localStorageOrigin()}`,
   "media-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
