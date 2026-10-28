@@ -1,6 +1,6 @@
 'use server';
 
-import type { Draft } from '@dreamlab/contracts';
+import type { CourseMediaUpload, Draft } from '@dreamlab/contracts';
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
@@ -62,4 +62,14 @@ export async function discardDraft(draftId: string): Promise<Outcome<null>> {
   const res = await api('DELETE', `/v1/catalog/authoring/drafts/${draftId}`);
   if (!res.ok) return { ok: false, error: friendlyError(res.error) };
   redirect('/app/authoring?discarded=1');
+}
+
+/** An upload link for a cover photo or video in a draft (the browser then sends the file there). */
+export async function startCourseMediaUpload(
+  draftId: string,
+  file: { kind: 'image' | 'video'; fileName: string; contentType: string; size: number },
+): Promise<Outcome<CourseMediaUpload>> {
+  if (!isUuid(draftId) || (file.kind !== 'image' && file.kind !== 'video')) return BAD_LINK;
+  const res = await api<CourseMediaUpload>('POST', `/v1/catalog/authoring/drafts/${draftId}/media`, file);
+  return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error) };
 }

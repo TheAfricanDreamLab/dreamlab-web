@@ -65,6 +65,8 @@ jobs:
   # this job's short-lived GITHUB_TOKEN. Production is deployed from dreamlab-infra, with approval.
   deploy-staging:
     runs-on: ubuntu-latest
+    # The deploy identity trusts only this environment, which accepts runs from main (SEC-2).
+    environment: staging
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_DEPLOY_CLIENT_ID != ''
     concurrency: deploy-staging-${{ github.repository }}

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { friendlyError, fieldErrors } from '@/lib/errors';
 import { FormState, normaliseIdentifier, str } from '@/lib/forms';
 import { api } from '@/lib/gateway';
+import { isUuid } from '@/lib/learning';
 import { clearInvite, getClaims, getInvite, saveTokens } from '@/lib/session';
 
 /** Create an organisation as the signed-in user, then step into it. */
@@ -77,7 +78,13 @@ export async function revokeInvitation(fd: FormData): Promise<void> {
 
 export async function assignRole(_: FormState, fd: FormData): Promise<FormState> {
   const orgId = await activeOrg(fd);
-  const res = await api('POST', `/v1/orgs/${orgId}/members/${str(fd, 'membershipId')}/roles`, { roleKey: str(fd, 'roleKey'), scopeType: 'org' });
+  const scope = str(fd, 'scope');
+  const courseId = scope.startsWith('course:') ? scope.slice('course:'.length) : null;
+  if (courseId !== null && !isUuid(courseId)) return { error: 'Choose a course from the list.' };
+  const res = await api('POST', `/v1/orgs/${orgId}/members/${str(fd, 'membershipId')}/roles`, {
+    roleKey: str(fd, 'roleKey'),
+    ...(courseId ? { scopeType: 'course', scopeId: courseId } : { scopeType: 'org' }),
+  });
   if (!res.ok) return { error: friendlyError(res.error) };
   revalidatePath('/app/members');
   return { notice: 'Role added.' };

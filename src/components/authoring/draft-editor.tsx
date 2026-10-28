@@ -6,6 +6,7 @@ import { discardDraft, draftStep, saveDraft } from '@/app/actions/authoring';
 import { Badge, Button, Card, cx, Notice } from '@/components/ui/primitives';
 import { type Doc, type Draft, DRAFT_STATUS_LABELS, DRAFT_STATUS_TONES, issueTarget, normaliseModules, VISIBILITY_LABELS } from '@/lib/authoring';
 import { DetailsEditor } from './details-editor';
+import { DraftIdContext } from './media-upload';
 import { JsonField } from './fields';
 import { OutlineEditor } from './outline-editor';
 
@@ -98,7 +99,16 @@ export function DraftEditor({ initial }: { initial: Draft }) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Badge tone={DRAFT_STATUS_TONES[draft.status]}>{DRAFT_STATUS_LABELS[draft.status]}</Badge>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/app/authoring/${draft.id}/preview`}
+              className="inline-flex min-h-10 items-center rounded-full px-4 text-[13.5px] font-semibold text-link ring-1 ring-line hover:bg-surface"
+              title={dirty ? 'Save first: the preview shows the last saved version' : undefined}
+            >
+              Preview
+            </Link>
+            <Badge tone={DRAFT_STATUS_TONES[draft.status]}>{DRAFT_STATUS_LABELS[draft.status]}</Badge>
+          </div>
           <span className="text-[12.5px] text-muted" aria-live="polite">
             {dirty ? 'Unsaved changes' : 'All changes saved'}
           </span>
@@ -244,23 +254,25 @@ export function DraftEditor({ initial }: { initial: Draft }) {
         ))}
       </nav>
 
-      <fieldset disabled={!editable} className="min-w-0">
-        <legend className="sr-only">Course content{editable ? '' : ' (read only)'}</legend>
-        {tab === 'details' && <DetailsEditor doc={doc} set={set} />}
-        {tab === 'outline' && <OutlineEditor modules={modules} setModules={(m) => set('modules', m)} open={open} setOpen={setOpen} />}
-        {tab === 'json' && (
-          <JsonField
-            key={jsonVersion}
-            label="The whole course"
-            rows={28}
-            value={doc}
-            onChange={(v) => {
-              if (v && typeof v === 'object' && !Array.isArray(v)) setDoc(v as Doc);
-            }}
-            hint="Everything the forms cover and more (trailer, instructors). The slug can't change."
-          />
-        )}
-      </fieldset>
+      <DraftIdContext.Provider value={draft.id}>
+        <fieldset disabled={!editable} className="min-w-0">
+          <legend className="sr-only">Course content{editable ? '' : ' (read only)'}</legend>
+          {tab === 'details' && <DetailsEditor draftId={draft.id} doc={doc} set={set} />}
+          {tab === 'outline' && <OutlineEditor modules={modules} setModules={(m) => set('modules', m)} open={open} setOpen={setOpen} />}
+          {tab === 'json' && (
+            <JsonField
+              key={jsonVersion}
+              label="The whole course"
+              rows={28}
+              value={doc}
+              onChange={(v) => {
+                if (v && typeof v === 'object' && !Array.isArray(v)) setDoc(v as Doc);
+              }}
+              hint="Everything the forms cover and more (trailer, instructors). The slug can't change."
+            />
+          )}
+        </fieldset>
+      </DraftIdContext.Provider>
     </div>
   );
 }

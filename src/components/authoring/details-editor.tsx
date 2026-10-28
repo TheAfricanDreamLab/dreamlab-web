@@ -1,15 +1,18 @@
 'use client';
 
 import type { Doc } from '@/lib/authoring';
+import { safeImageUrl } from '@/lib/media';
+import { MediaUploadButton } from './media-upload';
 import { AreaField, LinesField, NumberField, SelectField, TextField } from './fields';
 
 type Cover = { from?: string; to?: string; symbol?: string; imageUrl?: string; imageAlt?: string; imageCredit?: string };
+type Trailer = { provider?: 'youtube' | 'file'; videoId?: string; title?: string; channel?: string; durationS?: number };
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const arr = (v: unknown) => (Array.isArray(v) ? (v as string[]) : []);
 
 /** The course's own details: what learners see on its page before they enrol. */
-export function DetailsEditor({ doc, set }: { doc: Doc; set: (key: string, value: unknown) => void }) {
+export function DetailsEditor({ draftId, doc, set }: { draftId: string; doc: Doc; set: (key: string, value: unknown) => void }) {
   const cover = (doc.cover ?? {}) as Cover;
   const setCover = (patch: Partial<Cover>) => {
     const next: Cover = { ...cover, ...patch };
@@ -81,12 +84,62 @@ export function DetailsEditor({ doc, set }: { doc: Doc; set: (key: string, value
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <TextField label="Photo (optional)" value={cover.imageUrl ?? ''} onChange={(v) => setCover({ imageUrl: v })} placeholder="https://upload.wikimedia.org/…" hint="Unsplash or Wikimedia" />
+          <TextField label="Photo (optional)" value={cover.imageUrl ?? ''} onChange={(v) => setCover({ imageUrl: v })} placeholder="https://upload.wikimedia.org/…" hint="Upload one, or Unsplash or Wikimedia" />
           <TextField label="Photo description" value={cover.imageAlt ?? ''} maxLength={300} onChange={(v) => setCover({ imageAlt: v })} />
           <TextField label="Photo credit" value={cover.imageCredit ?? ''} maxLength={200} onChange={(v) => setCover({ imageCredit: v })} />
         </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <MediaUploadButton draftId={draftId} kind="image" onUploaded={(path) => setCover({ imageUrl: `/media/${path}` })} />
+          {safeImageUrl(cover.imageUrl) && (
+            // eslint-disable-next-line @next/next/no-img-element -- a preview of the chosen photo
+            <img src={safeImageUrl(cover.imageUrl)!} alt="" className="h-20 w-36 rounded-[var(--radius-field)] object-cover ring-1 ring-line" />
+          )}
+        </div>
       </section>
+
+      <TrailerEditor draftId={draftId} trailer={(doc.trailer ?? null) as Trailer | null} onChange={(t) => set('trailer', t ?? undefined)} />
     </div>
+  );
+}
+
+/** A short video on the course page: on YouTube, or uploaded. */
+function TrailerEditor({ draftId, trailer, onChange }: { draftId: string; trailer: Trailer | null; onChange: (t: Trailer | null) => void }) {
+  const t = trailer ?? {};
+  const patch = (p: Partial<Trailer>) => onChange({ provider: 'youtube', title: '', channel: '', ...t, ...p });
+  return (
+    <section className="space-y-3" aria-labelledby="trailer-heading">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 id="trailer-heading" className="text-[16px] font-bold">
+          Trailer (optional)
+        </h3>
+        {trailer && (
+          <button type="button" onClick={() => onChange(null)} className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-danger-ink hover:bg-danger-tint">
+            Remove the trailer
+          </button>
+        )}
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <SelectField
+          label="Where it plays from"
+          value={t.provider ?? 'youtube'}
+          options={[
+            { value: 'youtube', label: 'YouTube' },
+            { value: 'file', label: 'Uploaded video' },
+          ]}
+          onChange={(v) => patch({ provider: v, videoId: '' })}
+        />
+        <TextField label="Title" value={t.title ?? ''} maxLength={200} onChange={(v) => patch({ title: v })} />
+        <TextField label="Made by" value={t.channel ?? ''} maxLength={120} onChange={(v) => patch({ channel: v })} hint="Shown as the credit" />
+      </div>
+      {(t.provider ?? 'youtube') === 'youtube' ? (
+        <TextField label="YouTube video id" value={t.videoId ?? ''} maxLength={11} onChange={(v) => patch({ videoId: v.trim() })} placeholder="dQw4w9WgXcQ" hint="The 11 characters after watch?v=" />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <MediaUploadButton draftId={draftId} kind="video" label={t.videoId ? 'Replace the video' : 'Upload a video'} onUploaded={(path) => patch({ provider: 'file', videoId: path })} />
+          {t.videoId && <span className="min-w-0 truncate text-[13px] text-muted">{t.videoId.split('/').pop()}</span>}
+        </div>
+      )}
+    </section>
   );
 }
 

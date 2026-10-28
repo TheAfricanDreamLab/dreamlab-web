@@ -11,9 +11,20 @@ const securityHeaders = [
 /*
  * Content Security Policy (production builds; `next dev` needs eval and websockets). Scripts stay
  * 'unsafe-inline' because Next's bootstrap is inline; the rest is tight: course images only from the
- * media hosts (lib/media.ts), video only from youtube-nocookie, Google's sign-in button, no plugins,
+ * media hosts and our own /media (lib/media.ts), video only from youtube-nocookie or /media, Google's
+ * sign-in button, uploads to Azure Blob Storage, no plugins,
  * no framing, and forms may only post here or hand over to an identity provider (https).
  */
+/** A production build tested locally uploads to Azurite (MEDIA_ORIGIN_URL); allow that origin too. */
+function localStorageOrigin(): string {
+  try {
+    const origin = new URL(process.env.MEDIA_ORIGIN_URL ?? '').origin;
+    return origin.endsWith('.blob.core.windows.net') ? '' : ` ${origin}`;
+  } catch {
+    return '';
+  }
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://accounts.google.com",
@@ -21,7 +32,9 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https://images.unsplash.com https://upload.wikimedia.org https://i.ytimg.com https://*.googleusercontent.com",
   "font-src 'self' data:",
   'frame-src https://www.youtube-nocookie.com https://accounts.google.com',
-  "connect-src 'self' https://accounts.google.com",
+  // Uploads go from the browser straight to Azure Blob Storage with a short-lived link (MEDIA-1).
+  `connect-src 'self' https://accounts.google.com https://*.blob.core.windows.net${localStorageOrigin()}`,
+  "media-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "frame-ancestors 'none'",

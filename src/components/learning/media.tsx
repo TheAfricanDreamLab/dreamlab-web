@@ -3,14 +3,17 @@
 import type { VideoRef } from '@dreamlab/contracts';
 import { useState } from 'react';
 import { cx } from '@/components/ui/primitives';
-import { formatDuration, safeImageUrl, videoEmbedUrl, videoThumbnail } from '@/lib/media';
+import { formatDuration, safeImageUrl, videoEmbedUrl, videoFileUrl, videoThumbnail } from '@/lib/media';
 
 /*
  * A YouTube video behind a light facade: only a thumbnail loads until the learner taps play, so
  * nothing streams (and no YouTube code runs) on a slow or metered connection unless they ask.
+ * An uploaded video plays in the browser's own player, loading nothing until it is played.
  */
 export function VideoFacade({ video, caption, className }: { video: VideoRef; caption?: string; className?: string }) {
   const [playing, setPlaying] = useState(false);
+  const file = videoFileUrl(video);
+  if (file) return <FileVideo src={file} video={video} caption={caption} className={className} />;
   const thumb = videoThumbnail(video.videoId);
   const src = videoEmbedUrl(video);
   // A clip runs from startS (or 0) to endS; show a length only when it is positive.
@@ -55,6 +58,30 @@ export function VideoFacade({ video, caption, className }: { video: VideoRef; ca
         {caption && <p className="text-[14px] leading-relaxed text-body">{caption}</p>}
         <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
           Video: {video.channel} · Streams from YouTube · uses mobile data
+        </p>
+      </figcaption>
+    </figure>
+  );
+}
+
+function FileVideo({ src, video, caption, className }: { src: string; video: VideoRef; caption?: string; className?: string }) {
+  const duration = video.durationS ? formatDuration(video.durationS) : null;
+  return (
+    <figure className={cx('space-y-2', className)} data-media="video">
+      <video
+        src={src}
+        controls
+        preload="none"
+        playsInline
+        aria-label={video.title}
+        className="aspect-video w-full rounded-[var(--radius-card)] bg-forest ring-1 ring-line"
+      />
+      <figcaption className="space-y-1">
+        <p className="font-display text-[15px] font-bold leading-snug text-ink">{video.title}</p>
+        {caption && <p className="text-[14px] leading-relaxed text-body">{caption}</p>}
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
+          Video: {video.channel}
+          {duration ? ` · ${duration}` : ''} · uses mobile data
         </p>
       </figcaption>
     </figure>
