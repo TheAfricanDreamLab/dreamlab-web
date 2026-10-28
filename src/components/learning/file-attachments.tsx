@@ -27,6 +27,10 @@ export function FileAttachments({ enrollmentId, itemId, onBusyChange }: { enroll
 
   async function add(chosen: FileList | null) {
     if (!chosen) return;
+    // Every chosen file is listed (and counted) before any upload starts, so Submit stays closed
+    // until the last of them is done.
+    const queue: { key: string; file: File }[] = [];
+    const entries: Attachment[] = [];
     for (const file of [...chosen]) {
       if (used.current >= MAX_SUBMISSION_FILES) break;
       const key = `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`;
@@ -35,10 +39,15 @@ export function FileAttachments({ enrollmentId, itemId, onBusyChange }: { enroll
         : file.size > MAX_SUBMISSION_FILE_BYTES
           ? 'Files can be at most 50 MB.'
           : null;
-      setFiles((list) => [...list, { key, name: file.name, size: file.size, fileId: null, progress: 0, error: problem }]);
-      if (problem) continue;
-      used.current++;
-      onBusyChange(true);
+      entries.push({ key, name: file.name, size: file.size, fileId: null, progress: 0, error: problem });
+      if (!problem) {
+        used.current++;
+        queue.push({ key, file });
+      }
+    }
+    setFiles((list) => [...list, ...entries]);
+    if (queue.length > 0) onBusyChange(true);
+    for (const { key, file } of queue) {
       try {
         const ticket = await startSubmissionUpload(enrollmentId, itemId, { fileName: file.name, contentType: file.type, size: file.size });
         if ('error' in ticket) throw new Error(ticket.error);

@@ -6,7 +6,7 @@ Route Handlers) through the gateway; the browser holds httpOnly session cookies 
 
 ## Run it locally
 
-Requirements: Node 24+, pnpm 10, and the API running (see dreamlab-api: `pnpm dev`, gateway on 3000).
+Requirements: Node 24.22.1+, pnpm 10, and the API running (see dreamlab-api: `pnpm dev`, gateway on 3000).
 
 ```sh
 pnpm install

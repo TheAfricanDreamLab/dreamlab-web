@@ -58,8 +58,10 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
     try {
       const res = await saveProgram(sent);
       if (!res.ok) return setMessage({ tone: 'error', text: res.error });
-      if (edits.current === editsAtSave) setDirty(false);
-      if (!created) router.replace(`/app/admin/catalog/programs/${sent.slug}`);
+      const unchanged = edits.current === editsAtSave;
+      if (unchanged) setDirty(false);
+      // Moving to the programme's own address reloads the page; only when nothing is unsaved.
+      if (!created && unchanged) router.replace(`/app/admin/catalog/programs/${sent.slug}`);
       setCreated(true);
       setMessage({ tone: 'success', text: `Saved. ${credits(sent)} credits. New cohorts use this programme from now on.` });
     } catch {
@@ -199,21 +201,21 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
           label="Residency stages"
           rows={10}
           value={doc.capstoneStages}
-          onChange={(v) => isObjectList(v) && set('capstoneStages', v as ProgramAuthoring['capstoneStages'])}
+          onChange={(v) => (isObjectList(v) ? set('capstoneStages', v as ProgramAuthoring['capstoneStages']) : setMessage({ tone: 'error', text: 'Residency stages must be a list of objects. The last valid list is kept.' }))}
           hint='[{ "name", "outputDocument", "creditHours", "summary" }] in order'
         />
         <JsonField
           label="Graduation requirements"
           rows={8}
           value={doc.graduationRequirements}
-          onChange={(v) => isObjectList(v) && set('graduationRequirements', v as ProgramAuthoring['graduationRequirements'])}
+          onChange={(v) => (isObjectList(v) ? set('graduationRequirements', v as ProgramAuthoring['graduationRequirements']) : setMessage({ tone: 'error', text: 'Graduation requirements must be a list of objects. The last valid list is kept.' }))}
           hint='[{ "key", "label" }]'
         />
         <JsonField
           label="Calendar"
           rows={12}
           value={doc.calendar}
-          onChange={(v) => isObjectList(v) && set('calendar', v as ProgramAuthoring['calendar'])}
+          onChange={(v) => (isObjectList(v) ? set('calendar', v as ProgramAuthoring['calendar']) : setMessage({ tone: 'error', text: 'The calendar must be a list of objects. The last valid list is kept.' }))}
           hint='[{ "weekNo", "phase" (a phase name), "focus", "majorOutput" }]'
         />
       </Card>
