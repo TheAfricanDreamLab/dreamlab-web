@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
 import { AssignmentForm } from '@/components/learning/assignment-form';
+import { FileList } from '@/components/learning/file-list';
 import { GradeSummary } from '@/components/learning/grade-summary';
 import { ItemIcon, ProgressBar, StatusTick } from '@/components/learning/course-ui';
 import { DiscussionPostForm, ReplyForm } from '@/components/learning/discussion-forms';
@@ -225,6 +226,7 @@ export default async function PlayerPage({ params }: Params) {
                                 {s.link}
                               </a>
                             )}
+                            <FileList files={s.files ?? []} />
                           </div>
                         </details>
                       </li>

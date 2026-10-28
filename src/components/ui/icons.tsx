@@ -74,6 +74,9 @@ const PATHS: Record<string, ReactNode> = {
   collapse: <path d="M14.5 6 8.5 12l6 6" />,
   expand: <path d="M9.5 6l6 6-6 6" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  file: <path d="M13.5 3.5H7a1.5 1.5 0 0 0-1.5 1.5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5zM13.5 3.5v5h5" />,
+  upload: <path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   dots: (
     <>

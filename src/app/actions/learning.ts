@@ -1,13 +1,6 @@
 'use server';
 
-import type {
-  AssignmentSubmission,
-  BlockResponse,
-  BlockResult,
-  Discussion,
-  Enrollment,
-  QuizAttempt,
-} from '@dreamlab/contracts';
+import type { AssignmentSubmission, BlockResponse, BlockResult, Discussion, Enrollment, QuizAttempt, SubmissionFileUpload } from '@dreamlab/contracts';
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
@@ -72,10 +65,23 @@ export async function submitAssignment(_: SubmissionState, fd: FormData): Promis
   const selfAssessment = Object.fromEntries(fd.getAll('criteria').map((id) => [String(id), true]));
   const values = { text, link };
   if (link && !/^https?:\/\//i.test(link)) return { error: 'Links start with https:// (or http://).', values };
-  const res = await api<AssignmentSubmission>('POST', path, { text, link: link || null, selfAssessment });
+  const fileIds = fd.getAll('fileId').map(String).filter(isUuid);
+  const res = await api<AssignmentSubmission>('POST', path, { text, link: link || null, fileIds, selfAssessment });
   if (!res.ok) return { error: friendlyError(res.error), values };
   refresh();
   return { submission: res.data, notice: `Submitted · version ${res.data.version} · awaiting faculty review` };
+}
+
+/** An upload link for one file to attach to an assignment (the browser then sends the file there). */
+export async function startSubmissionUpload(
+  enrollmentId: string,
+  itemId: string,
+  file: { fileName: string; contentType: string; size: number },
+): Promise<SubmissionFileUpload | { error: string }> {
+  const path = itemPath(enrollmentId, itemId, 'files');
+  if (!path) return { error: BAD_LINK_MESSAGE };
+  const res = await api<SubmissionFileUpload>('POST', path, file);
+  return res.ok ? res.data : { error: friendlyError(res.error) };
 }
 
 export type DiscussionState = FormState & { posted?: boolean };

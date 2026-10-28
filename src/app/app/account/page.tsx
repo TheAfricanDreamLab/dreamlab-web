@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import { revokeSession, signOutEverywhere } from '@/app/actions/account';
 import { ChangePasswordForm } from '@/components/app/change-password-form';
 import { TwoStepCard } from '@/components/app/two-step-card';
+import { NotificationPreferencesForm } from '@/components/notifications/preferences-form';
 import { Badge, Button, Card, Eyebrow } from '@/components/ui/primitives';
 import { api } from '@/lib/gateway';
 import { getMe } from '@/lib/me';
+import { CATEGORY_LABELS, type NotificationPreferences } from '@/lib/notifications';
 
 export const metadata: Metadata = { title: 'Account' };
 
@@ -28,9 +30,10 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'nume
 
 export default async function AccountPage() {
   const me = await getMe();
-  const [sessions, mfa] = await Promise.all([
+  const [sessions, mfa, prefs] = await Promise.all([
     api<{ items: Session[] }>('GET', '/v1/auth/sessions'),
     api<{ enabled: boolean; enabledAt: string | null; recoveryCodesRemaining: number; sessionVerified: boolean }>('GET', '/v1/auth/mfa'),
+    api<NotificationPreferences>('GET', '/v1/notifications/preferences'),
   ]);
 
   return (
@@ -115,6 +118,17 @@ export default async function AccountPage() {
             <h2 className="text-[17px] font-bold">Change password</h2>
             <p className="text-[14px] text-muted">Changing it signs you out on your other devices.</p>
             <ChangePasswordForm avoid={[...me.user.fullName.split(' '), (me.user.email ?? '').split('@')[0] ?? '']} />
+          </Card>
+          <Card className="scroll-mt-24 space-y-4 p-5 sm:p-6">
+            <h2 id="notifications" className="text-[17px] font-bold">
+              Notification emails
+            </h2>
+            <p className="text-[14px] text-muted">
+              {me.user.email && me.user.emailVerified
+                ? `Everything appears under Notifications in the app. Choose what also comes to ${me.user.email}.`
+                : 'Everything appears under Notifications in the app. Verify an email address to get them by email too.'}
+            </p>
+            {prefs.ok && <NotificationPreferencesForm categories={CATEGORY_LABELS} email={prefs.data.email} />}
           </Card>
         </div>
       </div>

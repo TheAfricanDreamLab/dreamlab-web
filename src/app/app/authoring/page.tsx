@@ -60,7 +60,7 @@ export default async function AuthoringPage({ searchParams }: Props) {
                         </span>
                         <span className="flex items-center gap-2">
                           {c.openDraft && <Badge tone={DRAFT_STATUS_TONES[c.openDraft.status]}>{DRAFT_STATUS_LABELS[c.openDraft.status]}</Badge>}
-                          {res.data.can.author || c.openDraft ? (
+                          {c.canEdit || c.openDraft ? (
                             <form action={editCourse}>
                               <input type="hidden" name="courseSlug" value={c.slug} />
                               {c.openDraft && <input type="hidden" name="draftId" value={c.openDraft.id} />}

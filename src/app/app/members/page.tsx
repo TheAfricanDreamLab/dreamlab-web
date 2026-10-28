@@ -27,15 +27,20 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const canRevoke = can(me, 'org.roles.revoke');
   const canRemove = can(me, 'org.members.remove');
 
-  const [allMembers, invitations, orgRoles] = await Promise.all([
+  const [allMembers, invitations, orgRoles, authoring] = await Promise.all([
     api<{ items: Membership[] }>('GET', `/v1/orgs/${orgId}/members?limit=100`),
     canInvite ? api<{ items: InvitationRow[] }>('GET', `/v1/orgs/${orgId}/invitations?status=pending&limit=100`) : null,
     api<{ items: { key: string; name: string; description: string; system: boolean; scopeTypes: string[] }[] }>('GET', `/v1/orgs/${orgId}/roles`),
+    // The organisation's courses, so a role such as Course author can be given for one course.
+    canAssign ? api<{ courses: { courseId: string; title: string }[] }>('GET', '/v1/catalog/authoring') : null,
   ]);
   const customRoles = orgRoles.ok
     ? orgRoles.data.items.filter((r) => !r.system && r.scopeTypes.includes('org')).map((r) => ({ key: r.key, label: r.name, hint: r.description || 'Custom role' }))
     : [];
   const roleName = (key: string) => ROLE_LABELS[key] ?? customRoles.find((r) => r.key === key)?.label ?? key;
+  const courses = authoring?.ok ? authoring.data.courses.map((c) => ({ id: c.courseId, title: c.title })) : [];
+  const scopeName = (r: { scopeType: string; scopeId: string | null }) =>
+    r.scopeType === 'course' ? (courses.find((c) => c.id === r.scopeId)?.title ?? 'one course') : r.scopeType === 'org' ? null : r.scopeType.replace('_', ' ');
   const requests = allMembers.ok ? allMembers.data.items.filter((m) => m.status === 'requested') : [];
   const members = allMembers.ok ? { ok: true as const, data: { items: allMembers.data.items.filter((m) => m.status !== 'requested') } } : allMembers;
 
@@ -72,6 +77,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                         {m.roles.map((r) => (
                           <span key={r.id} className="inline-flex items-center gap-1 rounded-full bg-surface py-0.5 pl-2.5 pr-1 text-[12px] font-medium text-ink ring-1 ring-line">
                             {roleName(r.roleKey)}
+                            {scopeName(r) && <span className="text-muted">· {scopeName(r)}</span>}
                             {canRevoke && (
                               <form action={revokeRole}>
                                 <OrgField />
@@ -83,7 +89,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                             )}
                           </span>
                         ))}
-                        {canAssign && <AddRoleForm membershipId={m.id} has={m.roles.map((r) => r.roleKey)} customRoles={customRoles} />}
+                        {canAssign && <AddRoleForm membershipId={m.id} has={m.roles.filter((r) => r.scopeType === 'org').map((r) => r.roleKey)} customRoles={customRoles} courses={courses} />}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

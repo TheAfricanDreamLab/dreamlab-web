@@ -31,7 +31,10 @@ function Toggle({ course, flag, on, label }: { course: AdminCourse; flag: 'liste
 }
 
 export default async function CatalogAdminPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const res = await api<{ items: AdminCourse[] }>('GET', '/v1/catalog/admin/courses');
+  const [res, programmes] = await Promise.all([
+    api<{ items: AdminCourse[] }>('GET', '/v1/catalog/admin/courses'),
+    api<{ items: { slug: string; title: string; creditTotal: number; courseCount: number }[] }>('GET', '/v1/catalog/programs'),
+  ]);
   const { error } = await searchParams;
   const flagError =
     error === 'flag_invalid' || error === 'flag_update_failed' ? 'That change didn’t save. Please try again.' : messageForCode(error);
@@ -105,6 +108,37 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
           </table>
         </Card>
       )}
+
+      <Card className="space-y-4 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-[19px] font-bold">Programmes</h2>
+            <p className="text-[13.5px] text-muted">Phases, courses, the residency and the calendar new cohorts follow.</p>
+          </div>
+          <Link href="/app/admin/catalog/programs/new" className="inline-flex min-h-11 items-center rounded-full bg-forest px-5 text-[14px] font-semibold text-white hover:bg-forest-soft">
+            New programme
+          </Link>
+        </div>
+        {programmes.ok && programmes.data.items.length > 0 ? (
+          <ul className="divide-y divide-line rounded-[var(--radius-field)] ring-1 ring-line">
+            {programmes.data.items.map((p) => (
+              <li key={p.slug} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-ink">{p.title}</span>
+                  <span className="block text-[13px] text-muted">
+                    {p.creditTotal} credits · {p.courseCount} courses
+                  </span>
+                </span>
+                <Link href={`/app/admin/catalog/programs/${p.slug}`} className="inline-flex min-h-11 items-center rounded-full px-4 text-[14px] font-semibold text-link ring-1 ring-line hover:bg-surface">
+                  Edit
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[14px] text-muted">No programmes yet.</p>
+        )}
+      </Card>
 
       <Card className="max-w-2xl space-y-4 p-5 sm:p-6">
         <div className="space-y-1">

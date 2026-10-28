@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { submitAssignment, type SubmissionState } from '@/app/actions/learning';
 import { SubmitButton } from '@/components/auth/forms';
 import { cx, Notice } from '@/components/ui/primitives';
+import { FileAttachments } from './file-attachments';
 import { type AssignmentContent, wordCount } from '@/lib/learning';
 
 export function AssignmentForm({
@@ -24,6 +25,7 @@ export function AssignmentForm({
   const words = wordCount(text);
   const min = assignment.minWords ?? 0;
   const enough = words >= Math.max(1, min);
+  const [uploading, setUploading] = useState(false);
 
   return (
     <form action={action} className="space-y-5">
@@ -89,11 +91,17 @@ export function AssignmentForm({
         <p className="text-[13px] text-muted">A document, slides or a video, if your work lives somewhere else too.</p>
       </div>
 
+      <FileAttachments enrollmentId={enrollmentId} itemId={itemId} onBusyChange={setUploading} />
+
       <div aria-live="polite" className="space-y-3 empty:hidden">
         {state.error && <Notice tone="error">{state.error}</Notice>}
         {state.notice && <Notice tone="success">{state.notice}</Notice>}
       </div>
-      {enough ? (
+      {uploading ? (
+        <button type="button" disabled className="h-12 w-full cursor-wait rounded-[var(--radius-field)] bg-line-heavy px-5 text-[15px] font-semibold text-white">
+          Waiting for your files to upload…
+        </button>
+      ) : enough ? (
         <SubmitButton pending="Submitting…">{previous || state.submission ? 'Submit a new version' : 'Submit for review'}</SubmitButton>
       ) : (
         <button type="button" disabled className="h-12 w-full cursor-not-allowed rounded-[var(--radius-field)] bg-line-heavy px-5 text-[15px] font-semibold text-white">

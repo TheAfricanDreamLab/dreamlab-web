@@ -7,6 +7,7 @@ import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
+import { FileList } from '@/components/learning/file-list';
 import { GRADING_STATUS_LABELS, GRADING_STATUS_TONES, levelLabel, type SubmissionForGrading, webLink } from '@/lib/grading';
 import { dateTime, isUuid, wordCount } from '@/lib/learning';
 
@@ -57,6 +58,7 @@ export default async function GradeSubmissionPage({ params }: Props) {
                   {link}
                 </a>
               )}
+              <FileList files={s.files ?? []} />
             </Card>
           </section>
 

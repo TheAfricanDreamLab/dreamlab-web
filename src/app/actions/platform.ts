@@ -1,6 +1,6 @@
 'use server';
 
-import type { PlatformUserDetail } from '@dreamlab/contracts';
+import type { PlatformUserDetail, ProgramAuthoring } from '@dreamlab/contracts';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
@@ -61,6 +61,16 @@ function importError(error: Parameters<typeof friendlyError>[0]): string {
   const details = Array.isArray(error?.details) ? (error.details as { path?: string; message?: string }[]).slice(0, 5) : [];
   if (!details.length) return base;
   return `${base} ${details.map((d) => (d.path ? `${d.path}: ${d.message}` : d.message)).join(' · ')}`;
+}
+
+/** Save a programme from the browser editor (an import of the whole programme). */
+export async function saveProgram(doc: ProgramAuthoring): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc) || typeof doc.slug !== 'string') return { ok: false, error: 'This programme can’t be saved as it is. Reload the page.' };
+  const res = await api<{ slug: string }>('POST', '/v1/catalog/admin/programs/import', doc);
+  if (!res.ok) return { ok: false, error: importError(res.error) };
+  revalidatePath('/app/admin/catalog');
+  revalidatePath(`/programs/${res.data.slug}`);
+  return { ok: true };
 }
 
 /** Suspend a person (ends every session) or let them back in. */

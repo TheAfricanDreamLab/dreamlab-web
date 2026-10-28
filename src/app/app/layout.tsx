@@ -9,11 +9,12 @@ import { Icon, type IconName } from '@/components/ui/icons';
 import { ButtonLink, LogoMark } from '@/components/ui/primitives';
 import { initials } from '@/lib/labels';
 import { activeMembership, can, getMe } from '@/lib/me';
+import { unreadCount } from '@/lib/notifications';
 
 type Item = { href: string; label: string; icon: IconName; show: boolean; exact?: boolean };
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const me = await getMe();
+  const [me, unread] = await Promise.all([getMe(), unreadCount()]);
   const active = activeMembership(me);
   const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === 'collapsed';
   const contact = me.user.email ?? me.user.phone;
@@ -84,7 +85,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="space-y-3 border-t border-line p-3">
         <div className="dl-side-stack flex items-center justify-center gap-2">
-          <QuickAction href="/app#recent-activity" label="Notifications: recent activity" icon="bell" />
+          <QuickAction href="/app/notifications" label="Notifications" icon="bell" />
           <QuickAction href="/app/journal" label="Journal" icon="journal" />
           <QuickAction href="/app/account" label="Settings" icon="gear" />
         </div>
@@ -146,6 +147,18 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Icon name="compass" className="h-[18px] w-[18px] text-link" /> Explore courses
           </ButtonLink>
         </span>
+        <Link
+          href="/app/notifications"
+          aria-label={unread > 0 ? `Notifications: ${unread} unread` : 'Notifications'}
+          className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-ink ring-1 ring-line-strong hover:ring-line-heavy"
+        >
+          <Icon name="bell" />
+          {unread > 0 && (
+            <span aria-hidden className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger-ink px-1 font-mono text-[11px] font-bold text-white">
+              {unread > 99 ? '99+' : unread}
+            </span>
+          )}
+        </Link>
         <Dropdown
           className="relative shrink-0"
           summaryClassName="grid h-11 w-11 place-items-center rounded-full bg-success-tint font-display text-sm font-bold text-link ring-1 ring-success-line"

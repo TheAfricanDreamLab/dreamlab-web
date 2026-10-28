@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { assignRole, inviteMember } from '@/app/actions/org';
 import { SubmitButton } from '@/components/auth/forms';
 import { TextInput } from '@/components/ui/fields';
@@ -41,21 +41,43 @@ export function InviteForm({ orgPending, canAssignRoles, customRoles = [] }: { o
   );
 }
 
-export function AddRoleForm({ membershipId, has, customRoles = [] }: { membershipId: string; has: string[]; customRoles?: RoleOption[] }) {
+/** Roles that can be given for one course instead of the whole organisation. */
+const COURSE_SCOPED_ROLES = ['author', 'instructor'];
+
+export function AddRoleForm({ membershipId, has, customRoles = [], courses = [] }: { membershipId: string; has: string[]; customRoles?: RoleOption[]; courses?: { id: string; title: string }[] }) {
   const [state, action] = useActionState(assignRole, {} as FormState);
-  const options = [...INVITABLE_ROLES, ...customRoles].filter((r) => !has.includes(r.key));
+  // Org-wide roles once only; course-scoped ones may be added for more courses.
+  const options = [...INVITABLE_ROLES, ...customRoles].filter((r) => !has.includes(r.key) || (courses.length > 0 && COURSE_SCOPED_ROLES.includes(r.key)));
+  const [role, setRole] = useState(options[0]?.key ?? '');
   if (options.length === 0) return null;
+  const scoped = courses.length > 0 && COURSE_SCOPED_ROLES.includes(role);
   return (
     <form action={action} className="flex min-w-0 flex-wrap items-center gap-2">
       <OrgField />
       <input type="hidden" name="membershipId" value={membershipId} />
-      <select name="roleKey" className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]" aria-label="Add a role">
+      <select
+        name="roleKey"
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]"
+        aria-label="Add a role"
+      >
         {options.map((r) => (
           <option key={r.key} value={r.key}>
             {r.label}
           </option>
         ))}
       </select>
+      {scoped && (
+        <select name="scope" defaultValue="org" className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]" aria-label="For">
+          <option value="org">for the whole organisation</option>
+          {courses.map((c) => (
+            <option key={c.id} value={`course:${c.id}`}>
+              for {c.title}
+            </option>
+          ))}
+        </select>
+      )}
       <button type="submit" className="h-10 rounded-lg px-3 text-[13.5px] font-semibold text-link hover:bg-success-tint sm:h-8 sm:px-2.5 sm:text-[12.5px]">
         Add
       </button>

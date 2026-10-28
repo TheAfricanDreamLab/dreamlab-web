@@ -1,9 +1,10 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useContext, useId, useState } from 'react';
 import { Badge, Card, cx } from '@/components/ui/primitives';
 import { type ItemDoc, ITEM_TYPES, type ItemType, type ModuleDoc, newItem, slugify, uniqueKey } from '@/lib/authoring';
 import { ITEM_LABELS } from '@/lib/learning';
+import { DraftIdContext, MediaUploadButton } from './media-upload';
 import { AreaField, JsonField, LinesField, NumberField, SmallButton, TextField } from './fields';
 
 type Open = { module: number; item?: number } | null;
@@ -256,6 +257,7 @@ type Step = { id: string; title?: string; blocks: unknown[] };
 function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) => void }) {
   const setStep = (i: number, step: Step) => onChange(steps.map((x, j) => (j === i ? step : x)));
   const [version, setVersion] = useState(0);
+  const draftId = useContext(DraftIdContext);
   return (
     <div className="space-y-3">
       {steps.map((step, i) => (
@@ -282,6 +284,30 @@ function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]
               Remove step
             </SmallButton>
           </div>
+          {draftId && (
+            <div className="flex flex-wrap gap-2">
+              {(['video', 'image'] as const).map((kind) => (
+                <MediaUploadButton
+                  key={kind}
+                  draftId={draftId}
+                  kind={kind}
+                  label={kind === 'video' ? '+ Uploaded video' : '+ Uploaded image'}
+                  onUploaded={(path) => {
+                    const ids = step.blocks.map((b) => (b as { id?: string }).id ?? '');
+                    const id = uniqueKey(`${kind}-${step.blocks.length + 1}`, ids);
+                    const name = path.split('/').pop()!.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+                    // Title, credit and description are for the author to finish in the blocks below.
+                    const block =
+                      kind === 'video'
+                        ? { id, type: 'video', provider: 'file', videoId: path, title: name, channel: 'Course team' }
+                        : { id, type: 'image', url: `/media/${path}`, alt: `Describe this image: ${name}` };
+                    setStep(i, { ...step, blocks: [...step.blocks, block] });
+                    setVersion((v) => v + 1);
+                  }}
+                />
+              ))}
+            </div>
+          )}
           <JsonField label="Blocks" rows={8} value={step.blocks} onChange={(v) => setStep(i, { ...step, blocks: Array.isArray(v) ? v : step.blocks })} hint="text, callout, example, video, choice, reflection…" />
         </div>
       ))}

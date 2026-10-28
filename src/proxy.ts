@@ -18,7 +18,7 @@ const SITE_DOMAIN = (process.env.SITE_DOMAIN ?? process.env.NEXT_PUBLIC_SITE_DOM
 const RESERVED = new Set(['www', 'api', 'app', 'admin', 'platform', 'static', 'cdn', 'mail', 'docs', 'status', 'staging']);
 
 // /courses and /programs are public; the course player needs an account.
-const SIGNED_IN_ONLY = ['/app', '/orgs/new', '/learn', '/admin'];
+const SIGNED_IN_ONLY = ['/app', '/orgs/new', '/learn', '/admin', '/files'];
 const SIGNED_OUT_ONLY = ['/login', '/signup'];
 /** Pages that work in the organisation of the site they're on. */
 const ORG_CONTEXT_PAGES = ['/app', '/learn'];
@@ -226,5 +226,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml)$).*)'],
+  matcher: ['/((?!api|media/|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml)$).*)'],
 };
