@@ -69,8 +69,8 @@ export function AddRoleForm({ membershipId, has, customRoles = [], courses = [] 
         ))}
       </select>
       {scoped && (
-        <select name="scope" defaultValue="org" className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]" aria-label="For">
-          <option value="org">for the whole organisation</option>
+        <select key={role} name="scope" defaultValue={has.includes(role) ? `course:${courses[0]!.id}` : 'org'} className="h-10 max-w-full rounded-lg bg-card px-2 text-[13.5px] ring-1 ring-line-strong sm:h-8 sm:text-[12.5px]" aria-label="For">
+          {!has.includes(role) && <option value="org">for the whole organisation</option>}
           {courses.map((c) => (
             <option key={c.id} value={`course:${c.id}`}>
               for {c.title}

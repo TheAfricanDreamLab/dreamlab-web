@@ -17,11 +17,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   if (!ORIGIN || !PATH.test(path) || !type) return new Response('Not found', { status: 404 });
 
   const range = request.headers.get('range');
-  const upstream = await fetch(`${ORIGIN}/${path}`, {
-    headers: range ? { range } : {},
-    signal: AbortSignal.timeout(30_000),
-    cache: 'no-store',
-  }).catch(() => null);
+  // The timeout covers waiting for storage to answer, not streaming the file: a long video keeps playing.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  const upstream = await fetch(`${ORIGIN}/${path}`, { headers: range ? { range } : {}, signal: controller.signal, cache: 'no-store' })
+    .catch(() => null)
+    .finally(() => clearTimeout(timer));
   if (!upstream || (upstream.status !== 200 && upstream.status !== 206)) {
     return new Response(upstream?.status === 404 ? 'Not found' : 'Unavailable', { status: upstream?.status === 404 ? 404 : 502 });
   }

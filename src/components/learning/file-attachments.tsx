@@ -15,6 +15,9 @@ type Attachment = { key: string; name: string; size: number; fileId: string | nu
 export function FileAttachments({ enrollmentId, itemId, onBusyChange }: { enrollmentId: string; itemId: string; onBusyChange: (busy: boolean) => void }) {
   const [files, setFiles] = useState<Attachment[]>([]);
   const input = useRef<HTMLInputElement>(null);
+  // Files that count against the limit (uploaded or still uploading), kept outside render state so
+  // files chosen while others are still uploading are counted too.
+  const used = useRef(0);
   const update = (key: string, patch: Partial<Attachment>) =>
     setFiles((list) => {
       const next = list.map((f) => (f.key === key ? { ...f, ...patch } : f));
@@ -24,8 +27,8 @@ export function FileAttachments({ enrollmentId, itemId, onBusyChange }: { enroll
 
   async function add(chosen: FileList | null) {
     if (!chosen) return;
-    const room = MAX_SUBMISSION_FILES - files.filter((f) => !f.error).length;
-    for (const file of [...chosen].slice(0, Math.max(0, room))) {
+    for (const file of [...chosen]) {
+      if (used.current >= MAX_SUBMISSION_FILES) break;
       const key = `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`;
       const problem = !SUBMISSION_FILE_TYPES.includes(file.type)
         ? 'This kind of file can’t be attached. Use PDF, Word, PowerPoint, Excel, an image, a ZIP, MP4 or MP3.'
@@ -34,16 +37,15 @@ export function FileAttachments({ enrollmentId, itemId, onBusyChange }: { enroll
           : null;
       setFiles((list) => [...list, { key, name: file.name, size: file.size, fileId: null, progress: 0, error: problem }]);
       if (problem) continue;
+      used.current++;
       onBusyChange(true);
-      const ticket = await startSubmissionUpload(enrollmentId, itemId, { fileName: file.name, contentType: file.type, size: file.size });
-      if ('error' in ticket) {
-        update(key, { error: ticket.error });
-        continue;
-      }
       try {
+        const ticket = await startSubmissionUpload(enrollmentId, itemId, { fileName: file.name, contentType: file.type, size: file.size });
+        if ('error' in ticket) throw new Error(ticket.error);
         await putFile(ticket, file, (p) => update(key, { progress: p }));
         update(key, { fileId: ticket.fileId, progress: 1 });
       } catch (err) {
+        used.current--;
         update(key, { error: err instanceof Error ? err.message : 'The upload failed. Try again.' });
       }
     }
@@ -52,6 +54,7 @@ export function FileAttachments({ enrollmentId, itemId, onBusyChange }: { enroll
 
   const remove = (key: string) =>
     setFiles((list) => {
+      if (list.some((f) => f.key === key && !f.error)) used.current--;
       const next = list.filter((f) => f.key !== key);
       onBusyChange(next.some((f) => !f.fileId && !f.error));
       return next;

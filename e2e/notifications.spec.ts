@@ -77,7 +77,9 @@ test('a file travels with the work, and both sides hear about it', async ({ page
   await expect(teacher.getByText(/Released: 75%/)).toBeVisible();
   await waitForNotification(student, /was graded/);
   await student.getByRole('button', { name: 'Mark all as read' }).click();
+  await expect(student.getByRole('button', { name: 'Mark all as read' })).toHaveCount(0);
   await expect(student.getByRole('link', { name: 'Notifications', exact: true })).toBeVisible();
+  await expect(student.getByRole('link', { name: /Notifications: \d+ unread/ })).toHaveCount(0);
 
   // Email choices live on the account page.
   await student.goto('/app/account#notifications');

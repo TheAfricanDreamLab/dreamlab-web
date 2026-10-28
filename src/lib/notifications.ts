@@ -7,9 +7,10 @@ export type { Notification, NotificationCategory, NotificationPreferences };
 
 export const CATEGORY_LABELS = Object.entries(NOTIFICATION_CATEGORY_LABELS) as [NotificationCategory, string][];
 
-/** For the bell on every app page: never slows a page down or breaks it. */
+/** For the bell on every app page: gives up after 1.5 s (showing no count) rather than hold the page. */
 export async function unreadCount(): Promise<number> {
-  const res = await callGateway<{ unread: number }>('GET', '/v1/notifications/unread-count', { token: await getAccessToken(), request: await incomingRequest() }).catch(() => null);
+  const call = callGateway<{ unread: number }>('GET', '/v1/notifications/unread-count', { token: await getAccessToken(), request: await incomingRequest() }).catch(() => null);
+  const res = await Promise.race([call, new Promise<null>((resolve) => setTimeout(() => resolve(null), 1_500))]);
   return res?.ok ? res.data.unread : 0;
 }
 

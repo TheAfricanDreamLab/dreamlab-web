@@ -3,7 +3,7 @@ import { revokeSession, signOutEverywhere } from '@/app/actions/account';
 import { ChangePasswordForm } from '@/components/app/change-password-form';
 import { TwoStepCard } from '@/components/app/two-step-card';
 import { NotificationPreferencesForm } from '@/components/notifications/preferences-form';
-import { Badge, Button, Card, Eyebrow } from '@/components/ui/primitives';
+import { Badge, Button, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { api } from '@/lib/gateway';
 import { getMe } from '@/lib/me';
 import { CATEGORY_LABELS, type NotificationPreferences } from '@/lib/notifications';
@@ -128,7 +128,11 @@ export default async function AccountPage() {
                 ? `Everything appears under Notifications in the app. Choose what also comes to ${me.user.email}.`
                 : 'Everything appears under Notifications in the app. Verify an email address to get them by email too.'}
             </p>
-            {prefs.ok && <NotificationPreferencesForm categories={CATEGORY_LABELS} email={prefs.data.email} />}
+            {prefs.ok ? (
+              <NotificationPreferencesForm categories={CATEGORY_LABELS} email={prefs.data.email} />
+            ) : (
+              <Notice tone="error">We couldn’t load your email choices just now. Reload the page to try again.</Notice>
+            )}
           </Card>
         </div>
       </div>

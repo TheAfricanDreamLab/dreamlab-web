@@ -2,13 +2,17 @@
 
 import type { ProgramAuthoring } from '@dreamlab/contracts';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { saveProgram } from '@/app/actions/platform';
 import { AreaField, JsonField, NumberField, SelectField, SmallButton, TextField } from '@/components/authoring/fields';
 import { Button, Card, cx, Notice } from '@/components/ui/primitives';
 
 type Phase = ProgramAuthoring['phases'][number];
 type Options = { programTypes: readonly string[]; deliveryModes: readonly string[]; features: readonly string[]; courses: { slug: string; title: string }[] };
+
+/** A JSON list of objects (the editor keeps the last valid one otherwise). */
+const isObjectList = (v: unknown): v is object[] => Array.isArray(v) && v.every((x) => x !== null && typeof x === 'object' && !Array.isArray(x));
 
 const label = (s: string) => s.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
@@ -29,9 +33,13 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const [created, setCreated] = useState(!isNew);
+  const router = useRouter();
+  // Bumped on every edit, so a save that finishes after more edits leaves the editor marked unsaved.
+  const edits = useRef(0);
   const set = <K extends keyof ProgramAuthoring>(key: K, value: ProgramAuthoring[K]) => {
     setDoc((d) => ({ ...d, [key]: value }));
     setDirty(true);
+    edits.current++;
   };
   const setPhase = (i: number, patch: Partial<Phase>) => set('phases', doc.phases.map((ph, j) => (j === i ? { ...ph, ...patch } : ph)));
 
@@ -45,12 +53,20 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
   async function save() {
     setBusy(true);
     setMessage(null);
-    const res = await saveProgram(doc);
-    setBusy(false);
-    if (!res.ok) return setMessage({ tone: 'error', text: res.error });
-    setDirty(false);
-    setCreated(true);
-    setMessage({ tone: 'success', text: `Saved. ${credits(doc)} credits. New cohorts use this programme from now on.` });
+    const sent = doc;
+    const editsAtSave = edits.current;
+    try {
+      const res = await saveProgram(sent);
+      if (!res.ok) return setMessage({ tone: 'error', text: res.error });
+      if (edits.current === editsAtSave) setDirty(false);
+      if (!created) router.replace(`/app/admin/catalog/programs/${sent.slug}`);
+      setCreated(true);
+      setMessage({ tone: 'success', text: `Saved. ${credits(sent)} credits. New cohorts use this programme from now on.` });
+    } catch {
+      setMessage({ tone: 'error', text: 'We could not reach Dream Lab to save. Check your connection and try again.' });
+    } finally {
+      setBusy(false);
+    }
   }
 
   const courseOptions = options.courses.map((c) => ({ value: c.slug, label: `${c.title} (${c.slug})` }));
@@ -183,21 +199,21 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
           label="Residency stages"
           rows={10}
           value={doc.capstoneStages}
-          onChange={(v) => Array.isArray(v) && set('capstoneStages', v as ProgramAuthoring['capstoneStages'])}
+          onChange={(v) => isObjectList(v) && set('capstoneStages', v as ProgramAuthoring['capstoneStages'])}
           hint='[{ "name", "outputDocument", "creditHours", "summary" }] in order'
         />
         <JsonField
           label="Graduation requirements"
           rows={8}
           value={doc.graduationRequirements}
-          onChange={(v) => Array.isArray(v) && set('graduationRequirements', v as ProgramAuthoring['graduationRequirements'])}
+          onChange={(v) => isObjectList(v) && set('graduationRequirements', v as ProgramAuthoring['graduationRequirements'])}
           hint='[{ "key", "label" }]'
         />
         <JsonField
           label="Calendar"
           rows={12}
           value={doc.calendar}
-          onChange={(v) => Array.isArray(v) && set('calendar', v as ProgramAuthoring['calendar'])}
+          onChange={(v) => isObjectList(v) && set('calendar', v as ProgramAuthoring['calendar'])}
           hint='[{ "weekNo", "phase" (a phase name), "focus", "majorOutput" }]'
         />
       </Card>

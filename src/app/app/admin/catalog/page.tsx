@@ -119,7 +119,9 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
             New programme
           </Link>
         </div>
-        {programmes.ok && programmes.data.items.length > 0 ? (
+        {!programmes.ok ? (
+          <Notice tone="error">{friendlyError(programmes.error)}</Notice>
+        ) : programmes.data.items.length > 0 ? (
           <ul className="divide-y divide-line rounded-[var(--radius-field)] ring-1 ring-line">
             {programmes.data.items.map((p) => (
               <li key={p.slug} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">

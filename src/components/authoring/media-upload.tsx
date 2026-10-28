@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useRef, useState } from 'react';
+import { createContext, useEffect, useRef, useState } from 'react';
 import { startCourseMediaUpload } from '@/app/actions/authoring';
 import { Icon } from '@/components/ui/icons';
 import { cx } from '@/components/ui/primitives';
@@ -20,6 +20,12 @@ export function MediaUploadButton({ draftId, kind, onUploaded, label }: { draftI
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const types = kind === 'image' ? COURSE_IMAGE_TYPES : COURSE_VIDEO_TYPES;
+  // An upload can take minutes; the author keeps editing meanwhile. Call the newest callback, which
+  // sees the draft as it is now, so the result never overwrites edits made during the upload.
+  const latest = useRef(onUploaded);
+  useEffect(() => {
+    latest.current = onUploaded;
+  }, [onUploaded]);
 
   async function upload(file: File | undefined) {
     if (!file) return;
@@ -27,14 +33,11 @@ export function MediaUploadButton({ draftId, kind, onUploaded, label }: { draftI
     if (!types.includes(file.type)) return setError(kind === 'image' ? 'Choose a JPEG, PNG or WebP image.' : 'Choose an MP4 or WebM video.');
     if (file.size > LIMITS[kind]) return setError(`That file is ${fileSize(file.size)}; the limit is ${fileSize(LIMITS[kind])}.`);
     setState({ progress: 0, name: file.name });
-    const ticket = await startCourseMediaUpload(draftId, { kind, fileName: file.name, contentType: file.type, size: file.size });
-    if (!ticket.ok) {
-      setState(null);
-      return setError(ticket.error);
-    }
     try {
+      const ticket = await startCourseMediaUpload(draftId, { kind, fileName: file.name, contentType: file.type, size: file.size });
+      if (!ticket.ok) return setError(ticket.error);
       await putFile(ticket.data, file, (p) => setState({ progress: p, name: file.name }));
-      onUploaded(ticket.data.path);
+      latest.current(ticket.data.path);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The upload failed. Try again.');
     } finally {
