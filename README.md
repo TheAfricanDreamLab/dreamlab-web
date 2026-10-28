@@ -51,5 +51,7 @@ pnpm test:e2e     # Playwright, against the full local stack (API, notify, Azuri
 ```
 
 The Playwright helpers read one-time codes and invitation links from `../dreamlab-api/.logs/iam.log`, so
-run the API with its IAM output written there. Test against a production build (`next build` then
+run the API with its IAM output written there and with `EMAIL_PROVIDER=console` (a real email key in
+the API's `.env` would try to mail the test addresses, and sign-ups fail). Run the suite with
+`E2E_RESET_RATE_LIMITS=1` so the many sign-ups from one address are not rate-limited. Test against a production build (`next build` then
 `next start -p 3100`): development mode compiles pages on first visit, too slowly for the timeouts.
