@@ -96,7 +96,9 @@ export function InstructorForm({ profile }: { profile?: InstructorProfile }) {
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.notice && <Notice tone="success">{state.notice}</Notice>}
       <div className="sm:max-w-xs">
-        <SubmitButton pending="Saving…">{profile ? 'Save' : 'Add instructor'}</SubmitButton>
+        <SubmitButton pending="Saving…" disabled={!!upload}>
+          {profile ? 'Save' : 'Add instructor'}
+        </SubmitButton>
       </div>
     </form>
   );

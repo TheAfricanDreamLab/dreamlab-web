@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import {
   advanceApplication,
   awardScholarship,
@@ -20,6 +20,8 @@ import type { FormState } from '@/lib/forms';
 import { labelClass, selectClass, textareaClass } from './application-forms';
 
 type Option = { value: string; label: string };
+/** A cohort to choose, with the programme it runs. */
+type CohortOption = Option & { programSlug: string };
 
 function Feedback({ state }: { state: FormState }) {
   return (
@@ -30,13 +32,29 @@ function Feedback({ state }: { state: FormState }) {
   );
 }
 
-function Select({ id, name, label, options, defaultValue, required }: { id: string; name: string; label: string; options: Option[]; defaultValue?: string; required?: boolean }) {
+function Select({
+  id,
+  name,
+  label,
+  options,
+  defaultValue,
+  required,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  options: Option[];
+  defaultValue?: string;
+  required?: boolean;
+  onChange?: (value: string) => void;
+}) {
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className={labelClass}>
         {label}
       </label>
-      <select id={id} name={name} defaultValue={defaultValue} required={required} className={selectClass}>
+      <select id={id} name={name} defaultValue={defaultValue} required={required} onChange={onChange && ((e) => onChange(e.target.value))} className={selectClass}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -62,14 +80,17 @@ const zoneHint = `${ADMISSIONS_TIME_ZONE.replace('_', ' ')} time`;
 
 // ---------- cycles ----------
 
-export function CreateCycleForm({ programs, cohorts, defaults }: { programs: Option[]; cohorts: Option[]; defaults: { opensAt: string; closesAt: string } }) {
+export function CreateCycleForm({ programs, cohorts, defaults }: { programs: Option[]; cohorts: CohortOption[]; defaults: { opensAt: string; closesAt: string } }) {
   const [state, action] = useActionState(createCycle, {} as FormState);
   const v = state.values ?? {};
+  // Admitted applicants join a cohort of the cycle's programme, so only those are offered.
+  const [program, setProgram] = useState(v.programSlug ?? programs[0]?.value ?? '');
+  const programCohorts = cohorts.filter((c) => c.programSlug === program);
   return (
     <form action={action} className="space-y-4">
       <TextInput label="Name" name="name" required minLength={3} maxLength={120} placeholder="2027 intake" defaultValue={v.name} />
-      <Select id="cycle-program" name="programSlug" label="Programme" options={programs} defaultValue={v.programSlug ?? programs[0]?.value} required />
-      <Select id="cycle-cohort" name="cohortId" label="Cohort admitted applicants join" options={[{ value: '', label: 'Choose later' }, ...cohorts]} defaultValue={v.cohortId ?? ''} />
+      <Select id="cycle-program" name="programSlug" label="Programme" options={programs} defaultValue={program} required onChange={setProgram} />
+      <Select key={program} id="cycle-cohort" name="cohortId" label="Cohort admitted applicants join" options={[{ value: '', label: 'Choose later' }, ...programCohorts]} defaultValue={v.cohortId ?? ''} />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextInput label="Applications open" name="opensAt" type="datetime-local" required defaultValue={v.opensAt ?? defaults.opensAt} hint={zoneHint} error={state.fields?.opensAt} />
         <TextInput label="Applications close" name="closesAt" type="datetime-local" required defaultValue={v.closesAt ?? defaults.closesAt} hint={zoneHint} error={state.fields?.closesAt} />

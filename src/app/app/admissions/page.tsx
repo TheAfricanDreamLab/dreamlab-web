@@ -32,7 +32,7 @@ export default async function AdmissionsPage() {
     manage && can(me, 'cohort.manage') ? api<{ items: Cohort[] }>('GET', '/v1/learning/cohorts') : null,
   ]);
   const programOptions = programs?.ok ? programs.data.items.map((p) => ({ value: p.slug, label: p.title })) : [];
-  const cohortOptions = cohorts?.ok ? cohorts.data.items.filter((c) => c.status !== 'closed').map((c) => ({ value: c.id, label: `${c.name} (${c.programTitle})` })) : [];
+  const cohortOptions = cohorts?.ok ? cohorts.data.items.filter((c) => c.status !== 'closed').map((c) => ({ value: c.id, label: c.name, programSlug: c.programSlug })) : [];
 
   return (
     <div className="space-y-8">

@@ -39,7 +39,7 @@ export default async function MyProgrammePage({ searchParams }: Search) {
         res.data.items.map((p) => <Programme key={p.enrollment.id} p={p} justJoined={joined === p.enrollment.id} />)
       )}
 
-      {community.ok && <Community c={community.data} />}
+      {community.ok ? <Community c={community.data} /> : <Notice tone="error">{friendlyError(community.error)}</Notice>}
     </div>
   );
 }

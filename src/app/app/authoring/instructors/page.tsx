@@ -64,6 +64,7 @@ export default async function InstructorsPage() {
               )}
             </section>
 
+            {!overview.ok && <Notice tone="error">{friendlyError(overview.error)}</Notice>}
             {res.data.items.length > 0 && courses.length > 0 && (
               <section className="space-y-3" aria-labelledby="staff">
                 <h2 id="staff" className="text-[19px] font-bold">

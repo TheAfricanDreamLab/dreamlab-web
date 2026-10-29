@@ -34,6 +34,7 @@ export function LiveRoom({
 }) {
   const router = useRouter();
   const [ended, setEnded] = useState<Ended | null>(null);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
   const [rejoining, startRejoin] = useTransition();
   const host = role === 'host';
   const video = host || participantVideo;
@@ -67,9 +68,17 @@ export function LiveRoom({
         video={false}
         onDisconnected={() => setEnded({ kind: 'left' })}
         onError={(e) => setEnded({ kind: 'error', message: friendlyRoomError(e) })}
-        onMediaDeviceFailure={() => undefined}
-        className="flex h-full flex-col"
+        onMediaDeviceFailure={(_failure, kind) => setDeviceError(deviceMessage(kind))}
+        className="relative flex h-full flex-col"
       >
+        {deviceError && (
+          <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3 rounded-[var(--radius-field)] bg-card px-4 py-3 text-[14px] text-ink shadow-[var(--shadow-panel)]" role="alert">
+            <span>{deviceError}</span>
+            <button type="button" onClick={() => setDeviceError(null)} className="min-h-8 shrink-0 font-semibold text-link">
+              Dismiss
+            </button>
+          </div>
+        )}
         <Stage />
         <RoomAudioRenderer />
         <ConnectionStateToast />
@@ -99,4 +108,10 @@ function friendlyRoomError(e: Error): string {
   if (/token|unauthori[sz]ed|401/i.test(e.message)) return 'Your access to the room expired. Rejoin to get a new one.';
   if (/permission|NotAllowed/i.test(e.message)) return 'Your browser blocked the microphone or camera. Allow them for this site and rejoin.';
   return 'We couldn’t connect to the room. Check your connection and rejoin.';
+}
+
+/** Why a microphone or camera could not be turned on, and what to do about it. */
+function deviceMessage(kind?: MediaDeviceKind): string {
+  const device = kind === 'videoinput' ? 'camera' : kind === 'audioinput' ? 'microphone' : 'microphone or camera';
+  return `Your ${device} could not be turned on. Allow this site to use it in your browser’s settings (the icon by the address bar), then try again.`;
 }
