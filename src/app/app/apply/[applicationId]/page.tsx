@@ -47,7 +47,7 @@ export default async function ApplicationPage({ params }: Props) {
       </header>
 
       {a.decision && <Notice tone={a.decision.outcome === 'admitted' ? 'success' : 'neutral'}>{OUTCOME_MESSAGES[a.decision.outcome]}</Notice>}
-      {a.scholarship && <Notice tone="success">You have been awarded a {a.scholarship.percent}% scholarship.</Notice>}
+      {a.scholarship && a.scholarship.percent > 0 && <Notice tone="success">You have been awarded a {a.scholarship.percent}% scholarship.</Notice>}
       {a.status === 'under_review' && (
         <Notice tone="info">Your application is complete and with the admissions team. We’ll tell you as it moves on; you don’t need to do anything now.</Notice>
       )}

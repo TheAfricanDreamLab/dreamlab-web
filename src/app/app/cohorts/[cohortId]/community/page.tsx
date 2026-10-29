@@ -32,7 +32,9 @@ export default async function CohortCommunityPage({ params }: Props) {
   ]);
   if (!cohort.ok && cohort.status === 404) notFound();
   if (!cohort.ok) return <Notice tone="error">{friendlyError(cohort.error)}</Notice>;
-  const learners: Person[] = roster.ok ? roster.data.items.map((l) => ({ userId: l.userId, name: l.name })) : [];
+  // Without the roster there is nobody to assign or group: say so instead of showing empty choices.
+  if (!roster.ok) return <Notice tone="error">{friendlyError(roster.error)}</Notice>;
+  const learners: Person[] = roster.data.items.map((l) => ({ userId: l.userId, name: l.name }));
   const inCircle = new Set(circles.ok ? circles.data.items.flatMap((c) => c.members.map((m) => m.userId)) : []);
   // Group assignments by mentor, for a readable list.
   const byMentor = new Map<string, { name: string; items: MentorAssignment[] }>();

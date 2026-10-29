@@ -17,7 +17,9 @@ const selectClass = 'h-11 rounded-[var(--radius-field)] bg-card px-3 text-[14px]
 export function InstructorForm({ profile }: { profile?: InstructorProfile }) {
   const [state, action] = useActionState(saveInstructor, {} as FormState);
   const v = state.values ?? {};
-  const [photoUrl, setPhotoUrl] = useState(v.photoUrl ?? profile?.photoUrl ?? '');
+  // The saved photo until the author uploads or removes one; then their unsaved choice.
+  const [chosenPhoto, setPhotoUrl] = useState<string | null>(v.photoUrl ?? null);
+  const photoUrl = chosenPhoto ?? profile?.photoUrl ?? '';
   const [upload, setUpload] = useState<{ progress: number } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);

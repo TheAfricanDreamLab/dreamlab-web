@@ -13,16 +13,23 @@ export type Outcome<T> = { ok: true; data: T } | { ok: false; error: string };
 const BAD_LINK = { error: 'This page’s link isn’t right. Open it again from the menu.' };
 const LOCAL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
-/** The browser's time zone, sent with the form, so a typed time means what the person meant. */
-function zoneOf(fd: FormData): string {
+/**
+ * The browser's time zone, sent with the form, so a typed time means what the person meant. Missing
+ * (the form was sent before the page finished loading) or unknown: null, and the time is refused
+ * rather than guessed.
+ */
+function zoneOf(fd: FormData): string | null {
   const tz = str(fd, 'timeZone');
+  if (!tz) return null;
   try {
     new Intl.DateTimeFormat('en-GB', { timeZone: tz });
-    return tz || 'UTC';
+    return tz;
   } catch {
-    return 'UTC';
+    return null;
   }
 }
+
+const NO_ZONE = 'Your browser’s time zone isn’t known yet. Wait for the page to finish loading, then try again.';
 
 // ---------- recordings (LIVE-1) ----------
 
@@ -95,11 +102,13 @@ export async function deleteCircle(_: FormState, fd: FormData): Promise<FormStat
 export async function scheduleMeeting(_: FormState, fd: FormData): Promise<FormState> {
   const values = { assignmentId: str(fd, 'assignmentId'), scheduledAt: str(fd, 'scheduledAt'), durationMin: str(fd, 'durationMin') || '45', mode: str(fd, 'mode') || 'virtual', location: str(fd, 'location') };
   if (!isUuid(values.assignmentId)) return { error: 'Choose a mentee.', values };
-  const scheduledAt = LOCAL_TIME.test(values.scheduledAt) ? fromLocalInput(values.scheduledAt, zoneOf(fd)) : null;
+  const zone = zoneOf(fd);
+  if (!zone) return { error: NO_ZONE, values };
+  const scheduledAt = LOCAL_TIME.test(values.scheduledAt) ? fromLocalInput(values.scheduledAt, zone) : null;
   if (!scheduledAt) return { error: 'Choose a date and time.', fields: { scheduledAt: 'Choose a date and time' }, values };
   const durationMin = Number(values.durationMin);
   if (!Number.isInteger(durationMin) || durationMin < 15 || durationMin > 240) return { error: 'A meeting lasts 15 to 240 minutes.', fields: { durationMin: '15 to 240 minutes' }, values };
-  if (values.mode !== 'virtual' && values.mode !== 'in_person') return { error: 'Choose online or in person.', values };
+  if (values.mode !== 'virtual' && values.mode !== 'physical') return { error: 'Choose online or in person.', values };
   const res = await api<MentorMeeting>('POST', '/v1/learning/mentoring/meetings', {
     assignmentId: values.assignmentId,
     scheduledAt,
@@ -124,7 +133,9 @@ export async function updateMeeting(_: FormState, fd: FormData): Promise<FormSta
   if (fd.has('notes')) body.notes = str(fd, 'notes');
   const when = str(fd, 'scheduledAt');
   if (when) {
-    const at = LOCAL_TIME.test(when) ? fromLocalInput(when, zoneOf(fd)) : null;
+    const zone = zoneOf(fd);
+    if (!zone) return { error: NO_ZONE };
+    const at = LOCAL_TIME.test(when) ? fromLocalInput(when, zone) : null;
     if (!at) return { error: 'Choose a date and time.' };
     body.scheduledAt = at;
   }

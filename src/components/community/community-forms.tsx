@@ -18,7 +18,8 @@ const chip =
 const noSubscribe = () => () => undefined;
 
 function TimeZoneField() {
-  const tz = useSyncExternalStore(noSubscribe, () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', () => 'UTC');
+  // Empty until hydrated: a form sent before then is refused rather than read as UTC.
+  const tz = useSyncExternalStore(noSubscribe, () => Intl.DateTimeFormat().resolvedOptions().timeZone || '', () => '');
   return <input type="hidden" name="timeZone" value={tz} />;
 }
 
@@ -197,10 +198,10 @@ export function ScheduleMeetingForm({ mentees }: { mentees: { assignmentId: stri
           </label>
           <select id="meeting-mode" name="mode" value={mode} onChange={(e) => setMode(e.target.value)} className={selectClass}>
             <option value="virtual">Online, in Dream Lab</option>
-            <option value="in_person">In person</option>
+            <option value="physical">In person</option>
           </select>
         </div>
-        {mode === 'in_person' && <TextInput label="Place" name="location" maxLength={200} placeholder="Hub, room 2" defaultValue={v.location} />}
+        {mode === 'physical' && <TextInput label="Place" name="location" maxLength={200} placeholder="Hub, room 2" defaultValue={v.location} />}
       </div>
       <Feedback state={state} />
       <div className="sm:max-w-xs">
