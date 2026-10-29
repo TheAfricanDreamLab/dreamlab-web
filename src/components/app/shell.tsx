@@ -53,8 +53,9 @@ export function AppShell({ initialCollapsed, sidebar, topbar, children }: { init
     };
   }, [open, closeDrawer]);
 
-  // A full-page message (signed in on an organisation's site you don't belong to): no app chrome.
-  if (path === '/app/no-access') return <>{children}</>;
+  // A full-page message (signed in on an organisation's site you don't belong to), or a portfolio
+  // laid out for paper: no app chrome.
+  if (path === '/app/no-access' || path.endsWith('/portfolio/print')) return <>{children}</>;
 
   return (
     <ShellContext.Provider value={{ collapsed, toggleCollapsed, closeDrawer }}>

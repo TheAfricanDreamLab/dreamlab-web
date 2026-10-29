@@ -25,6 +25,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: '/app/programme', label: 'My programme', icon: 'calendar', show: true },
     { href: '/app/journal', label: 'Journal', icon: 'journal', show: true },
     { href: '/app/apply', label: 'Applications', icon: 'file', show: true },
+    { href: '/app/credentials', label: 'Credentials', icon: 'shield', show: true },
     { href: '/app/mentoring', label: 'Mentoring', icon: 'users', show: Boolean(active) && can(me, 'mentorship.conduct') },
     { href: '/courses', label: 'Courses', icon: 'compass', show: true },
     { href: '/app/account', label: 'Account', icon: 'user', show: true },
@@ -34,9 +35,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
     { href: '/app/grading', label: 'Grading', icon: 'check', show: Boolean(active) && !me.platformAdmin && can(me, 'submission.grade') },
     { href: '/app/admissions', label: 'Admissions', icon: 'mail', show: Boolean(active) && !me.platformAdmin && can(me, 'admissions.review') },
+    { href: '/app/assignments', label: 'Assigned learning', icon: 'check', show: Boolean(active) && !me.platformAdmin && can(me, 'learning.assign') },
+    { href: '/app/settings/dream-score', label: 'Dream Score weights', icon: 'chart', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
     { href: '/app/authoring', label: 'Authoring', icon: 'grid', show: Boolean(active) && !me.platformAdmin && (can(me, 'course.content.edit') || can(me, 'course.publish')) },
     { href: '/app/roles', label: 'Roles', icon: 'shield', show: Boolean(active) && can(me, 'org.roles.manage') },
-    { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage') },
+    { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage'), exact: true },
   ].filter((i) => i.show) as Item[];
   const platform: Item[] = me.platformAdmin
     ? [
