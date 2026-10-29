@@ -50,6 +50,9 @@ export default async function CohortPage({ params, searchParams }: Props) {
             {c.learnerCount}
             {c.capacity !== null && ` of ${c.capacity}`} {c.learnerCount === 1 && c.capacity === null ? 'learner' : 'learners'}{c.currentWeek ? ` · week ${c.currentWeek}` : ''}
           </p>
+          <Link href={`/app/cohorts/${c.id}/community`} className="min-h-10 content-center text-[13.5px] font-semibold text-link hover:underline">
+            Mentors and Dream Circles
+          </Link>
         </div>
       </header>
 

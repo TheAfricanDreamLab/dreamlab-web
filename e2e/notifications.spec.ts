@@ -78,7 +78,8 @@ test('a file travels with the work, and both sides hear about it', async ({ page
   await waitForNotification(student, /was graded/);
   await student.getByRole('button', { name: 'Mark all as read' }).click();
   await expect(student.getByRole('button', { name: 'Mark all as read' })).toHaveCount(0);
-  await expect(student.getByRole('link', { name: 'Notifications', exact: true })).toBeVisible();
+  // The bell in the top bar (the sidebar has its own Notifications shortcut) shows no unread count.
+  await expect(student.getByRole('link', { name: 'Notifications', exact: true }).last()).toBeVisible();
   await expect(student.getByRole('link', { name: /Notifications: \d+ unread/ })).toHaveCount(0);
 
   // Email choices live on the account page.

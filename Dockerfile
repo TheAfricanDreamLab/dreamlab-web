@@ -11,7 +11,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY . .
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
-ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} NEXT_TELEMETRY_DISABLED=1
+# The LiveKit server for live classes (wss://…), allowed by the Content Security Policy.
+ARG NEXT_PUBLIC_LIVEKIT_URL=""
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL} NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
 FROM node:${NODE_VERSION} AS runtime

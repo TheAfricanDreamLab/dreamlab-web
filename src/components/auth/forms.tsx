@@ -18,10 +18,21 @@ import { Button, cx, Divider, Notice, TextLink } from '@/components/ui/primitive
 import type { FormState } from '@/lib/forms';
 import { GoogleButton } from './google-button';
 
-export function SubmitButton({ children, pending: pendingLabel = 'One moment…', variant = 'primary' }: { children: React.ReactNode; pending?: string; variant?: 'primary' | 'secondary' | 'danger' }) {
+export function SubmitButton({
+  children,
+  pending: pendingLabel = 'One moment…',
+  variant = 'primary',
+  disabled = false,
+}: {
+  children: React.ReactNode;
+  pending?: string;
+  variant?: 'primary' | 'secondary' | 'danger';
+  /** Also disabled while something else is still under way (an upload). */
+  disabled?: boolean;
+}) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} variant={variant} aria-busy={pending}>
+    <Button type="submit" disabled={pending || disabled} variant={variant} aria-busy={pending}>
       {pending ? pendingLabel : children}
     </Button>
   );
