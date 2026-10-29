@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState, useSyncExternalStore } from 'react';
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { assignMentor, deleteCircle, endAssignment, saveCircle, scheduleMeeting, updateMeeting } from '@/app/actions/community';
 import { SubmitButton } from '@/components/auth/forms';
 import { TextInput } from '@/components/ui/fields';
@@ -18,9 +18,20 @@ const chip =
 const noSubscribe = () => () => undefined;
 
 function TimeZoneField() {
-  // Empty until hydrated: a form sent before then is refused rather than read as UTC.
+  // Empty until hydrated: a form sent before then is refused rather than read as UTC. The value is
+  // read again as the form is sent, in case the device's time zone changed while the page was open.
   const tz = useSyncExternalStore(noSubscribe, () => Intl.DateTimeFormat().resolvedOptions().timeZone || '', () => '');
-  return <input type="hidden" name="timeZone" value={tz} />;
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const form = field.current?.form;
+    if (!form) return;
+    const onSubmit = () => {
+      if (field.current) field.current.value = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    };
+    form.addEventListener('submit', onSubmit, { capture: true });
+    return () => form.removeEventListener('submit', onSubmit, { capture: true });
+  }, []);
+  return <input ref={field} type="hidden" name="timeZone" value={tz} readOnly />;
 }
 
 /** A time in the reader's own time zone (rendered after hydration; the server doesn't know it). */

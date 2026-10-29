@@ -32,9 +32,9 @@ export default async function CohortCommunityPage({ params }: Props) {
   ]);
   if (!cohort.ok && cohort.status === 404) notFound();
   if (!cohort.ok) return <Notice tone="error">{friendlyError(cohort.error)}</Notice>;
-  // Without the roster there is nobody to assign or group: say so instead of showing empty choices.
-  if (!roster.ok) return <Notice tone="error">{friendlyError(roster.error)}</Notice>;
-  const learners: Person[] = roster.data.items.map((l) => ({ userId: l.userId, name: l.name }));
+  const learners: Person[] = roster.ok ? roster.data.items.map((l) => ({ userId: l.userId, name: l.name })) : [];
+  // Without the roster there is nobody to assign or group: the forms say so; the lists stay.
+  const rosterError = roster.ok ? null : <Notice tone="error">{friendlyError(roster.error)}</Notice>;
   const inCircle = new Set(circles.ok ? circles.data.items.flatMap((c) => c.members.map((m) => m.userId)) : []);
   // Group assignments by mentor, for a readable list.
   const byMentor = new Map<string, { name: string; items: MentorAssignment[] }>();
@@ -91,7 +91,7 @@ export default async function CohortCommunityPage({ params }: Props) {
               </Card>
               <Card className="p-5">
                 <h3 className="mb-3 text-[16px] font-bold">Assign a mentor</h3>
-                <AssignMentorForm cohortId={cohortId} candidates={mentors.data.candidates} learners={learners} />
+                {rosterError ?? <AssignMentorForm cohortId={cohortId} candidates={mentors.data.candidates} learners={learners} />}
               </Card>
             </>
           )}
@@ -116,18 +116,19 @@ export default async function CohortCommunityPage({ params }: Props) {
                       {c.members.map((m) => m.name).join(', ')}
                     </summary>
                     <div className="pt-3">
-                      <CircleForm cohortId={cohortId} learners={learners} circle={c} taken={inCircle} />
+                      {rosterError ?? <CircleForm cohortId={cohortId} learners={learners} circle={c} taken={inCircle} />}
                     </div>
                   </details>
                 </Card>
               ))}
               <Card className="p-5">
                 <h3 className="mb-3 text-[16px] font-bold">Form a circle</h3>
-                {learners.length < 2 ? (
-                  <p className="text-[14px] text-muted">A circle needs at least two learners in the cohort.</p>
-                ) : (
-                  <CircleForm cohortId={cohortId} learners={learners} taken={inCircle} />
-                )}
+                {rosterError ??
+                  (learners.length < 2 ? (
+                    <p className="text-[14px] text-muted">A circle needs at least two learners in the cohort.</p>
+                  ) : (
+                    <CircleForm cohortId={cohortId} learners={learners} taken={inCircle} />
+                  ))}
               </Card>
             </>
           )}

@@ -1,14 +1,15 @@
 'use client';
 
 import '@livekit/components-styles';
-import { ConnectionStateToast, ControlBar, GridLayout, LiveKitRoom, ParticipantTile, RoomAudioRenderer, useTracks } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { ConnectionStateToast, ControlBar, GridLayout, LiveKitRoom, ParticipantTile, RoomAudioRenderer, useLocalParticipant, useTracks } from '@livekit/components-react';
+import { MediaDeviceFailure, Track } from 'livekit-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Button, Card, Notice } from '@/components/ui/primitives';
 
 type Ended = { kind: 'left' } | { kind: 'error'; message: string };
+type DeviceProblem = { failure?: MediaDeviceFailure; kind?: MediaDeviceKind };
 
 /**
  * A live class or mentor meeting room (LIVE-1). The page fetched a short-lived join token for this
@@ -34,7 +35,7 @@ export function LiveRoom({
 }) {
   const router = useRouter();
   const [ended, setEnded] = useState<Ended | null>(null);
-  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [deviceProblem, setDeviceProblem] = useState<DeviceProblem | null>(null);
   const [rejoining, startRejoin] = useTransition();
   const host = role === 'host';
   const video = host || participantVideo;
@@ -68,17 +69,10 @@ export function LiveRoom({
         video={false}
         onDisconnected={() => setEnded({ kind: 'left' })}
         onError={(e) => setEnded({ kind: 'error', message: friendlyRoomError(e) })}
-        onMediaDeviceFailure={(_failure, kind) => setDeviceError(deviceMessage(kind))}
+        onMediaDeviceFailure={(failure, kind) => setDeviceProblem({ failure, kind })}
         className="relative flex h-full flex-col"
       >
-        {deviceError && (
-          <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3 rounded-[var(--radius-field)] bg-card px-4 py-3 text-[14px] text-ink shadow-[var(--shadow-panel)]" role="alert">
-            <span>{deviceError}</span>
-            <button type="button" onClick={() => setDeviceError(null)} className="min-h-8 shrink-0 font-semibold text-link">
-              Dismiss
-            </button>
-          </div>
-        )}
+        {deviceProblem && <DeviceNotice problem={deviceProblem} onDismiss={() => setDeviceProblem(null)} />}
         <Stage />
         <RoomAudioRenderer />
         <ConnectionStateToast />
@@ -110,8 +104,35 @@ function friendlyRoomError(e: Error): string {
   return 'We couldn’t connect to the room. Check your connection and rejoin.';
 }
 
-/** Why a microphone or camera could not be turned on, and what to do about it. */
-function deviceMessage(kind?: MediaDeviceKind): string {
+/**
+ * Why a microphone or camera could not be turned on, and what to do about it. It goes away once that
+ * device is on (the person fixed it and tried again) or when dismissed.
+ */
+function DeviceNotice({ problem, onDismiss }: { problem: DeviceProblem; onDismiss: () => void }) {
+  const { isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
+  const resolved = (problem.kind === 'audioinput' && isMicrophoneEnabled) || (problem.kind === 'videoinput' && isCameraEnabled);
+  useEffect(() => {
+    if (resolved) onDismiss();
+  }, [resolved, onDismiss]);
+  if (resolved) return null;
+  return (
+    <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3 rounded-[var(--radius-field)] bg-card px-4 py-3 text-[14px] text-ink shadow-[var(--shadow-panel)]" role="alert">
+      <span>{deviceMessage(problem)}</span>
+      <button type="button" onClick={onDismiss} className="min-h-8 shrink-0 font-semibold text-link">
+        Dismiss
+      </button>
+    </div>
+  );
+}
+
+function deviceMessage({ failure, kind }: DeviceProblem): string {
   const device = kind === 'videoinput' ? 'camera' : kind === 'audioinput' ? 'microphone' : 'microphone or camera';
-  return `Your ${device} could not be turned on. Allow this site to use it in your browser’s settings (the icon by the address bar), then try again.`;
+  switch (failure) {
+    case MediaDeviceFailure.NotFound:
+      return `No ${device} was found. Connect one, then try again.`;
+    case MediaDeviceFailure.DeviceInUse:
+      return `Your ${device} is in use by another app. Close that app, then try again.`;
+    default:
+      return `Your ${device} could not be turned on. Allow this site to use it in your browser’s settings (the icon by the address bar), then try again.`;
+  }
 }
