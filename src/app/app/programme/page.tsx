@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ElectiveForm } from '@/components/cohorts/cohort-forms';
+import { LocalTime } from '@/components/community/community-forms';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate, classTime, type MyProgram } from '@/lib/cohorts';
+import { inJoinWindow, meetingRoomHref, MEETING_STATUS_LABELS, type MyCommunity, sessionRoomHref } from '@/lib/community';
 import { friendlyError } from '@/lib/errors';
 import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
@@ -13,7 +15,7 @@ type Search = { searchParams: Promise<{ joined?: string }> };
 
 export default async function MyProgrammePage({ searchParams }: Search) {
   const { joined } = await searchParams;
-  const res = await api<{ items: MyProgram[] }>('GET', '/v1/learning/me/programs');
+  const [res, community] = await Promise.all([api<{ items: MyProgram[] }>('GET', '/v1/learning/me/programs'), api<MyCommunity>('GET', '/v1/learning/me/community')]);
 
   return (
     <div className="space-y-8">
@@ -36,6 +38,8 @@ export default async function MyProgrammePage({ searchParams }: Search) {
       ) : (
         res.data.items.map((p) => <Programme key={p.enrollment.id} p={p} justJoined={joined === p.enrollment.id} />)
       )}
+
+      {community.ok && <Community c={community.data} />}
     </div>
   );
 }
@@ -94,17 +98,7 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
                         {classTime(s.startsAt, tz)} · {s.durationMin} min · {s.mode === 'virtual' ? 'Online' : 'In person'} · Week {s.weekNo}
                       </span>
                     </span>
-                    {s.location ? (
-                      /^https?:\/\//.test(s.location) ? (
-                        <a href={s.location} target="_blank" rel="noopener noreferrer" className="text-[13.5px] font-semibold text-link hover:underline">
-                          Join class
-                        </a>
-                      ) : (
-                        <span className="text-[13px] text-body">{s.location}</span>
-                      )
-                    ) : (
-                      <span className="text-[12.5px] text-faint">{s.mode === 'virtual' ? 'Link coming' : 'Place coming'}</span>
-                    )}
+                    <SessionAction cohortId={p.cohort.id} s={s} />
                   </li>
                 ))}
               </ul>
@@ -191,6 +185,123 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
           </table>
         </Card>
       </section>
+    </section>
+  );
+}
+
+/**
+ * A class with a link set by faculty joins there; other online classes meet in the Dream Lab room
+ * (open from 15 minutes before); in-person classes show their place.
+ */
+function SessionAction({ cohortId, s }: { cohortId: string; s: MyProgram['upcomingSessions'][number] }) {
+  if (s.location && /^https?:\/\//.test(s.location)) {
+    return (
+      <a href={s.location} target="_blank" rel="noopener noreferrer" className="text-[13.5px] font-semibold text-link hover:underline">
+        Join class
+      </a>
+    );
+  }
+  if (s.mode === 'virtual') {
+    return inJoinWindow(s) ? (
+      <Link href={sessionRoomHref(cohortId, s.id)} prefetch={false} className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-[13.5px] font-semibold text-white hover:bg-primary-hover">
+        Join class
+        <span className="sr-only"> {s.title}</span>
+      </Link>
+    ) : (
+      <span className="text-[12.5px] text-faint">Room opens 15 min before</span>
+    );
+  }
+  return s.location ? <span className="text-[13px] text-body">{s.location}</span> : <span className="text-[12.5px] text-faint">Place coming</span>;
+}
+
+/** The learner's people across their cohorts: mentors, upcoming mentor meetings and Dream Circles (COMM-1). */
+function Community({ c }: { c: MyCommunity }) {
+  if (c.mentors.length === 0 && c.circles.length === 0 && c.meetings.length === 0 && c.recordings.length === 0) return null;
+  return (
+    <section className="space-y-3" aria-labelledby="my-community">
+      <h2 id="my-community" className="text-[22px] font-bold">
+        My community
+      </h2>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="space-y-4 p-5">
+          <h3 className="text-[17px] font-bold">Mentoring</h3>
+          {c.mentors.length === 0 ? (
+            <p className="text-[14px] text-muted">You don’t have a mentor yet. Your cohort’s team assigns one.</p>
+          ) : (
+            <ul className="space-y-1 text-[14px]">
+              {c.mentors.map((m) => (
+                <li key={`${m.userId}-${m.cohortName}`}>
+                  <span className="font-semibold text-ink">{m.name}</span> <span className="text-muted">· your mentor in {m.cohortName}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {c.meetings.length > 0 && (
+            <ul className="divide-y divide-line rounded-[var(--radius-field)] ring-1 ring-line" aria-label="Mentor meetings">
+              {c.meetings.map((m) => (
+                <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-ink">With {m.mentor.name}</span>
+                    <span className="block text-[13px] text-muted">
+                      <LocalTime iso={m.scheduledAt} /> · {m.durationMin} min · {m.mode === 'virtual' ? 'Online' : (m.location ?? 'In person')}
+                      {m.status !== 'scheduled' && ` · ${MEETING_STATUS_LABELS[m.status]}`}
+                    </span>
+                    {m.status === 'held' && m.notes && <span className="mt-1 block whitespace-pre-line text-[13px] text-body">{m.notes}</span>}
+                  </span>
+                  {m.joinable && (
+                    <Link href={meetingRoomHref(m.id)} prefetch={false} className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-[13.5px] font-semibold text-white hover:bg-primary-hover">
+                      Join meeting
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card className="space-y-4 p-5">
+          <h3 className="text-[17px] font-bold">Dream Circle</h3>
+          {c.circles.length === 0 ? (
+            <p className="text-[14px] text-muted">You aren’t in a Dream Circle yet. Your cohort’s team forms them.</p>
+          ) : (
+            c.circles.map((circle) => (
+              <div key={circle.id} className="space-y-2">
+                <p className="text-[14px]">
+                  <span className="font-semibold text-ink">{circle.name}</span> <span className="text-muted">· {circle.cohortName}</span>
+                </p>
+                <ul className="flex flex-wrap gap-1.5" aria-label={`Members of ${circle.name}`}>
+                  {circle.members.map((m) => (
+                    <li key={m.userId} className="rounded-full bg-surface px-3 py-1 text-[13px] text-ink ring-1 ring-line">
+                      {m.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
+        </Card>
+        {c.recordings.length > 0 && (
+          <Card className="space-y-3 p-5 xl:col-span-2">
+            <h3 className="text-[17px] font-bold">Class recordings</h3>
+            <ul className="space-y-1.5" aria-label="Class recordings">
+              {c.recordings.map((r) => (
+                <li key={r.id}>
+                  <a
+                    href={`/recordings/${r.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-0.5 rounded-[var(--radius-field)] bg-surface px-3 py-2 ring-1 ring-line hover:ring-primary"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-link">{r.title}</span>
+                    <span className="text-[12.5px] text-muted">
+                      Week {r.weekNo} · {r.sessionTitle} · {r.cohortName}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </div>
     </section>
   );
 }

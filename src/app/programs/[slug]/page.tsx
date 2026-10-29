@@ -1,13 +1,15 @@
-import type { Cohort, ProgramDetail } from '@dreamlab/contracts';
+import type { AdmissionCycle, Cohort, ProgramDetail } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
+import { StartApplicationForm } from '@/components/admissions/application-forms';
 import { JoinCohortForm } from '@/components/cohorts/cohort-forms';
 import { CourseCard, CourseCover } from '@/components/learning/course-ui';
 import { RichText } from '@/components/learning/rich-text';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
 import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
+import { admissionsTime } from '@/lib/admissions';
 import { calendarDate, COHORT_STATUS_LABELS, COHORT_STATUS_TONES, POLICY_LABELS } from '@/lib/cohorts';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -31,7 +33,12 @@ const weeks = (from: number | null, to: number | null) => (from && to ? (from ==
 export default async function ProgramPage({ params }: Params) {
   const { slug } = await params;
   if (!valid(slug)) notFound();
-  const [res, claims, intakes] = await Promise.all([loadProgram(slug), getClaims(), api<{ items: Cohort[] }>('GET', `/v1/learning/programs/${slug}/cohorts`)]);
+  const [res, claims, intakes, admissions] = await Promise.all([
+    loadProgram(slug),
+    getClaims(),
+    api<{ items: Cohort[] }>('GET', `/v1/learning/programs/${slug}/cohorts`),
+    api<{ items: AdmissionCycle[] }>('GET', `/v1/admissions/cycles?programSlug=${slug}`),
+  ]);
   if (!res.ok && res.status === 404) notFound();
   const here = `/programs/${slug}`;
   if (!res.ok) {
@@ -52,6 +59,7 @@ export default async function ProgramPage({ params }: Params) {
   const firstCourse = phases[0]?.courses[0];
   const cohorts = intakes.ok ? intakes.data.items : [];
   const joinable = cohorts.filter((c) => c.status === 'open' || c.status === 'running');
+  const cycles = admissions.ok ? admissions.data.items : [];
 
   return (
     <div className="min-h-dvh">
@@ -119,6 +127,39 @@ export default async function ProgramPage({ params }: Params) {
               </ul>
             )}
           </section>
+
+          {cycles.length > 0 && (
+            <section id="apply" className="scroll-mt-24 space-y-4" aria-labelledby="apply-title">
+              <div className="space-y-1">
+                <Eyebrow tone="gold">Admissions</Eyebrow>
+                <h2 id="apply-title" className="text-[24px] font-bold">
+                  Apply
+                </h2>
+                <p className="text-[14px] text-muted">Places are by application: six short stages you can save and come back to, then review, an interview and a decision.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {cycles.map((c) => (
+                  <Card key={c.id} className="flex flex-col gap-3 p-5">
+                    <div className="space-y-1">
+                      <h3 className="text-[18px] font-bold">{c.name}</h3>
+                      <p className="text-[13.5px] text-muted">
+                        Run by {c.orgName} · closes {admissionsTime(c.closesAt)}
+                      </p>
+                    </div>
+                    <div className="mt-auto">
+                      {claims ? (
+                        <StartApplicationForm cycleId={c.id} back={`${here}#apply`} label={`Apply to ${c.name}`} />
+                      ) : (
+                        <ButtonLink href={`/signup?next=${encodeURIComponent(`${here}#apply`)}`} className="w-full">
+                          Create a free account to apply
+                        </ButtonLink>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
 
           {cohorts.length > 0 && (
             <section id="cohorts" className="scroll-mt-24 space-y-4" aria-labelledby="cohorts-title">

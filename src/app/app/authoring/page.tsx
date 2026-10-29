@@ -23,6 +23,13 @@ export default async function AuthoringPage({ searchParams }: Props) {
         <Eyebrow tone="gold">{active ? active.org.name : 'Platform courses'}</Eyebrow>
         <h1 className="text-[30px] font-extrabold">Authoring</h1>
         <p className="text-[14.5px] text-muted">Write courses in drafts, send them for review, and publish them as new versions. Learners already enrolled stay on their version.</p>
+        {res.ok && res.data.can.author && (
+          <p className="pt-1 text-[14px]">
+            <Link href="/app/authoring/instructors" className="font-semibold text-link hover:underline">
+              Instructors and course staff
+            </Link>
+          </p>
+        )}
       </header>
       {sp.discarded && <Notice tone="neutral">Draft discarded.</Notice>}
       {sp.error && <Notice tone="error">That course’s draft couldn’t be opened. Try again.</Notice>}

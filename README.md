@@ -21,6 +21,7 @@ pnpm dev          # http://localhost:3100 ; organisation sites at http://<slug>.
 | `SESSION_COOKIE_DOMAIN`, `SESSION_COOKIE_PREFIX` | One session across the platform and organisation sites; per-environment cookie names |
 | `MEDIA_ORIGIN_URL` | Public storage container that `/media/*` is served from (Azurite locally) |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google sign-in (optional) |
+| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit server for live classes (`wss://…`), allowed by the Content Security Policy; fixed at build time |
 
 ## What is where
 

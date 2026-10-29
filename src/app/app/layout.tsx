@@ -24,13 +24,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: '/app/learning', label: 'My learning', icon: 'book', show: true },
     { href: '/app/programme', label: 'My programme', icon: 'calendar', show: true },
     { href: '/app/journal', label: 'Journal', icon: 'journal', show: true },
+    { href: '/app/apply', label: 'Applications', icon: 'file', show: true },
+    { href: '/app/mentoring', label: 'Mentoring', icon: 'users', show: Boolean(active) && can(me, 'mentorship.conduct') },
     { href: '/courses', label: 'Courses', icon: 'compass', show: true },
     { href: '/app/account', label: 'Account', icon: 'user', show: true },
-  ];
+  ].filter((i) => i.show) as Item[];
   const organisation: Item[] = [
     { href: '/app/members', label: 'People', icon: 'users', show: Boolean(active) && can(me, 'org.members.read') },
     { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
     { href: '/app/grading', label: 'Grading', icon: 'check', show: Boolean(active) && !me.platformAdmin && can(me, 'submission.grade') },
+    { href: '/app/admissions', label: 'Admissions', icon: 'mail', show: Boolean(active) && !me.platformAdmin && can(me, 'admissions.review') },
     { href: '/app/authoring', label: 'Authoring', icon: 'grid', show: Boolean(active) && !me.platformAdmin && (can(me, 'course.content.edit') || can(me, 'course.publish')) },
     { href: '/app/roles', label: 'Roles', icon: 'shield', show: Boolean(active) && can(me, 'org.roles.manage') },
     { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage') },
@@ -43,6 +46,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         { href: '/app/admin/catalog', label: 'Catalog', icon: 'grid', show: true },
         { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: true },
         { href: '/app/grading', label: 'Grading', icon: 'check', show: true },
+        { href: '/app/admissions', label: 'Admissions', icon: 'mail', show: true },
         { href: '/app/authoring', label: 'Authoring', icon: 'journal', show: true },
       ]
     : [];
