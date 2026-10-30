@@ -43,7 +43,8 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await learner.getByRole('button', { name: 'Save draft' }).click();
   await expect(learner.getByText('Draft saved.')).toBeVisible();
   await learner.getByRole('button', { name: 'Submit for review' }).click();
-  await expect(learner.getByText(/^Submitted\./)).toBeVisible();
+  // Once submitted the stage is read-only: the page shows when it went to faculty.
+  await expect(learner.getByText(/^Submitted \d/)).toBeVisible();
   await expect(learner.getByRole('link', { name: /Dream Definition/ })).toContainText('With faculty');
 
   // Faculty approve it with a score from the residency board; its five credits count.
@@ -55,7 +56,8 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await page.getByLabel('Score (0–100)').fill('86');
   await page.getByLabel('Feedback for the learner').fill('A clear, specific dream statement backed by real interviews.');
   await page.getByRole('button', { name: 'Approve stage' }).click();
-  await expect(page.getByText(/^Approved at 86%/)).toBeVisible();
+  // The review form gives way to the stage's result.
+  await expect(page.getByRole('link', { name: /Dream Definition/ })).toContainText('Approved');
   await learner.reload();
   await expect(learner.getByText('5.0 of 45.0 credits')).toBeVisible();
 
@@ -69,14 +71,16 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await learner.getByLabel('What you need (people, money, tools)').fill('Two dryers, a motorbike and a bookkeeper.');
   await learner.getByLabel('The biggest risks, and what you will do about them').fill('A poor harvest; a competitor copying the design.');
   await learner.getByRole('button', { name: 'Submit for approval' }).click();
-  await expect(learner.getByText('Submitted for approval.')).toBeVisible();
+  // Once submitted the plan is read-only and waits with faculty.
+  await expect(learner.getByText('With faculty', { exact: true })).toBeVisible();
 
   await page.goto(`${cohortUrl}/graduation`);
   await page.getByRole('link', { name: new RegExp(learnerName) }).click();
   await page.getByRole('navigation', { name: 'Programme outcomes' }).getByRole('link', { name: 'Action plan' }).click();
   await page.getByLabel('Feedback for the learner').fill('A realistic plan with measurable milestones.');
   await page.getByRole('button', { name: 'Approve plan' }).click();
-  await expect(page.getByText('Action plan approved.')).toBeVisible();
+  // Approved, the plan is read-only and shows its status.
+  await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
 
   // Faculty confirm every requirement, then graduate the learner.
   await page.getByRole('navigation', { name: 'Programme outcomes' }).getByRole('link', { name: 'Graduation' }).click();

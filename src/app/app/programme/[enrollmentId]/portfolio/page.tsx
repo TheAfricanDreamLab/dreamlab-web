@@ -8,6 +8,7 @@ import { Card, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api, incomingRequest } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
+import { getMe } from '@/lib/me';
 import type { Portfolio, Residency } from '@/lib/outcomes';
 
 export const metadata: Metadata = { title: 'Dream Portfolio' };
@@ -18,17 +19,18 @@ type Props = { params: Promise<{ enrollmentId: string }>; searchParams: Promise<
 export default async function PortfolioPage({ params, searchParams }: Props) {
   const [{ enrollmentId }, sp] = await Promise.all([params, searchParams]);
   if (!isUuid(enrollmentId)) notFound();
-  const [res, residency, request] = await Promise.all([
+  const [res, residency, request, me] = await Promise.all([
     api<Portfolio>('GET', `/v1/learning/programs/enrollments/${enrollmentId}/portfolio`),
-    // Only the learner may publish their portfolio; the residency's can.edit says whether that is the caller.
+    // Only the learner may publish their portfolio (graduates too): the residency names the learner.
     api<Residency>('GET', `/v1/learning/programs/enrollments/${enrollmentId}/residency`),
     incomingRequest(),
+    getMe(),
   ]);
   if (!res.ok && res.status === 404) notFound();
   if (!res.ok) return <Notice tone="error">{friendlyError(res.error)}</Notice>;
   const p = res.data;
   const cohortId = sp.cohort && isUuid(sp.cohort) ? sp.cohort : null;
-  const owner = residency.ok && residency.data.can.edit;
+  const owner = residency.ok && residency.data.learner.userId === me.user.id;
   const shareUrl = p.shareToken && request.host ? `${request.proto}://${request.host}/portfolios/${p.shareToken}` : null;
   const complete = p.sections.filter((s) => s.complete).length;
 

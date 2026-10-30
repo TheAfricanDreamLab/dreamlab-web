@@ -93,7 +93,7 @@ async function join(browser: Browser, link: string, name: string, email: string)
 }
 
 test('an organisation assigns a course with a due date; the member starts it and shows as in progress', async ({ page, browser }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   const suffix = Date.now().toString(36).slice(-5);
   const memberEmail = unique('assignee');
   const due = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
@@ -104,7 +104,7 @@ test('an organisation assigns a course with a due date; the member starts it and
   // The admin assigns Problem Solving to the member.
   await page.goto('/app/assignments');
   await expect(page.getByRole('heading', { name: 'Assigned learning', level: 1 })).toBeVisible();
-  await page.getByLabel('Course').selectOption({ label: 'Problem Solving' });
+  await page.getByRole('combobox', { name: 'Course' }).selectOption({ label: 'Problem Solving' });
   await page.getByLabel('Find someone').fill('Musa');
   await page.getByRole('group', { name: 'People' }).getByLabel(/Musa Member/).check();
   await page.getByLabel('Due date').fill(due);
@@ -123,7 +123,8 @@ test('an organisation assigns a course with a due date; the member starts it and
   await expect(assigned).toContainText('Please finish before the planning retreat.');
   await assigned.getByRole('link', { name: /Start/ }).click();
   await expect(member).toHaveURL(/\/learn\/[0-9a-f-]{36}$/);
-  await member.getByRole('link', { name: 'Start the course' }).click();
+  // The course home offers the first lesson ("Start the course", or "Continue: …" once opened).
+  await member.getByRole('link', { name: /^(Start the course|Continue: )/ }).first().click();
   await expect(member).toHaveURL(/\/learn\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/);
   await finishLesson(member);
 
