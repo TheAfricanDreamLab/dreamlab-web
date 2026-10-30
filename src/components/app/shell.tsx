@@ -98,7 +98,10 @@ export function AppShell({ initialCollapsed, sidebar, topbar, children }: { init
             </div>
           </div>
           <main id="main" tabIndex={-1} className="w-full px-4 pb-12 pt-4 focus:outline-none sm:px-6 lg:px-8 lg:pt-6 2xl:px-12">
-            {children}
+            {/* Keyed by the path, so each page eases in as you move between them. */}
+            <div key={path} className="dl-page">
+              {children}
+            </div>
           </main>
         </div>
       </div>

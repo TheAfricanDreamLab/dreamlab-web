@@ -1,12 +1,14 @@
 import type { CourseSummary, ProgramSummary } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Reveal, Tilt } from '@/components/landing/motion';
 import { CourseCard, CourseCover, FeaturedCourseCard } from '@/components/learning/course-ui';
-import { PublicFooter, PublicHeader } from '@/components/site/public-header';
+import { PageChrome } from '@/components/site/page-chrome';
 import { Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
+import { getClaims } from '@/lib/session';
 import { DELIVERY_LABELS, LEVEL_LABELS, plural, PROGRAM_TYPE_LABELS } from '@/lib/learning';
 
 export const metadata: Metadata = {
@@ -26,16 +28,29 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   if (q) query.set('q', q);
   if (level) query.set('level', level);
   if (program) query.set('program', program);
-  const [courses, programs] = await Promise.all([
+  const [courses, programs, claims] = await Promise.all([
     api<{ items: CourseSummary[] }>('GET', `/v1/catalog/courses${query.size ? `?${query}` : ''}`),
     api<{ items: ProgramSummary[] }>('GET', '/v1/catalog/programs'),
+    getClaims(),
   ]);
+  // Signed in, the catalogue sits in the app beside the sidebar: a plain page heading, no marketing hero.
+  const signedIn = Boolean(claims);
 
   const filtered = Boolean(q || level || program);
   const items = courses.ok ? courses.data.items : [];
   const featured = filtered ? [] : items.filter((c) => c.featured);
   const rest = filtered ? items : items.filter((c) => !c.featured);
   const programName = program && programs.ok ? programs.data.items.find((p) => p.slug === program)?.title : undefined;
+
+  // Cards tilt in 3D on the public page; in the app they just lift a little, like the rest of it.
+  const frame = (card: ReactNode, max: number) =>
+    signedIn ? (
+      <div className="h-full transition-transform duration-200 hover:-translate-y-0.5 [&>article]:h-full">{card}</div>
+    ) : (
+      <Tilt max={max} className="dl-tilt h-full rounded-[var(--radius-card)] [&>article]:h-full">
+        {card}
+      </Tilt>
+    );
 
   const chipHref = (l?: string) => {
     const p = new URLSearchParams();
@@ -46,25 +61,34 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   };
 
   return (
-    <div className="min-h-dvh">
-      <PublicHeader next="/courses" />
-      <main className="mx-auto max-w-6xl space-y-12 overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
-        <section className="space-y-6 text-center">
-          <div className="animate-rise mx-auto max-w-3xl space-y-3">
-            <p className="font-display text-[13px] font-bold uppercase tracking-[0.16em] text-link">The African Dream Lab · Courses</p>
-            <h1 className="text-[32px] font-extrabold leading-[1.05] min-[375px]:text-[36px] sm:text-[52px]">
-              Learn the skills to <span className="text-link">build what you dream.</span>
-            </h1>
-            <p className="mx-auto max-w-2xl text-[16px] leading-relaxed text-body">
-              Short, practical courses you can take at your own pace, on your phone. Free to start.
-            </p>
-          </div>
+    <PageChrome next="/courses">
+      <div className={cx('mx-auto max-w-6xl overflow-x-clip', signedIn ? 'space-y-8 py-2' : 'space-y-12 px-4 py-10 sm:px-6 sm:py-16')}>
+        <section className={cx('space-y-6', !signedIn && 'text-center')}>
+          {signedIn ? (
+            <div className="space-y-1">
+              <h1 className="text-[26px] font-bold">Courses</h1>
+              <p className="text-[15px] text-muted">Short, practical courses you can take at your own pace.</p>
+            </div>
+          ) : (
+            <div className="animate-rise mx-auto max-w-3xl space-y-3">
+              <p className="font-display text-[13px] font-bold uppercase tracking-[0.16em] text-link">The African Dream Lab · Courses</p>
+              <h1 className="text-[32px] font-extrabold leading-[1.05] min-[375px]:text-[36px] sm:text-[52px]">
+                Learn the skills to <span className="text-link">build what you dream.</span>
+              </h1>
+              <p className="mx-auto max-w-2xl text-[16px] leading-relaxed text-body">
+                Short, practical courses you can take at your own pace, on your phone. Free to start.
+              </p>
+            </div>
+          )}
 
           <form
             action="/courses"
             method="get"
             role="search"
-            className="mx-auto flex max-w-xl gap-2 rounded-full bg-card p-1.5 shadow-[var(--shadow-soft)] ring-1 ring-line focus-within:ring-2 focus-within:ring-primary"
+            className={cx(
+              'flex max-w-xl gap-2 rounded-full bg-card p-1.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-primary',
+              !signedIn && 'mx-auto shadow-[var(--shadow-soft)]',
+            )}
           >
             {level && <input type="hidden" name="level" value={level} />}
             {program && <input type="hidden" name="program" value={program} />}
@@ -85,7 +109,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             </button>
           </form>
 
-          <nav className="flex flex-wrap justify-center gap-2" aria-label="Level">
+          <nav className={cx('flex flex-wrap gap-2', !signedIn && 'justify-center')} aria-label="Level">
             {[{ key: undefined, label: 'All levels' }, ...LEVELS.map((l) => ({ key: l, label: LEVEL_LABELS[l] }))].map((c) => (
               <Link
                 key={c.label}
@@ -127,15 +151,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               </Reveal>
             ))}
             <section className="space-y-5" aria-labelledby="all-courses">
-              <h2 id="all-courses" className="text-center text-[24px] font-bold sm:text-left">
+              <h2 id="all-courses" className={cx('text-[24px] font-bold', !signedIn && 'text-center sm:text-left')}>
                 {filtered ? 'Results' : featured.length ? 'More courses' : 'All courses'}
               </h2>
               <Reveal className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {rest.map((c) => (
                   <div key={c.id} data-stagger>
-                    <Tilt max={6} className="dl-tilt h-full rounded-[var(--radius-card)] [&>article]:h-full">
-                      <CourseCard course={c} />
-                    </Tilt>
+                    {frame(<CourseCard course={c} />, 6)}
                   </div>
                 ))}
               </Reveal>
@@ -155,7 +177,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             <Reveal className="grid gap-4 md:grid-cols-2">
               {programs.data.items.map((p) => (
                 <div key={p.id} data-stagger>
-                  <Tilt max={5} className="dl-tilt h-full rounded-[var(--radius-card)] [&>article]:h-full">
+                  {frame(
                     <article className="relative flex overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-card)] ring-1 ring-line focus-within:ring-2 focus-within:ring-primary">
                       <CourseCover cover={p.cover} className="w-24 shrink-0 sm:w-32" symbolSize={36} />
                       <div className="space-y-1.5 p-4">
@@ -172,15 +194,15 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                           {plural(p.courseCount, 'course')} · {p.creditTotal} credits{p.weeks ? ` · ${p.weeks} weeks` : ''}
                         </p>
                       </div>
-                    </article>
-                  </Tilt>
+                    </article>,
+                    5,
+                  )}
                 </div>
               ))}
             </Reveal>
           </section>
         )}
-      </main>
-      <PublicFooter />
-    </div>
+      </div>
+    </PageChrome>
   );
 }

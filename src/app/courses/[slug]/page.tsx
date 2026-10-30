@@ -7,7 +7,7 @@ import { CourseCover, ItemIcon, ProgressBar, StatusTick } from '@/components/lea
 import { EnrolForm } from '@/components/learning/enrol-form';
 import { VideoFacade } from '@/components/learning/media';
 import { RichText } from '@/components/learning/rich-text';
-import { PublicFooter, PublicHeader } from '@/components/site/public-header';
+import { PageChrome } from '@/components/site/page-chrome';
 import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
@@ -44,12 +44,11 @@ export default async function CoursePage({ params, searchParams }: Params) {
   const here = `/courses/${slug}`;
   if (!res.ok) {
     return (
-      <div className="min-h-dvh">
-        <PublicHeader next={here} />
-        <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+      <PageChrome next={here}>
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
           <Notice tone="error">{friendlyError(res.error)}</Notice>
-        </main>
-      </div>
+        </div>
+      </PageChrome>
     );
   }
 
@@ -92,10 +91,9 @@ export default async function CoursePage({ params, searchParams }: Params) {
   );
 
   return (
-    <div className="min-h-dvh">
-      <PublicHeader next={here} />
-      <main className="pb-6">
-        <CourseCover cover={course.cover} symbolSize={120} className="text-white" showCredit eager>
+    <PageChrome next={here}>
+      <div className="pb-6">
+        <CourseCover cover={course.cover} symbolSize={120} className={claims ? 'overflow-hidden rounded-[var(--radius-card)] text-white' : 'text-white'} showCredit eager>
           <div className="relative mx-auto max-w-6xl space-y-4 px-4 py-10 sm:px-6 sm:py-14">
             <Breadcrumbs
               tone="light"
@@ -327,8 +325,7 @@ export default async function CoursePage({ params, searchParams }: Params) {
             </Card>
           </aside>
         </div>
-      </main>
-      <PublicFooter />
-    </div>
+      </div>
+    </PageChrome>
   );
 }

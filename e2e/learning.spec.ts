@@ -74,7 +74,7 @@ test.describe('learning', () => {
 
   test('a visitor browses the catalogue and opens Problem Solving', async ({ page }) => {
     await page.goto('/courses');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Learn the skills');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('build what you dream');
     await page.getByRole('link', { name: 'Problem Solving', exact: true }).first().click();
     await expect(page).toHaveURL(/\/courses\/problem-solving$/);
     await expect(page.getByRole('heading', { name: 'Problem Solving', level: 1 })).toBeVisible();
@@ -154,7 +154,7 @@ test.describe('learning', () => {
     await page.getByRole('link', { name: 'Exit to course home' }).click();
     await expect(page).toHaveURL(courseHome);
 
-    await page.locator('[data-nav=back]').click();
+    await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'My learning' }).click();
     await expect(page).toHaveURL(/\/app\/learning$/);
 
     await page.goto('/app/journal');
@@ -210,7 +210,7 @@ test.describe('ways out', () => {
     await page.goto('/courses/problem-solving');
     await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Courses' }).click();
     await expect(page).toHaveURL(/\/courses$/);
-    await page.locator('[data-nav=back]').click();
+    await page.getByRole('banner').getByRole('link').first().click();
     await expect(page).toHaveURL(/\/$/);
 
     await page.goto('/programs/the-african-dream-lab');
