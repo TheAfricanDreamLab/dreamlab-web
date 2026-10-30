@@ -45,7 +45,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   // Cards tilt in 3D on the public page; in the app they just lift a little, like the rest of it.
   const frame = (card: ReactNode, max: number) =>
     signedIn ? (
-      <div className="h-full transition-transform duration-200 hover:-translate-y-0.5 [&>article]:h-full">{card}</div>
+      <div className="h-full transition-transform duration-200 motion-safe:hover:-translate-y-0.5 [&>article]:h-full">{card}</div>
     ) : (
       <Tilt max={max} className="dl-tilt h-full rounded-[var(--radius-card)] [&>article]:h-full">
         {card}

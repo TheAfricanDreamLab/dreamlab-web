@@ -45,15 +45,14 @@ export default async function CourseHomePage({ params }: Params) {
   if (!res.ok) {
     if (res.status === 404) notFound();
     if (res.status === 401) redirect(`/login?next=${encodeURIComponent(`/learn/${enrollmentId}`)}`);
+    // Without the signed-in layout: if the course failed to load, the account may not load either.
     return (
-      <SignedInShell>
-        <div className="mx-auto max-w-[680px] space-y-4 px-4 py-16">
-          <Notice tone="error">{'error' in res ? friendlyError(res.error) : 'Something went wrong. Please try again.'}</Notice>
+      <main className="mx-auto max-w-[680px] space-y-4 px-4 py-16">
+        <Notice tone="error">{'error' in res ? friendlyError(res.error) : 'Something went wrong. Please try again.'}</Notice>
         <Link href="/app/learning" className="text-[14px] font-semibold text-link hover:underline">
           ← Back to my learning
         </Link>
-      </div>
-      </SignedInShell>
+      </main>
     );
   }
 
