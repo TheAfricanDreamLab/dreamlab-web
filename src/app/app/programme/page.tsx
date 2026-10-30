@@ -6,6 +6,7 @@ import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/pr
 import { calendarDate, classTime, type MyProgram } from '@/lib/cohorts';
 import { inJoinWindow, meetingRoomHref, MEETING_STATUS_LABELS, type MyCommunity, sessionRoomHref } from '@/lib/community';
 import { friendlyError } from '@/lib/errors';
+import { outcomeHref } from '@/lib/outcomes';
 import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
 
@@ -44,6 +45,14 @@ export default async function MyProgrammePage({ searchParams }: Search) {
   );
 }
 
+const OUTCOME_LINKS = [
+  { page: 'residency', label: 'Dream Residency' },
+  { page: 'action-plan', label: 'Action plan' },
+  { page: 'dream-score', label: 'Dream Score' },
+  { page: 'portfolio', label: 'Portfolio' },
+  { page: 'graduation', label: 'Graduation' },
+] as const;
+
 function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
   const tz = p.cohort.timeZone;
   const attendancePct = p.attendance.held > 0 ? Math.round((p.attendance.attended / p.attendance.held) * 100) : null;
@@ -76,6 +85,13 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
             value={p.score.programmeScore === null ? 'After your first graded course' : `${formatScore(p.score.programmeScore)} · ${formatScore(p.score.scoredCredits)} of ${formatScore(p.score.totalCredits)} credits scored`}
           />
         </dl>
+        <nav aria-label={`Outcomes for ${p.cohort.name}`} className="flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-3">
+          {OUTCOME_LINKS.map((o) => (
+            <Link key={o.page} href={outcomeHref(p.enrollment.id, o.page)} className="min-h-10 content-center text-[14px] font-semibold text-link hover:underline">
+              {o.label}
+            </Link>
+          ))}
+        </nav>
       </Card>
 
       {open.length > 0 && <Notice tone="info">Choose your {open.map((e) => e.phase).join(' and ')} elective{open.length > 1 ? 's' : ''} below{open[0]!.deadline ? ` by ${calendarDate(open[0]!.deadline)}` : ''}.</Notice>}
