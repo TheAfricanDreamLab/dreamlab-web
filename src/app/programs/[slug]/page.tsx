@@ -116,7 +116,7 @@ export default async function ProgramPage({ params }: Params) {
                 {p.features.map((f) => (
                   <li key={f} className="flex gap-3 rounded-[var(--radius-field)] bg-card p-3.5 ring-1 ring-line">
                     <span aria-hidden className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gold-tint text-[13px] text-gold-ink ring-1 ring-gold-line">
-                      ✦
+                      ✓
                     </span>
                     <span>
                       <span className="block text-[14px] font-semibold text-ink">{FEATURE_LABELS[f]?.title ?? f}</span>

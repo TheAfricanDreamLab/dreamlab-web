@@ -116,7 +116,7 @@ export function LessonPlayer({
       {current === 0 && (
         <section aria-label="About this lesson" className="flex items-start gap-3 rounded-[var(--radius-card)] bg-surface p-4 ring-1 ring-line">
           <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-success-tint font-display text-[15px] font-bold text-link ring-1 ring-success-line">
-            ✦
+            i
           </span>
           <div className="space-y-0.5">
             <p className="text-[14.5px] font-semibold text-ink">{title}</p>

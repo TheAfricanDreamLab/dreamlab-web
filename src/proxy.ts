@@ -19,7 +19,8 @@ const RESERVED = new Set(['www', 'api', 'app', 'admin', 'platform', 'static', 'c
 
 // /courses and /programs are public; the course player needs an account.
 const SIGNED_IN_ONLY = ['/app', '/orgs/new', '/learn', '/admin', '/files'];
-const SIGNED_OUT_ONLY = ['/login', '/signup'];
+/** Signed-in people go straight to their space from these (the landing page included). */
+const SIGNED_OUT_ONLY = ['/', '/login', '/signup'];
 /** Pages that work in the organisation of the site they're on. */
 const ORG_CONTEXT_PAGES = ['/app', '/learn'];
 /** Where someone who isn't a member of this site's organisation is told so (never switched from). */
