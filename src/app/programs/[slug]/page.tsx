@@ -6,7 +6,7 @@ import { StartApplicationForm } from '@/components/admissions/application-forms'
 import { JoinCohortForm } from '@/components/cohorts/cohort-forms';
 import { CourseCard, CourseCover } from '@/components/learning/course-ui';
 import { RichText } from '@/components/learning/rich-text';
-import { PublicFooter, PublicHeader } from '@/components/site/public-header';
+import { PageChrome } from '@/components/site/page-chrome';
 import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { admissionsTime } from '@/lib/admissions';
@@ -43,12 +43,11 @@ export default async function ProgramPage({ params }: Params) {
   const here = `/programs/${slug}`;
   if (!res.ok) {
     return (
-      <div className="min-h-dvh">
-        <PublicHeader next={here} />
-        <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+      <PageChrome next={here}>
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
           <Notice tone="error">{friendlyError(res.error)}</Notice>
-        </main>
-      </div>
+        </div>
+      </PageChrome>
     );
   }
   const p = res.data;
@@ -62,10 +61,9 @@ export default async function ProgramPage({ params }: Params) {
   const cycles = admissions.ok ? admissions.data.items : [];
 
   return (
-    <div className="min-h-dvh">
-      <PublicHeader next={here} />
-      <main>
-        <CourseCover cover={p.cover} symbolSize={140} showCredit eager>
+    <PageChrome next={here}>
+      <div>
+        <CourseCover cover={p.cover} symbolSize={140} className={claims ? 'overflow-hidden rounded-[var(--radius-card)]' : undefined} showCredit eager>
           <div className="relative mx-auto max-w-6xl space-y-4 px-4 py-12 sm:px-6 sm:py-16">
             <Breadcrumbs tone="light" items={[{ label: 'Courses', href: '/courses' }, { label: p.title }]} />
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold">
@@ -325,8 +323,7 @@ export default async function ProgramPage({ params }: Params) {
             </section>
           )}
         </div>
-      </main>
-      <PublicFooter />
-    </div>
+      </div>
+    </PageChrome>
   );
 }

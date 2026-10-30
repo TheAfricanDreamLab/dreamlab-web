@@ -1,12 +1,13 @@
 import type { CourseProgress, EnrollmentSummary, ItemType } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SignedInShell } from '@/components/app/signed-in-shell';
 import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
 import { CourseCover, ItemIcon, ProgressBar, StatusTick } from '@/components/learning/course-ui';
 import { VideoFacade } from '@/components/learning/media';
-import { BackLink, Breadcrumbs } from '@/components/ui/nav';
-import { Badge, ButtonLink, Card, cx, Eyebrow, LogoMark, Notice } from '@/components/ui/primitives';
+import { Breadcrumbs } from '@/components/ui/nav';
+import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api, type ApiResult } from '@/lib/gateway';
 import { formatMinutes, hours, isUuid, ITEM_LABELS, plural, shortDate } from '@/lib/learning';
@@ -44,6 +45,7 @@ export default async function CourseHomePage({ params }: Params) {
   if (!res.ok) {
     if (res.status === 404) notFound();
     if (res.status === 401) redirect(`/login?next=${encodeURIComponent(`/learn/${enrollmentId}`)}`);
+    // Without the signed-in layout: if the course failed to load, the account may not load either.
     return (
       <main className="mx-auto max-w-[680px] space-y-4 px-4 py-16">
         <Notice tone="error">{'error' in res ? friendlyError(res.error) : 'Something went wrong. Please try again.'}</Notice>
@@ -87,20 +89,8 @@ export default async function CourseHomePage({ params }: Params) {
   );
 
   return (
-    <div className="min-h-dvh">
-      <header className="border-b border-line bg-page/90">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
-          <Link href="/app" aria-label="The African Dream Lab: home" className="shrink-0">
-            <LogoMark size={36} />
-          </Link>
-          <BackLink href="/app/learning" label="My learning" />
-          <Link href={`/courses/${course.slug}`} className="ml-auto inline-flex min-h-11 shrink-0 items-center text-[14px] font-semibold text-link hover:underline">
-            Course page
-          </Link>
-        </div>
-      </header>
-
-      <CourseCover cover={course.cover} symbolSize={110} showCredit eager>
+    <SignedInShell>
+      <CourseCover cover={course.cover} symbolSize={110} className="overflow-hidden rounded-[var(--radius-card)]" showCredit eager>
         <div className="relative mx-auto max-w-5xl space-y-4 px-4 py-10 sm:py-14">
           <Breadcrumbs tone="light" items={[{ label: 'My learning', href: '/app/learning' }, { label: course.title, href: `/courses/${course.slug}` }, { label: 'Course home' }]} />
           <Eyebrow tone="gold">Course home · {course.provider}</Eyebrow>
@@ -113,7 +103,7 @@ export default async function CourseHomePage({ params }: Params) {
         </div>
       </CourseCover>
 
-      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_300px] [&>*]:min-w-0">
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_300px] [&>*]:min-w-0">
         <div className="space-y-8">
           <section className="space-y-4" aria-labelledby="how">
             <h2 id="how" className="text-[22px] font-bold">
@@ -271,7 +261,7 @@ export default async function CourseHomePage({ params }: Params) {
             )}
           </Card>
         </aside>
-      </main>
-    </div>
+      </div>
+    </SignedInShell>
   );
 }
