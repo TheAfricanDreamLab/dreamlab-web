@@ -45,6 +45,8 @@ export async function updateAssignment(_: FormState, fd: FormData): Promise<Form
 export async function withdrawAssignment(_: FormState, fd: FormData): Promise<FormState> {
   const assignmentId = str(fd, 'assignmentId');
   if (!isUuid(assignmentId)) return BAD_LINK;
+  // The form confirms before sending; the server insists on it too.
+  if (str(fd, 'confirm') !== 'withdraw') return { error: 'Confirm that you want to withdraw this assignment.' };
   const res = await api('DELETE', `/v1/learning/org/assignments/${assignmentId}`);
   if (!res.ok) return { error: friendlyError(res.error) };
   redirect('/app/assignments?withdrawn=1');
@@ -54,7 +56,10 @@ export async function withdrawAssignment(_: FormState, fd: FormData): Promise<Fo
 export async function saveDreamScoreWeights(_: FormState, fd: FormData): Promise<FormState> {
   const weights = {} as Weights;
   for (const d of DIMENSIONS) {
-    const n = Number(str(fd, d.key));
+    // An empty box is missing, not 0 (Number('') would be 0).
+    const raw = str(fd, d.key);
+    if (raw === '') return { error: `${d.label}: a whole number from 0 to 100.` };
+    const n = Number(raw);
     if (!Number.isInteger(n) || n < 0 || n > 100) return { error: `${d.label}: a whole number from 0 to 100.` };
     weights[d.key] = n;
   }

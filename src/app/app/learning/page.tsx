@@ -16,6 +16,7 @@ export default async function MyLearningPage() {
   ]);
   // Courses an organisation assigned, not yet finished; finished ones stay with the rest below.
   const toDo = assigned.ok ? assigned.data.items.filter((a) => a.status !== 'completed') : [];
+  const assignedError = assigned.ok ? null : friendlyError(assigned.error);
   const items = res.ok ? res.data.items : [];
   const active = items.filter((e) => e.status !== 'completed');
   const done = items.filter((e) => e.status === 'completed');
@@ -38,6 +39,7 @@ export default async function MyLearningPage() {
         </div>
       </header>
 
+      {assignedError && <Notice tone="error">Your assigned courses couldn’t be loaded: {assignedError}</Notice>}
       {toDo.length > 0 && <AssignedToMe items={toDo} />}
 
       {!res.ok ? (

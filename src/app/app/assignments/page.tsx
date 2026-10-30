@@ -36,6 +36,8 @@ export default async function AssignmentsPage({ searchParams }: Props) {
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
   const groupOptions = groups.ok ? groups.data.items.map((g) => ({ id: g.id, name: g.name, memberCount: g.memberCount })) : [];
+  // Without the groups the form still assigns to people; say why the groups are missing.
+  const groupsError = groups.ok ? null : friendlyError(groups.error);
 
   return (
     <div className="space-y-8">
@@ -90,7 +92,10 @@ export default async function AssignmentsPage({ searchParams }: Props) {
             {!courses.ok || !members.ok ? (
               <Notice tone="error">{friendlyError(!courses.ok ? courses.error : !members.ok ? members.error : undefined)}</Notice>
             ) : (
-              <AssignCourseForm courses={courseOptions} people={people} groups={groupOptions} />
+              <div className="space-y-4">
+                {groupsError && <Notice tone="error">Groups couldn’t be loaded: {groupsError} You can still choose people.</Notice>}
+                <AssignCourseForm courses={courseOptions} people={people} groups={groupOptions} />
+              </div>
             )}
           </Card>
         </section>

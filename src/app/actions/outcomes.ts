@@ -81,6 +81,7 @@ export async function saveActionPlan(_: FormState, fd: FormData): Promise<FormSt
   const body = planBody(fd);
   if (body.milestones.some((m) => !Number.isInteger(m.month) || m.month < 1 || m.month > 12)) return { error: 'Each milestone needs a month from 1 to 12.' };
   if (body.milestones.some((m) => m.milestone.length < 3 || m.measure.length < 3)) return { error: 'Give each milestone what you will do and how you will measure it.' };
+  if (str(fd, 'intent') === 'submit' && body.milestones.length < 3) return { error: 'Plan at least three milestones before submitting.' };
   const saved = await api<ActionPlan>('PUT', `${base(enrollmentId)}/action-plan`, body);
   if (!saved.ok) return { error: friendlyError(saved.error), fields: fieldErrors(saved.error) };
   if (str(fd, 'intent') !== 'submit') {

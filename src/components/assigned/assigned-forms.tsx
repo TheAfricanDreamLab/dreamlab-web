@@ -130,6 +130,7 @@ export function WithdrawAssignmentForm({ assignmentId, title }: { assignmentId: 
       className="space-y-3"
     >
       <input type="hidden" name="assignmentId" value={assignmentId} />
+      <input type="hidden" name="confirm" value="withdraw" />
       <Feedback state={state} />
       <div className="sm:max-w-xs">
         <SubmitButton pending="Withdrawing…" variant="danger">

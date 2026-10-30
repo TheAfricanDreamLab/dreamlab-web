@@ -74,6 +74,14 @@ export function ResidencyStageForm({ enrollmentId, stage }: { enrollmentId: stri
   const [state, action] = useActionState(saveResidencyStage, {} as FormState);
   const [links, setLinks] = useState<(Link & { key: number })[]>(stage.document.links.map((l, i) => ({ ...l, key: i })));
   const [next, setNext] = useState(links.length);
+  // After a save the page refreshes with the stored links: start again from those.
+  const savedLinks = JSON.stringify(stage.document.links);
+  const [seenLinks, setSeenLinks] = useState(savedLinks);
+  if (seenLinks !== savedLinks) {
+    setSeenLinks(savedLinks);
+    setLinks(stage.document.links.map((l, i) => ({ ...l, key: i })));
+    setNext(stage.document.links.length);
+  }
   return (
     // Keyed on the saved document, so a refresh after saving shows what was saved.
     <form key={JSON.stringify(stage.document)} action={action} className="space-y-4">

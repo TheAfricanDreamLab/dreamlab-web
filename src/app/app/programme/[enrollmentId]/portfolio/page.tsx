@@ -30,7 +30,9 @@ export default async function PortfolioPage({ params, searchParams }: Props) {
   if (!res.ok) return <Notice tone="error">{friendlyError(res.error)}</Notice>;
   const p = res.data;
   const cohortId = sp.cohort && isUuid(sp.cohort) ? sp.cohort : null;
-  const owner = residency.ok && residency.data.learner.userId === me.user.id;
+  // The API returns the share token to the learner only, so a live link also means the learner is
+  // looking: the withdraw control stays even if the residency read failed.
+  const owner = (residency.ok && residency.data.learner.userId === me.user.id) || p.shareToken !== null;
   const shareUrl = p.shareToken && request.host ? `${request.proto}://${request.host}/portfolios/${p.shareToken}` : null;
   const complete = p.sections.filter((s) => s.complete).length;
 
