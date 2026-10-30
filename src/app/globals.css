@@ -207,15 +207,10 @@
 }
 
 /*
- * Landing page motion (components/landing/motion.tsx, GSAP). Revealed content starts hidden only when
- * motion is allowed (GSAP shows it as it scrolls in; the page adds a <noscript> fallback). Tilting
- * cards get a highlight where the pointer is.
+ * Landing page motion (components/landing/motion.tsx, GSAP). Revealed content stays visible until GSAP
+ * takes it over, so it shows even if the script never runs. Tilting cards get a highlight where the
+ * pointer is.
  */
-@media (prefers-reduced-motion: no-preference) {
-  .dl-reveal {
-    visibility: hidden;
-  }
-}
 
 .dl-tilt {
   --glare-x: 50%;
@@ -288,4 +283,12 @@
 }
 .dl-spin-rev {
   animation: dl-spin 60s linear infinite reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-float,
+  .dl-float-slow,
+  .dl-spin-slow,
+  .dl-spin-rev {
+    animation: none;
+  }
 }

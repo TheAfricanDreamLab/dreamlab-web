@@ -101,11 +101,6 @@ export default async function LandingPage() {
       </header>
 
       <main>
-        {/* Without JavaScript nothing animates: show every section at once. */}
-        <noscript>
-          <style>{'.dl-reveal{visibility:visible!important}'}</style>
-        </noscript>
-
         <section className="relative mx-auto grid max-w-6xl items-center gap-10 overflow-x-clip px-4 pb-16 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[1fr_1.05fr] lg:pb-24 lg:pt-14">
           <div className="animate-rise space-y-6 text-center lg:text-left">
             <span className="inline-flex rounded-full px-4 py-1.5 font-display text-[14px] font-semibold text-link ring-2 ring-primary/60">

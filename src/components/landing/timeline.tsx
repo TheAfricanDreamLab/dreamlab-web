@@ -82,8 +82,9 @@ export function Timeline({ milestones }: { milestones: Milestone[] }) {
         </svg>
         <ol>
           {milestones.map((m, i) => {
-            const pt = points[i];
-            if (!pt) return null;
+            // Until the curve is measured, stack the milestones down the middle so the text is there.
+            const at = (i + 0.5) / milestones.length;
+            const pt = points[i] ?? { x: 0.5, y: at, at };
             const reached = progress >= pt.at - 0.04;
             const left = i % 2 === 0;
             return (

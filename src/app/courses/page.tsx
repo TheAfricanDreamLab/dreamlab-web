@@ -49,9 +49,6 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
     <div className="min-h-dvh">
       <PublicHeader next="/courses" />
       <main className="mx-auto max-w-6xl space-y-12 overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
-        <noscript>
-          <style>{'.dl-reveal{visibility:visible!important}'}</style>
-        </noscript>
         <section className="space-y-6 text-center">
           <div className="animate-rise mx-auto max-w-3xl space-y-3">
             <p className="font-display text-[13px] font-bold uppercase tracking-[0.16em] text-link">The African Dream Lab · Courses</p>

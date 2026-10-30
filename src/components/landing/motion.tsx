@@ -17,7 +17,11 @@ if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 const MOTION = '(prefers-reduced-motion: no-preference)';
 const FINE_POINTER = '(prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)';
 
-/** Rises (and turns towards the viewer) the first time it scrolls into view. Children marked data-stagger follow one by one. */
+/**
+ * Rises (and turns towards the viewer) the first time it scrolls into view. Children marked data-stagger
+ * follow one by one. Content is visible until this runs, and hides with opacity only, so links in it can
+ * still take keyboard focus; focusing one shows it at once.
+ */
 export function Reveal({ children, className, delay = 0, as: Tag = 'div' }: { children: ReactNode; className?: string; delay?: number; as?: 'div' | 'li' | 'section' }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -27,26 +31,28 @@ export function Reveal({ children, className, delay = 0, as: Tag = 'div' }: { ch
     mm.add(MOTION, () => {
       const items = el.querySelectorAll<HTMLElement>('[data-stagger]');
       const targets = items.length > 0 ? [el, ...items] : [el];
-      gsap.set(el, { autoAlpha: 1 });
-      gsap.fromTo(
+      const tween = gsap.fromTo(
         items.length > 0 ? items : el,
-        { autoAlpha: 0, y: 36, rotationX: 10, transformPerspective: 900 },
+        { opacity: 0, y: 36, rotationX: 10, transformPerspective: 900 },
         {
-          autoAlpha: 1,
+          opacity: 1,
           y: 0,
           rotationX: 0,
           duration: 0.9,
           delay: delay / 1000,
           ease: 'power3.out',
-          stagger: 0.09,
+          // Long grids would leave their last cards hidden for seconds: cap the whole stagger.
+          stagger: { each: 0.09, amount: Math.min(0.09 * items.length, 0.6) },
           clearProps: 'transform',
           scrollTrigger: { trigger: el, start: 'top 88%', once: true },
         },
       );
-      return () => gsap.set(targets, { clearProps: 'all' });
-    });
-    mm.add('(prefers-reduced-motion: reduce)', () => {
-      gsap.set(el, { autoAlpha: 1 });
+      const show = () => tween.progress(1);
+      el.addEventListener('focusin', show);
+      return () => {
+        el.removeEventListener('focusin', show);
+        gsap.set(targets, { clearProps: 'all' });
+      };
     });
     return () => mm.revert();
   }, [delay]);
@@ -91,6 +97,7 @@ export function Tilt({ children, className, max = 10, style }: { children: React
       return () => {
         el.removeEventListener('pointermove', move);
         el.removeEventListener('pointerleave', leave);
+        el.dataset.tilting = 'false';
       };
     });
     return () => mm.revert();

@@ -5,6 +5,7 @@ import { Reveal } from '@/components/landing/motion';
 import { SectionTitle } from '@/components/landing/sections';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
 import { ButtonLink } from '@/components/ui/primitives';
+import { siteDomain } from '@/lib/tenant';
 
 export const metadata: Metadata = {
   title: 'For organisations',
@@ -29,7 +30,7 @@ const KINDS: Kind[] = [
     kind: 'institution',
     tag: 'Schools & academies',
     title: 'Run your cohorts',
-    subtitle: 'your-name.theafricandreamlab.com',
+    subtitle: 'your-name.{domain}',
     facts: [
       ['Admissions', 'Ten stages, read by people'],
       ['Teaching', 'Cohorts, live classes, residency'],
@@ -119,10 +120,6 @@ export default function OrganisationsPage() {
     <div className="min-h-dvh">
       <PublicHeader />
       <main className="overflow-x-clip">
-        <noscript>
-          <style>{'.dl-reveal{visibility:visible!important}'}</style>
-        </noscript>
-
         <section className="px-4 pb-10 pt-12 sm:px-8 sm:pt-16">
           <SectionTitle
             eyebrow="For organisations"
@@ -156,7 +153,7 @@ export default function OrganisationsPage() {
                       <h2 id={`${k.id}-title`} className="text-[30px] font-bold leading-tight text-ink">
                         {k.title}
                       </h2>
-                      <p className="text-[14.5px] text-faint">{k.subtitle}</p>
+                      <p className="text-[14.5px] text-faint">{k.subtitle.replace('{domain}', siteDomain())}</p>
                     </div>
                     <dl className="mx-auto max-w-sm space-y-2.5 md:mx-0">
                       {k.facts.map(([key, value]) => (
