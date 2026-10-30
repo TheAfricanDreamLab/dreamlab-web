@@ -99,7 +99,7 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await visitor.goto(`/verify/${code}`);
   await expect(visitor.getByText('Valid', { exact: true })).toBeVisible();
   await expect(visitor.getByText(learnerName)).toBeVisible();
-  await visitor.goto('/verify');
+  await visitor.goto('/verify/check');
   await visitor.getByLabel('Credential code').fill(code.toLowerCase());
   await visitor.getByRole('button', { name: 'Check credential' }).click();
   await expect(visitor).toHaveURL(new RegExp(`/verify/${code}$`));

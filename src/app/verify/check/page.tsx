@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Check a credential' };
 export default function VerifyPage() {
   return (
     <div className="min-h-dvh">
-      <PublicHeader next="/verify" />
+      <PublicHeader next="/verify/check" />
       <main className="mx-auto max-w-xl space-y-6 px-4 py-8 sm:px-6 sm:py-12">
         <div className="space-y-2">
           <Eyebrow tone="gold">Credentials</Eyebrow>

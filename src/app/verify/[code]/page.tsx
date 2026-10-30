@@ -18,7 +18,7 @@ export default async function CredentialPage({ params }: Props) {
 
   return (
     <div className="min-h-dvh">
-      <PublicHeader next="/verify" />
+      <PublicHeader next="/verify/check" />
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-8 sm:px-6 sm:py-12">
         <Eyebrow tone="gold">Credential check</Eyebrow>
         {!res || (!res.ok && res.status === 404) ? (
@@ -27,7 +27,7 @@ export default async function CredentialPage({ params }: Props) {
             <p className="text-[14.5px] text-body">
               Check the code <span className="font-mono">{code}</span> against the certificate. Codes look like DL-7KQ2-M9TX-4HPR.
             </p>
-            <Link href="/verify" className="inline-flex min-h-11 items-center text-[14px] font-semibold text-link hover:underline">
+            <Link href="/verify/check" className="inline-flex min-h-11 items-center text-[14px] font-semibold text-link hover:underline">
               Try another code
             </Link>
           </Card>
