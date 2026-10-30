@@ -125,12 +125,16 @@ export function WithdrawAssignmentForm({ assignmentId, title }: { assignmentId: 
     <form
       action={action}
       onSubmit={(e) => {
+        // The confirmation is filled in only once the prompt is accepted, so a submit before the page
+        // is interactive (no prompt) reaches the server unconfirmed and is refused.
+        const field = e.currentTarget.elements.namedItem('confirm');
         if (!confirm(`Withdraw ${title}? It leaves everyone’s list of assigned courses; their enrolments and progress stay.`)) e.preventDefault();
+        else if (field instanceof HTMLInputElement) field.value = 'withdraw';
       }}
       className="space-y-3"
     >
       <input type="hidden" name="assignmentId" value={assignmentId} />
-      <input type="hidden" name="confirm" value="withdraw" />
+      <input type="hidden" name="confirm" defaultValue="" />
       <Feedback state={state} />
       <div className="sm:max-w-xs">
         <SubmitButton pending="Withdrawing…" variant="danger">
