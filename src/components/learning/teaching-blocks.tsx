@@ -8,7 +8,7 @@ import { RichText } from './rich-text';
 type Teaching = Extract<Block, { type: 'text' | 'callout' | 'quote' | 'example' | 'key_terms' | 'reveal' | 'framework' | 'video' | 'image' }>;
 
 const CALLOUTS = {
-  insight: { label: 'Key idea', icon: '✦', box: 'bg-success-tint ring-success-line', badge: 'bg-primary text-white', title: 'text-forest' },
+  insight: { label: 'Key idea', icon: '◆', box: 'bg-success-tint ring-success-line', badge: 'bg-primary text-white', title: 'text-forest' },
   tip: { label: 'Tip', icon: '➜', box: 'bg-[#eef4fb] ring-[#cfe0f2]', badge: 'bg-[#2f6fb3] text-white', title: 'text-[#1c4673]' },
   caution: { label: 'Watch out', icon: '!', box: 'bg-danger-tint ring-danger-line', badge: 'bg-danger text-white', title: 'text-danger-ink' },
   story: { label: 'Story', icon: '❝', box: 'bg-gold-tint ring-gold-line', badge: 'bg-gold text-white', title: 'text-gold-ink' },

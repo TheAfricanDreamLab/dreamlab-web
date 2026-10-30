@@ -205,3 +205,87 @@
     flex-direction: column;
   }
 }
+
+/*
+ * Landing page motion (components/landing/motion.tsx, GSAP). Revealed content starts hidden only when
+ * motion is allowed (GSAP shows it as it scrolls in; the page adds a <noscript> fallback). Tilting
+ * cards get a highlight where the pointer is.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .dl-reveal {
+    visibility: hidden;
+  }
+}
+
+.dl-tilt {
+  --glare-x: 50%;
+  --glare-y: 50%;
+  position: relative;
+  will-change: transform;
+}
+.dl-tilt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(255, 255, 255, 0.28), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.dl-tilt[data-tilting='true']::after {
+  opacity: 1;
+}
+
+.dl-scene {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+@keyframes dl-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+@keyframes dl-float-slow {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  50% {
+    translate: 0 8px;
+    rotate: 2deg;
+  }
+}
+@keyframes dl-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes dl-pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+.dl-float {
+  animation: dl-float 6s ease-in-out infinite;
+}
+.dl-float-slow {
+  animation: dl-float-slow 9s ease-in-out infinite;
+}
+.dl-spin-slow {
+  animation: dl-spin 40s linear infinite;
+}
+.dl-spin-rev {
+  animation: dl-spin 60s linear infinite reverse;
+}

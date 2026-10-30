@@ -1,9 +1,9 @@
 import type { CourseSummary, ProgramSummary } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Reveal, Tilt } from '@/components/landing/motion';
 import { CourseCard, CourseCover, FeaturedCourseCard } from '@/components/learning/course-ui';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
-import { BackLink } from '@/components/ui/nav';
 import { Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -48,16 +48,27 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   return (
     <div className="min-h-dvh">
       <PublicHeader next="/courses" />
-      <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
-        <section className="space-y-5">
-          <BackLink href="/" label="home" className="-mb-2" />
-          <div className="max-w-2xl space-y-2">
-            <Eyebrow tone="gold">The African Dream Lab · Courses</Eyebrow>
-            <h1 className="text-[30px] font-extrabold leading-[1.05] min-[375px]:text-[34px] sm:text-[44px]">Learn the skills to build what you dream.</h1>
-            <p className="text-[15.5px] leading-relaxed text-body">Short, practical courses you can take at your own pace, on your phone. Free to start.</p>
+      <main className="mx-auto max-w-6xl space-y-12 overflow-x-clip px-4 py-10 sm:px-6 sm:py-16">
+        <noscript>
+          <style>{'.dl-reveal{visibility:visible!important}'}</style>
+        </noscript>
+        <section className="space-y-6 text-center">
+          <div className="animate-rise mx-auto max-w-3xl space-y-3">
+            <p className="font-display text-[13px] font-bold uppercase tracking-[0.16em] text-link">The African Dream Lab · Courses</p>
+            <h1 className="text-[32px] font-extrabold leading-[1.05] min-[375px]:text-[36px] sm:text-[52px]">
+              Learn the skills to <span className="text-link">build what you dream.</span>
+            </h1>
+            <p className="mx-auto max-w-2xl text-[16px] leading-relaxed text-body">
+              Short, practical courses you can take at your own pace, on your phone. Free to start.
+            </p>
           </div>
 
-          <form action="/courses" method="get" role="search" className="flex max-w-xl gap-2">
+          <form
+            action="/courses"
+            method="get"
+            role="search"
+            className="mx-auto flex max-w-xl gap-2 rounded-full bg-card p-1.5 shadow-[var(--shadow-soft)] ring-1 ring-line focus-within:ring-2 focus-within:ring-primary"
+          >
             {level && <input type="hidden" name="level" value={level} />}
             {program && <input type="hidden" name="program" value={program} />}
             <label htmlFor="course-search" className="sr-only">
@@ -70,14 +81,14 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
               defaultValue={q}
               maxLength={80}
               placeholder="Search courses"
-              className="h-12 min-w-0 flex-1 rounded-[var(--radius-field)] bg-card px-4 text-[15px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
+              className="h-11 min-w-0 flex-1 rounded-full bg-transparent px-4 text-[15px] text-ink placeholder:text-faint focus:outline-none"
             />
-            <button type="submit" className="h-12 shrink-0 rounded-[var(--radius-field)] bg-primary px-4 sm:px-5 text-[15px] font-semibold text-white hover:bg-primary-hover">
+            <button type="submit" className="h-11 shrink-0 rounded-full bg-primary px-5 text-[15px] font-semibold text-white hover:bg-primary-hover sm:px-6">
               Search
             </button>
           </form>
 
-          <nav className="flex flex-wrap gap-2" aria-label="Level">
+          <nav className="flex flex-wrap justify-center gap-2" aria-label="Level">
             {[{ key: undefined, label: 'All levels' }, ...LEVELS.map((l) => ({ key: l, label: LEVEL_LABELS[l] }))].map((c) => (
               <Link
                 key={c.label}
@@ -114,51 +125,61 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         ) : (
           <>
             {featured.map((c) => (
-              <FeaturedCourseCard key={c.id} course={c} />
+              <Reveal key={c.id}>
+                <FeaturedCourseCard course={c} />
+              </Reveal>
             ))}
-            <section className="space-y-4" aria-labelledby="all-courses">
-              <h2 id="all-courses" className="text-[22px] font-bold">
+            <section className="space-y-5" aria-labelledby="all-courses">
+              <h2 id="all-courses" className="text-center text-[24px] font-bold sm:text-left">
                 {filtered ? 'Results' : featured.length ? 'More courses' : 'All courses'}
               </h2>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <Reveal className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {rest.map((c) => (
-                  <CourseCard key={c.id} course={c} />
+                  <div key={c.id} data-stagger>
+                    <Tilt max={6} className="dl-tilt h-full rounded-[var(--radius-card)] [&>article]:h-full">
+                      <CourseCard course={c} />
+                    </Tilt>
+                  </div>
                 ))}
-              </div>
+              </Reveal>
             </section>
           </>
         )}
 
         {programs.ok && programs.data.items.length > 0 && (
           <section className="space-y-4" aria-labelledby="programmes">
-            <div className="space-y-1">
+            <div className="space-y-1 text-center sm:text-left">
               <Eyebrow>Programmes</Eyebrow>
               <h2 id="programmes" className="text-[22px] font-bold">
                 Go further with a programme
               </h2>
               <p className="text-[14px] text-muted">Courses in a set order, with a capstone project and a certificate at the end.</p>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <Reveal className="grid gap-4 md:grid-cols-2">
               {programs.data.items.map((p) => (
-                <article key={p.id} className="relative flex overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-card)] ring-1 ring-line focus-within:ring-2 focus-within:ring-primary">
-                  <CourseCover cover={p.cover} className="w-24 shrink-0 sm:w-32" symbolSize={36} />
-                  <div className="space-y-1.5 p-4">
-                    <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-gold-ink">
-                      {PROGRAM_TYPE_LABELS[p.programType]} · {DELIVERY_LABELS[p.deliveryMode]}
-                    </p>
-                    <h3 className="text-[17px] font-bold leading-snug">
-                      <Link href={`/programs/${p.slug}`} className="after:absolute after:inset-0 focus:outline-none">
-                        {p.title}
-                      </Link>
-                    </h3>
-                    <p className="line-clamp-2 text-[13.5px] text-muted">{p.subtitle}</p>
-                    <p className="text-[12.5px] text-body">
-                      {plural(p.courseCount, 'course')} · {p.creditTotal} credits{p.weeks ? ` · ${p.weeks} weeks` : ''}
-                    </p>
-                  </div>
-                </article>
+                <div key={p.id} data-stagger>
+                  <Tilt max={5} className="dl-tilt h-full rounded-[var(--radius-card)] [&>article]:h-full">
+                    <article className="relative flex overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-card)] ring-1 ring-line focus-within:ring-2 focus-within:ring-primary">
+                      <CourseCover cover={p.cover} className="w-24 shrink-0 sm:w-32" symbolSize={36} />
+                      <div className="space-y-1.5 p-4">
+                        <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-gold-ink">
+                          {PROGRAM_TYPE_LABELS[p.programType]} · {DELIVERY_LABELS[p.deliveryMode]}
+                        </p>
+                        <h3 className="text-[17px] font-bold leading-snug">
+                          <Link href={`/programs/${p.slug}`} className="after:absolute after:inset-0 focus:outline-none">
+                            {p.title}
+                          </Link>
+                        </h3>
+                        <p className="line-clamp-2 text-[13.5px] text-muted">{p.subtitle}</p>
+                        <p className="text-[12.5px] text-body">
+                          {plural(p.courseCount, 'course')} · {p.creditTotal} credits{p.weeks ? ` · ${p.weeks} weeks` : ''}
+                        </p>
+                      </div>
+                    </article>
+                  </Tilt>
+                </div>
               ))}
-            </div>
+            </Reveal>
           </section>
         )}
       </main>
