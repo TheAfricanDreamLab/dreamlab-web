@@ -1,6 +1,7 @@
 import type { CourseSummary, EnrollmentSummary, InvitationSchema, JoinableOrganization, Membership } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import type { z } from 'zod';
 import { switchOrg } from '@/app/actions/auth';
 import { joinOrganisation } from '@/app/actions/security';
@@ -21,6 +22,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const period = periodOf(sp.period);
   const me = await getMe();
+  // The platform admin account does admin work only: its home is the console.
+  if (me.platformAdmin) redirect('/app/admin');
   const active = activeMembership(me);
   const firstName = me.user.fullName.split(' ')[0];
   const spaces = me.memberships.filter((m) => m.status === 'active' && m.org.status !== 'suspended');
