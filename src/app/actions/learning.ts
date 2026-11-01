@@ -1,7 +1,7 @@
 'use server';
 
 import type { AssignmentSubmission, BlockResponse, BlockResult, Discussion, Enrollment, QuizAttempt, SubmissionFileUpload } from '@dreamlab/contracts';
-import { refresh } from 'next/cache';
+import { refresh, revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
 import { type FormState, str } from '@/lib/forms';
@@ -43,7 +43,15 @@ export async function saveProgress(enrollmentId: string, itemId: string, stepInd
   const path = itemPath(enrollmentId, itemId, 'progress');
   if (!path || !Number.isInteger(stepIndex) || stepIndex < 0) return BAD_LINK;
   const res = await api<ProgressUpdate>('PUT', path, { stepIndex, complete });
-  return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error) };
+  if (!res.ok) return { ok: false, error: friendlyError(res.error) };
+  // Finishing a lesson moves the course's progress. Drop the pages the browser already holds (the next
+  // lesson is prefetched), so the next one it opens shows the new figure, not the one from before.
+  if (complete) {
+    revalidatePath(`/learn/${enrollmentId}`, 'layout');
+    revalidatePath('/courses', 'layout');
+    revalidatePath('/app', 'layout');
+  }
+  return { ok: true, data: res.data };
 }
 
 export async function submitQuiz(enrollmentId: string, itemId: string, answers: Record<string, BlockResponse>): Promise<Outcome<QuizAttempt>> {

@@ -23,30 +23,51 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
   const active = activeMembership(me);
   const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === 'collapsed';
   const contact = me.user.email ?? me.user.phone;
+  // The platform admin account does admin work only: no learning, no organisation spaces.
+  const admin = me.platformAdmin;
+  const home = admin ? '/app/admin' : '/app';
 
-  const learning: Item[] = [
-    { href: '/app', label: 'Home', icon: 'home', show: true, exact: true },
-    { href: '/app/learning', label: 'My learning', icon: 'book', show: true },
-    { href: '/app/programme', label: 'My programme', icon: 'calendar', show: true },
-    { href: '/app/journal', label: 'Journal', icon: 'journal', show: true },
-    { href: '/app/apply', label: 'Applications', icon: 'file', show: true },
-    { href: '/app/credentials', label: 'Credentials', icon: 'shield', show: true },
-    { href: '/app/mentoring', label: 'Mentoring', icon: 'users', show: Boolean(active) && can(me, 'mentorship.conduct') },
-    { href: '/courses', label: 'Courses', icon: 'compass', show: true },
-    { href: '/app/account', label: 'Account', icon: 'user', show: true },
-  ].filter((i) => i.show) as Item[];
-  const organisation: Item[] = [
-    { href: '/app/members', label: 'People', icon: 'users', show: Boolean(active) && can(me, 'org.members.read') },
-    { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
-    { href: '/app/grading', label: 'Grading', icon: 'check', show: Boolean(active) && !me.platformAdmin && can(me, 'submission.grade') },
-    { href: '/app/admissions', label: 'Admissions', icon: 'mail', show: Boolean(active) && !me.platformAdmin && can(me, 'admissions.review') },
-    { href: '/app/assignments', label: 'Assigned learning', icon: 'check', show: Boolean(active) && !me.platformAdmin && can(me, 'learning.assign') },
-    { href: '/app/settings/dream-score', label: 'Dream Score weights', icon: 'chart', show: Boolean(active) && !me.platformAdmin && can(me, 'cohort.manage') },
-    { href: '/app/authoring', label: 'Authoring', icon: 'grid', show: Boolean(active) && !me.platformAdmin && (can(me, 'course.content.edit') || can(me, 'course.publish')) },
-    { href: '/app/roles', label: 'Roles', icon: 'shield', show: Boolean(active) && can(me, 'org.roles.manage') },
-    { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage'), exact: true },
-  ].filter((i) => i.show) as Item[];
-  const platform: Item[] = me.platformAdmin
+  const learning: Item[] = (
+    admin
+      ? [{ href: '/app/account', label: 'Account', icon: 'user', show: true }]
+      : [
+          { href: '/app', label: 'Home', icon: 'home', show: true, exact: true },
+          { href: '/app/learning', label: 'My learning', icon: 'book', show: true },
+          { href: '/app/programme', label: 'My programme', icon: 'calendar', show: true },
+          { href: '/app/journal', label: 'Journal', icon: 'journal', show: true },
+          { href: '/app/apply', label: 'Applications', icon: 'file', show: true },
+          { href: '/app/credentials', label: 'Credentials', icon: 'shield', show: true },
+          { href: '/app/mentoring', label: 'Mentoring', icon: 'users', show: Boolean(active) && can(me, 'mentorship.conduct') },
+          { href: '/courses', label: 'Courses', icon: 'compass', show: true },
+          { href: '/app/account', label: 'Account', icon: 'user', show: true },
+        ]
+  ).filter((i) => i.show) as Item[];
+  const organisation: Item[] = (
+    admin
+      ? []
+      : [
+          { href: '/app/members', label: 'People', icon: 'users', show: Boolean(active) && can(me, 'org.members.read') },
+          { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && can(me, 'cohort.manage') },
+          { href: '/app/grading', label: 'Grading', icon: 'check', show: Boolean(active) && can(me, 'submission.grade') },
+          { href: '/app/admissions', label: 'Admissions', icon: 'mail', show: Boolean(active) && can(me, 'admissions.review') },
+          { href: '/app/assignments', label: 'Assigned learning', icon: 'check', show: Boolean(active) && can(me, 'learning.assign') },
+          {
+            href: '/app/settings/dream-score',
+            label: 'Dream Score weights',
+            icon: 'chart',
+            show: Boolean(active) && can(me, 'cohort.manage'),
+          },
+          {
+            href: '/app/authoring',
+            label: 'Authoring',
+            icon: 'grid',
+            show: Boolean(active) && (can(me, 'course.content.edit') || can(me, 'course.publish')),
+          },
+          { href: '/app/roles', label: 'Roles', icon: 'shield', show: Boolean(active) && can(me, 'org.roles.manage') },
+          { href: '/app/settings', label: 'Sign-in & security', icon: 'lock', show: Boolean(active) && can(me, 'org.security.manage'), exact: true },
+        ]
+  ).filter((i) => i.show) as Item[];
+  const platform: Item[] = admin
     ? [
         { href: '/app/admin', label: 'Overview', icon: 'chart', show: true, exact: true },
         { href: '/app/admin/users', label: 'People', icon: 'users', show: true },
@@ -73,32 +94,40 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
       {/* The banner: who you are working as. */}
       <header className="space-y-3 p-3 pb-2">
         <div className="flex items-center gap-2">
-          <Link href="/app" aria-label="The African Dream Lab: home" className="dl-side-item flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full">
+          <Link href={home} aria-label="The African Dream Lab: home" className="dl-side-item flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full">
             <LogoMark size={40} />
             <span className="dl-side-text min-w-0 truncate font-display text-[15px] font-bold leading-tight text-ink">The African Dream Lab</span>
           </Link>
           <SidebarControls />
         </div>
-        <OrgSwitcher
-          current={active ? { id: active.org.id, name: active.org.name, status: active.org.status } : null}
-          options={me.memberships
-            .filter((m) => m.status === 'active' && m.org.status !== 'suspended')
-            .map((m) => ({ id: m.org.id, name: m.org.name, status: m.org.status, kind: m.org.kinds[0] ?? '' }))}
-        />
+        {!admin && (
+          <OrgSwitcher
+            current={active ? { id: active.org.id, name: active.org.name, status: active.org.status } : null}
+            options={me.memberships
+              .filter((m) => m.status === 'active' && m.org.status !== 'suspended')
+              .map((m) => ({ id: m.org.id, name: m.org.name, status: m.org.status, kind: m.org.kinds[0] ?? '' }))}
+          />
+        )}
       </header>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-3">
-        <nav aria-label="Main" className="space-y-5">
-          {group('Learning', learning)}
-          {organisation.length > 0 && group('Organisation', organisation)}
-        </nav>
-        {platform.length > 0 && <nav aria-label="Platform admin">{group('Platform admin', platform)}</nav>}
+        {admin ? (
+          <nav aria-label="Platform admin" className="space-y-5">
+            {group('Platform admin', platform)}
+            {group('You', learning)}
+          </nav>
+        ) : (
+          <nav aria-label="Main" className="space-y-5">
+            {group('Learning', learning)}
+            {organisation.length > 0 && group('Organisation', organisation)}
+          </nav>
+        )}
       </div>
 
       <div className="space-y-3 border-t border-line p-3">
         <div className="dl-side-stack flex items-center justify-center gap-2">
           <QuickAction href="/app/notifications" label="Notifications" icon="bell" />
-          <QuickAction href="/app/journal" label="Journal" icon="journal" />
+          {!admin && <QuickAction href="/app/journal" label="Journal" icon="journal" />}
           <QuickAction href="/app/account" label="Settings" icon="gear" />
         </div>
         <div className="dl-side-item flex items-center gap-2.5 rounded-[18px] bg-surface p-1.5 ring-1 ring-line">
@@ -132,29 +161,37 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
 
   const topbar = (
     <>
-      <Link href="/app" aria-label="The African Dream Lab: home" className="shrink-0 lg:hidden">
+      <Link href={home} aria-label="The African Dream Lab: home" className="shrink-0 lg:hidden">
         <LogoMark size={40} />
       </Link>
-      <form action="/courses" method="get" role="search" className="relative hidden min-w-0 max-w-md flex-1 sm:block">
-        <label htmlFor="shell-search" className="sr-only">
-          Search courses
-        </label>
-        <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" />
-        <input
-          id="shell-search"
-          type="search"
-          name="q"
-          maxLength={80}
-          placeholder="Search courses"
-          className="h-11 w-full rounded-full bg-card/90 pl-11 pr-4 text-[15px] text-ink shadow-[0_4px_16px_rgba(10,61,41,0.06)] ring-1 ring-line placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </form>
+      {!admin && (
+        <form action="/courses" method="get" role="search" className="relative hidden min-w-0 max-w-md flex-1 sm:block">
+          <label htmlFor="shell-search" className="sr-only">
+            Search courses
+          </label>
+          <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" />
+          <input
+            id="shell-search"
+            type="search"
+            name="q"
+            maxLength={80}
+            placeholder="Search courses"
+            className="h-11 w-full rounded-full bg-card/90 pl-11 pr-4 text-[15px] text-ink shadow-[0_4px_16px_rgba(10,61,41,0.06)] ring-1 ring-line placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </form>
+      )}
       <div className="ml-auto flex items-center gap-2">
-        <Link href="/courses" aria-label="Search courses" className="grid h-11 w-11 place-items-center rounded-full bg-card text-ink ring-1 ring-line-strong sm:hidden">
-          <Icon name="search" />
-        </Link>
+        {!admin && (
+          <Link
+            href="/courses"
+            aria-label="Search courses"
+            className="grid h-11 w-11 place-items-center rounded-full bg-card text-ink ring-1 ring-line-strong sm:hidden"
+          >
+            <Icon name="search" />
+          </Link>
+        )}
         {/* A wrapper, so "hidden" doesn't fight the button's own display. */}
-        <span className="hidden md:block">
+        <span className={admin ? 'hidden' : 'hidden md:block'}>
           <ButtonLink href="/courses" variant="secondary" className="h-11 rounded-full px-5 text-[14px]">
             <Icon name="compass" className="h-[18px] w-[18px] text-link" /> Explore courses
           </ButtonLink>
@@ -166,7 +203,10 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
         >
           <Icon name="bell" />
           {unread > 0 && (
-            <span aria-hidden className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger-ink px-1 font-mono text-[11px] font-bold text-white">
+            <span
+              aria-hidden
+              className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger-ink px-1 font-mono text-[11px] font-bold text-white"
+            >
               {unread > 99 ? '99+' : unread}
             </span>
           )}
@@ -184,12 +224,16 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
           <a href="/app/account" className="flex min-h-11 items-center rounded-lg px-3 text-[14.5px] text-body hover:bg-surface">
             Account and security
           </a>
-          <Link href="/app/journal" className="flex min-h-11 items-center rounded-lg px-3 text-[14.5px] text-body hover:bg-surface">
-            My journal
-          </Link>
-          <Link href="/courses" className="flex min-h-11 items-center rounded-lg px-3 text-[14.5px] text-body hover:bg-surface">
-            Explore courses
-          </Link>
+          {!admin && (
+            <>
+              <Link href="/app/journal" className="flex min-h-11 items-center rounded-lg px-3 text-[14.5px] text-body hover:bg-surface">
+                My journal
+              </Link>
+              <Link href="/courses" className="flex min-h-11 items-center rounded-lg px-3 text-[14.5px] text-body hover:bg-surface">
+                Explore courses
+              </Link>
+            </>
+          )}
           <form action="/auth/logout" method="post">
             <button type="submit" className="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-[14.5px] text-danger-ink hover:bg-danger-tint">
               Sign out
