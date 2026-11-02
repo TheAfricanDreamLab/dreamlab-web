@@ -94,7 +94,8 @@ jobs:
           if [ "$head" != "$GITHUB_SHA" ]; then echo "main has moved on to ${head::7}; skipping this deploy."; exit 0; fi
           tag="sha-${GITHUB_SHA::7}"
           for svc in web; do
-            vm=$svc; [ "$svc" = init-db ] && vm=iam
+            # Staging runs on one VM, vm-dreamlab-staging (dreamlab-infra azure/README.md).
+            vm=staging
             echo "::group::$svc on vm-dreamlab-$vm"
             # The VM runs its installed deploy script (dreamlab-infra is private).
             out=$(az vm run-command invoke -g "$RG" -n "vm-dreamlab-$vm" --command-id RunShellScript \
