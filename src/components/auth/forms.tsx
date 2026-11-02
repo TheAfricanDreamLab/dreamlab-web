@@ -59,7 +59,7 @@ export function LoginForm({ next, banner, organisationSso }: { next: string; ban
           autoComplete="username"
           required
           defaultValue={state.values?.identifier}
-          placeholder="you@example.com or 0803 000 0000"
+          placeholder="you@example.com or 0803…"
         />
         <PasswordInput
           name="password"

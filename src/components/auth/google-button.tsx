@@ -38,7 +38,21 @@ export function GoogleButton({ next, label = 'Continue with Google' }: { next: s
         form.current?.requestSubmit();
       },
     });
-    google.accounts.id.renderButton(slot.current, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: 400 });
+    // Google draws the button at a fixed pixel width (200–400): match the form's width, and redraw when
+    // it changes (phone rotation, narrow screens), so it never spills past the form.
+    const el = slot.current;
+    let drawn = 0;
+    const draw = () => {
+      const width = Math.round(Math.min(400, Math.max(200, el.clientWidth)));
+      if (Math.abs(width - drawn) < 8) return;
+      drawn = width;
+      el.replaceChildren();
+      google.accounts.id.renderButton(el, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width });
+    };
+    draw();
+    const observer = new ResizeObserver(draw);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [ready]);
 
   if (!CLIENT_ID) {
@@ -73,7 +87,7 @@ export function GoogleButton({ next, label = 'Continue with Google' }: { next: s
             </Button>
           </div>
         ) : (
-          <div ref={slot} className="flex min-h-[44px] justify-center" aria-label={label} />
+          <div ref={slot} className="flex min-h-[44px] w-full justify-center overflow-hidden" aria-label={label} />
         )}
         {state.error && <Notice tone="error">{state.error}</Notice>}
       </form>
