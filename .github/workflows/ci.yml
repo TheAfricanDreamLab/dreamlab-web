@@ -98,9 +98,16 @@ jobs:
             vm=staging
             echo "::group::$svc on vm-dreamlab-$vm"
             # The VM runs its installed deploy script (dreamlab-infra is private).
-            out=$(az vm run-command invoke -g "$RG" -n "vm-dreamlab-$vm" --command-id RunShellScript \
-              --scripts "/opt/dreamlab/infra/azure/vm/deploy.sh $svc staging $tag local $PULL_TOKEN" \
-              --query "value[0].message" -o tsv)
+            # Every staging service shares one VM, and Azure runs one command on a VM at a time: wait while
+            # another repository's deploy holds it.
+            for try in $(seq 1 40); do
+              if out=$(az vm run-command invoke -g "$RG" -n "vm-dreamlab-$vm" --command-id RunShellScript \
+                --scripts "/opt/dreamlab/infra/azure/vm/deploy.sh $svc staging $tag local $PULL_TOKEN" \
+                --query "value[0].message" -o tsv 2>"$RUNNER_TEMP/az.err"); then break; fi
+              grep -q 'execution is in progress' "$RUNNER_TEMP/az.err" || { cat "$RUNNER_TEMP/az.err"; exit 1; }
+              echo "vm-dreamlab-$vm is busy with another deploy; waiting ($try)"
+              sleep 30
+            done
             echo "$out"
             echo "::endgroup::"
             grep -q DEPLOY_OK <<<"$out" || { echo "::error::$svc failed to deploy"; exit 1; }
