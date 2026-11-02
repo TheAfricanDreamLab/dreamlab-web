@@ -118,12 +118,14 @@ export function NewPasswordInput({ name = 'password', avoid = [], label = 'Creat
       </div>
       <ul className="space-y-1.5 rounded-[var(--radius-field)] bg-surface px-4 py-3 ring-1 ring-line">
         {RULES.map((r, i) => (
-          <li key={r.label} className={cx('flex items-center gap-2.5 text-[13px]', passed[i] ? 'text-ink' : 'text-muted')}>
-            <span className={cx('grid h-4 w-4 place-items-center rounded-[5px] text-[10px] text-white', passed[i] ? 'bg-primary' : 'bg-card ring-1 ring-line-heavy')}>
+          <li key={r.label} className={cx('flex items-start gap-2.5 text-[13px] leading-snug', passed[i] ? 'text-ink' : 'text-muted')}>
+            <span className={cx('mt-px grid h-4 w-4 shrink-0 place-items-center rounded-[5px] text-[10px] text-white', passed[i] ? 'bg-primary' : 'bg-card ring-1 ring-line-heavy')}>
               {passed[i] ? '✓' : ''}
             </span>
-            {r.label}
-            {!r.required && <span className="text-faint">(recommended)</span>}
+            <span className="min-w-0">
+              {r.label}
+              {!r.required && <span className="text-faint"> (recommended)</span>}
+            </span>
           </li>
         ))}
       </ul>

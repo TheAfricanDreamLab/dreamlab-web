@@ -33,7 +33,7 @@ export async function AuthShell({
 }) {
   const tenant = await currentTenant();
   return (
-    <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] place-items-center px-4 py-6 sm:px-8 sm:py-8">
+    <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] place-items-center px-3 py-4 min-[375px]:px-4 min-[375px]:py-6 sm:px-8 sm:py-8">
       <div className="grid w-full max-w-[1080px] overflow-hidden rounded-[var(--radius-panel)] bg-surface shadow-[var(--shadow-panel)] ring-1 ring-line lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
         <aside className="relative hidden flex-col justify-between overflow-hidden bg-[radial-gradient(120%_80%_at_20%_10%,#0f6a49_0%,#0a3d29_60%,#072b1d_100%)] p-10 text-white lg:flex">
           <div aria-hidden className="absolute -left-16 top-24 h-72 w-72 rounded-full bg-white/[0.04] ring-1 ring-white/10" />
@@ -55,7 +55,7 @@ export async function AuthShell({
             </dl>
           </div>
         </aside>
-        <section className="flex min-w-0 items-center justify-center px-5 py-8 sm:px-12 sm:py-10 lg:py-16">
+        <section className="flex min-w-0 items-center justify-center px-4 py-7 min-[375px]:px-6 min-[375px]:py-8 sm:px-12 sm:py-10 lg:py-16">
           <div className="w-full max-w-[400px] animate-rise space-y-6">
             <div className="lg:hidden">
               <Brand subtitle={tenant ? tenant.name : undefined} />
