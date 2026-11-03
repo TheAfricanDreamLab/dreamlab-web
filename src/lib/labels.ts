@@ -15,19 +15,24 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'org.roles.manage': 'Create and change custom roles',
   'org.reports.read': 'Read progress reports',
   'learning.assign': 'Assign learning to people',
+  'cohort.manage': 'Run cohorts, graduate learners and revoke credentials',
   'course.content.edit': 'Build and edit course content',
   'course.publish': 'Publish courses',
   'course.analytics.read': 'See how a course is going',
   'course_run.teach': 'Teach live classes',
   'submission.grade': 'Grade submissions',
   'mentorship.conduct': 'Mentor learners',
+  'admissions.manage': 'Open and run admission cycles',
+  'admissions.review': 'Read and score applications, run interviews',
+  'admissions.decide': 'Admit or decline applicants and award scholarships',
 };
 
 /** Permissions a custom role can include, grouped for the role editor. Platform-wide ones never appear. */
 export const PERMISSION_GROUPS: { title: string; permissions: string[] }[] = [
   { title: 'People', permissions: ['org.members.read', 'org.members.invite', 'org.members.update', 'org.members.remove', 'org.roles.assign', 'org.roles.revoke'] },
   { title: 'Structure', permissions: ['org.units.manage', 'org.groups.manage'] },
-  { title: 'Learning', permissions: ['learning.assign', 'org.reports.read', 'course.content.edit', 'course.publish', 'course.analytics.read', 'course_run.teach', 'submission.grade', 'mentorship.conduct'] },
+  { title: 'Learning', permissions: ['learning.assign', 'org.reports.read', 'cohort.manage', 'course.content.edit', 'course.publish', 'course.analytics.read', 'course_run.teach', 'submission.grade', 'mentorship.conduct'] },
+  { title: 'Admissions', permissions: ['admissions.review', 'admissions.manage', 'admissions.decide'] },
   { title: 'Organisation', permissions: ['org.settings.update', 'org.security.manage', 'org.roles.manage'] },
 ];
 
@@ -37,6 +42,7 @@ export const INVITABLE_ROLES: { key: string; label: string; hint: string }[] = [
   { key: 'instructor', label: 'Instructor', hint: 'Teaches and grades' },
   { key: 'author', label: 'Course author', hint: 'Builds content' },
   { key: 'mentor', label: 'Mentor', hint: 'Guides learners' },
+  { key: 'admissions_officer', label: 'Admissions officer', hint: 'Reviews applications' },
   { key: 'analyst', label: 'Analyst', hint: 'Reads reports' },
   { key: 'org_admin', label: 'Admin', hint: 'Runs the organisation' },
 ];
