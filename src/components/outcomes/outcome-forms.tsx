@@ -1,5 +1,6 @@
 'use client';
 
+import { ChangedButton } from '@/components/ui/changed-button';
 import { useActionState, useId, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
@@ -38,9 +39,9 @@ function DraftButtons({ submitLabel }: { submitLabel: string }) {
   const { pending } = useFormStatus();
   return (
     <div className="grid gap-2 sm:grid-cols-2">
-      <Button type="submit" name="intent" value="save" variant="secondary" disabled={pending}>
+      <ChangedButton name="intent" value="save" variant="secondary" disabled={pending}>
         Save draft
-      </Button>
+      </ChangedButton>
       <Button type="submit" name="intent" value="submit" disabled={pending} aria-busy={pending}>
         {pending ? 'Saving…' : submitLabel}
       </Button>
@@ -161,7 +162,7 @@ export function ResidencyReviewForm({ enrollmentId, stage }: { enrollmentId: str
         <textarea id={feedbackId} name="feedback" rows={5} required minLength={10} maxLength={5000} defaultValue={state.values?.feedback} className={textareaClass} />
       </div>
       <Feedback state={state} />
-      <SubmitButton pending="Saving…">{decision === 'approved' ? 'Approve stage' : 'Send back'}</SubmitButton>
+      <SubmitButton always pending="Saving…">{decision === 'approved' ? 'Approve stage' : 'Send back'}</SubmitButton>
     </form>
   );
 }
@@ -268,7 +269,7 @@ export function RequirementForm({ enrollmentId, requirement }: { enrollmentId: s
         </div>
       )}
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <SubmitButton pending="Saving…" variant={confirmed ? 'secondary' : 'primary'}>
+      <SubmitButton always pending="Saving…" variant={confirmed ? 'secondary' : 'primary'}>
         {confirmed ? 'Withdraw confirmation' : 'Confirm'}
         <span className="sr-only"> {requirement.label}</span>
       </SubmitButton>
@@ -334,7 +335,7 @@ export function VerifyForm({ defaultCode = '' }: { defaultCode?: string }) {
     <form action={action} className="space-y-3">
       <TextInput label="Credential code" name="code" required maxLength={40} autoCapitalize="characters" spellCheck={false} placeholder="DL-7KQ2-M9TX-4HPR" defaultValue={state.values?.code ?? defaultCode} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <SubmitButton pending="Checking…">Check credential</SubmitButton>
+      <SubmitButton always pending="Checking…">Check credential</SubmitButton>
     </form>
   );
 }

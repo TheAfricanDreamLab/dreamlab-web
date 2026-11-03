@@ -1,5 +1,6 @@
 'use client';
 
+import { ChangedButton } from '@/components/ui/changed-button';
 import { useActionState, useId, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { saveApplicationStage, startApplication, withdrawApplication } from '@/app/actions/admissions';
@@ -69,9 +70,9 @@ function StageButtons({ last }: { last: boolean }) {
   const { pending } = useFormStatus();
   return (
     <div className="grid gap-2 sm:grid-cols-2">
-      <Button type="submit" name="intent" value="save" variant="secondary" disabled={pending}>
+      <ChangedButton name="intent" value="save" variant="secondary" disabled={pending}>
         Save draft
-      </Button>
+      </ChangedButton>
       <Button type="submit" name="intent" value="submit" disabled={pending} aria-busy={pending}>
         {pending ? 'Saving…' : last ? 'Submit my application' : 'Submit and continue'}
       </Button>

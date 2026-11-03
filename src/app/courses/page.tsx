@@ -1,3 +1,4 @@
+import { LiveSearchInput } from '@/components/catalog/live-search';
 import type { CourseSummary, ProgramSummary } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -95,10 +96,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             <label htmlFor="course-search" className="sr-only">
               Search courses
             </label>
-            <input
+            <LiveSearchInput
               id="course-search"
               type="search"
-              name="q"
               defaultValue={q}
               maxLength={80}
               placeholder="Search courses"

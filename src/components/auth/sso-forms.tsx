@@ -26,7 +26,7 @@ export function OrganisationSignInForm({ next, defaultValue, error }: { next: st
         hint="We’ll send you to your organisation’s own sign-in page."
       />
       {(state.error ?? error) && <Notice tone="error">{state.error ?? error}</Notice>}
-      <SubmitButton pending="Finding your organisation…">Continue</SubmitButton>
+      <SubmitButton always pending="Finding your organisation…">Continue</SubmitButton>
       <p className="text-center text-[12.5px] text-muted">
         By continuing you agree to the <TextLink href="/terms">terms</TextLink> and <TextLink href="/privacy">privacy policy</TextLink>.
       </p>
@@ -40,7 +40,7 @@ export function TenantSsoButton({ orgId, orgName, next }: { orgId: string; orgNa
     <form action={signInWithTenantSso}>
       <input type="hidden" name="orgId" value={orgId} />
       <input type="hidden" name="next" value={next} />
-      <SubmitButton pending="Opening your organisation’s sign-in…">Continue with {orgName} sign-on</SubmitButton>
+      <SubmitButton always pending="Opening your organisation’s sign-in…">Continue with {orgName} sign-on</SubmitButton>
     </form>
   );
 }
@@ -70,7 +70,7 @@ export function MfaForm({ next }: { next: string }) {
         />
       )}
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <SubmitButton pending="Checking…">Sign in</SubmitButton>
+      <SubmitButton always pending="Checking…">Sign in</SubmitButton>
       <div className="flex items-center justify-between text-[13px] text-muted">
         <button type="button" onClick={() => setRecovery((v) => !v)} className="font-semibold text-link">
           {recovery ? 'Use my authenticator app' : 'Use a recovery code'}

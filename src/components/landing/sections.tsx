@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { LogoMark } from '@/components/ui/primitives';
 import { Reveal, Tilt } from './motion';
 
@@ -181,9 +180,11 @@ function AudienceBlock({ a, align }: { a: Audience; align: 'left' | 'right' | 'c
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-ink">{a.tag}</p>
       <h3 className="text-[24px] font-bold">{a.title}</h3>
       <p className="text-[15px] leading-relaxed text-body">{a.text}</p>
-      <Link href={a.cta.href} className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-link transition-all hover:gap-2.5">
+      {/* A full page load: from the landing page, a client-side move to /orgs/start fetched the page and
+          then never showed it, so "Set up your team" did nothing (found in UAT, Nov 2026). */}
+      <a href={a.cta.href} className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-link transition-all hover:gap-2.5">
         {a.cta.label} <span aria-hidden>→</span>
-      </Link>
+      </a>
     </div>
   );
 }
@@ -225,7 +226,7 @@ function Orbit() {
 export function WaysIn({ audiences }: { audiences: Audience[] }) {
   const [learners, schools, teams] = audiences as [Audience, Audience, Audience];
   return (
-    <section id="ways-in" className="scroll-mt-8 bg-surface/70 px-4 py-20 sm:px-8">
+    <section id="ways-in" className="scroll-mt-8 overflow-x-clip bg-surface/70 px-4 py-20 sm:px-8">
       <SectionTitle
         n="02"
         eyebrow="Who it’s for"

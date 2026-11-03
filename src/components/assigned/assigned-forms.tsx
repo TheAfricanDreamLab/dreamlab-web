@@ -179,8 +179,10 @@ export function DreamScoreWeightsForm({ weights }: { weights: Weights }) {
         </div>
         <button
           type="button"
+          // Inactive while every dimension already weighs the same.
+          disabled={DIMENSIONS.every((d) => Number(values[d.key]) === 10)}
           onClick={() => setValues(Object.fromEntries(DIMENSIONS.map((d) => [d.key, '10'])))}
-          className="min-h-11 px-3 text-[14px] font-semibold text-link hover:underline"
+          className="min-h-11 px-3 text-[14px] font-semibold text-link hover:underline disabled:cursor-not-allowed disabled:text-faint disabled:no-underline"
         >
           Reset to equal weights
         </button>

@@ -47,13 +47,14 @@ test.describe('sign-in and sign-out boundary', () => {
 
   test('public pages show the signed-in state and a way to sign out', async ({ page }) => {
     await signUpWithEmail(page, 'Ada Public', unique('public'));
-    await page.goto('/courses');
+    // A page that keeps the public header when signed in (the catalogue opens in the app's own frame).
+    await page.goto('/verify/check');
     const header = page.getByRole('banner');
     await expect(header.getByRole('link', { name: 'My space' })).toBeVisible();
     await expect(header.getByRole('link', { name: 'Sign in' })).toHaveCount(0);
     await header.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL(/\/$/);
-    await page.goto('/courses');
+    await page.goto('/verify/check');
     await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in' })).toBeVisible();
   });
 

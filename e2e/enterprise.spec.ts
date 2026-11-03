@@ -11,6 +11,8 @@ const stamp = Date.now().toString(36);
 
 test.describe('bringing an organisation', () => {
   test('a visitor learns the order of things, creates an account, and lands in the wizard', async ({ page }) => {
+    // The landing sections slide in as they scroll into view; a click mid-slide misses the link.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await page.getByRole('link', { name: 'Set up your team' }).click();
     await expect(page).toHaveURL(/\/orgs\/start\?kind=enterprise/);

@@ -207,7 +207,7 @@ export function AdvanceForm({ applicationId, nextLabel }: { applicationId: strin
       <input type="hidden" name="applicationId" value={applicationId} />
       <Note id={`advance-note-${applicationId}`} name="note" label="Note for the record (optional)" rows={2} />
       <Feedback state={state} />
-      <SubmitButton pending="Moving…">{`Move to ${nextLabel}`}</SubmitButton>
+      <SubmitButton always pending="Moving…">{`Move to ${nextLabel}`}</SubmitButton>
     </form>
   );
 }
