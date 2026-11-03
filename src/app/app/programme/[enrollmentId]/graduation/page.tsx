@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { GraduateForm, RequirementForm } from '@/components/outcomes/outcome-forms';
+import { GraduateForm, RequirementForm, RevokeCredentialForm } from '@/components/outcomes/outcome-forms';
 import { OutcomeBack } from '@/components/outcomes/outcome-nav';
 import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate } from '@/lib/cohorts';
@@ -60,6 +60,11 @@ export default async function GraduationPage({ params, searchParams }: Props) {
               — anyone can check it at that link.
             </span>
           )}
+          {g.credentialRevoked && (
+            <span className="block">
+              The credential was revoked on {calendarDate(g.credentialRevoked.at.slice(0, 10))}: {g.credentialRevoked.reason}
+            </span>
+          )}
         </Notice>
       ) : (
         !staff && <Notice tone="info">Faculty confirm each item. You cannot mark these yourself.</Notice>
@@ -110,6 +115,16 @@ export default async function GraduationPage({ params, searchParams }: Props) {
           ) : (
             <p className="text-[14px] text-muted">Every requirement must be confirmed first ({g.requirements.length - confirmed} to go).</p>
           )}
+        </Card>
+      )}
+
+      {g.can.revokeCredential && g.credentialCode && (
+        <Card className="space-y-3 p-5">
+          <h2 className="text-[19px] font-bold">Revoke the credential</h2>
+          <p className="text-[14px] text-muted">
+            Only if it was issued in error or must be withdrawn. {g.learner.name} stays graduated in your records; the credential’s public check page will say it is revoked.
+          </p>
+          <RevokeCredentialForm code={g.credentialCode} recipient={g.learner.name} />
         </Card>
       )}
     </div>

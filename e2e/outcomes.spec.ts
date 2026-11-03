@@ -107,6 +107,21 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await visitor.getByLabel('Credential code').fill(code.toLowerCase());
   await visitor.getByRole('button', { name: 'Check credential' }).click();
   await expect(visitor).toHaveURL(new RegExp(`/verify/${code}$`));
+  await expect(visitor.getByText('Revoke this credential')).toHaveCount(0);
+
+  // The cohort's manager revokes it with a reason; the public check and the record both say so.
+  const graduation = page.url();
+  await page.getByLabel('Reason (shown on the credential’s check page)').fill('Issued in error before the final review.');
+  page.once('dialog', (d) => void d.accept());
+  await page.getByRole('button', { name: 'Revoke credential' }).click();
+  // The page refreshes into the revoked record: the reason shows and the form is gone.
+  await expect(page.getByText(/The credential was revoked on .*: Issued in error before the final review\./)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Revoke credential' })).toHaveCount(0);
+  await visitor.goto(`/verify/${code}`);
+  await expect(visitor.getByText('Revoked', { exact: true })).toBeVisible();
+  await expect(visitor.getByText(/Issued in error before the final review\./)).toBeVisible();
+  await page.goto(graduation);
+  await expect(page.getByText(/The credential was revoked on .*: Issued in error before the final review\./)).toBeVisible();
 
   // The learner publishes their portfolio; it opens signed out, and stops when unpublished.
   await learner.goto('/app/programme');

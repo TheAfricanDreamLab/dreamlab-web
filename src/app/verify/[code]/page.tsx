@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { RevokeCredentialForm } from '@/components/outcomes/outcome-forms';
 import { PublicFooter, PublicHeader } from '@/components/site/public-header';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate } from '@/lib/cohorts';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
+import type { Me } from '@/lib/me';
 import { CREDENTIAL_CODE, CREDENTIAL_KIND_LABELS, type Credential, pct, tenth } from '@/lib/outcomes';
+import { getClaims } from '@/lib/session';
 
 export const metadata: Metadata = { title: 'Credential check', robots: { index: false, follow: false } };
 
@@ -15,6 +18,7 @@ type Props = { params: Promise<{ code: string }> };
 export default async function CredentialPage({ params }: Props) {
   const code = decodeURIComponent((await params).code).toUpperCase();
   const res = CREDENTIAL_CODE.test(code) ? await api<Credential>('GET', `/v1/learning/credentials/${code}`) : null;
+  const mayRevoke = res?.ok && !res.data.revoked ? await mayRevokeCredentials() : false;
 
   return (
     <div className="min-h-dvh">
@@ -34,12 +38,33 @@ export default async function CredentialPage({ params }: Props) {
         ) : !res.ok ? (
           <Notice tone="error">{friendlyError(res.error)}</Notice>
         ) : (
-          <CredentialCard c={res.data} />
+          <>
+            <CredentialCard c={res.data} />
+            {mayRevoke && (
+              <details className="rounded-[var(--radius-panel)] bg-surface p-5 ring-1 ring-line">
+                <summary className="cursor-pointer text-[14.5px] font-semibold text-ink">Revoke this credential</summary>
+                <div className="mt-4 space-y-3">
+                  <p className="text-[13.5px] text-muted">Only the organisation that issued it can revoke it.</p>
+                  <RevokeCredentialForm code={res.data.code} recipient={res.data.recipientName} />
+                </div>
+              </details>
+            )}
+          </>
         )}
       </main>
       <PublicFooter />
     </div>
   );
+}
+
+/**
+ * Whether to offer the revoke form: platform admins and members who run cohorts. The API decides for
+ * real (only the issuing organisation's managers); anyone else checking a credential sees no form.
+ */
+async function mayRevokeCredentials(): Promise<boolean> {
+  if (!(await getClaims())) return false;
+  const me = await api<Me>('GET', '/v1/me');
+  return me.ok && (me.data.platformAdmin || me.data.permissions.includes('cohort.manage' as never));
 }
 
 function CredentialCard({ c }: { c: Credential }) {

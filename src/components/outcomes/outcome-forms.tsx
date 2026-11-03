@@ -8,6 +8,7 @@ import {
   lookUpCredential,
   reviewActionPlan,
   reviewResidencyStage,
+  revokeCredential,
   saveActionPlan,
   saveResidencyStage,
   sharePortfolio,
@@ -334,6 +335,37 @@ export function VerifyForm({ defaultCode = '' }: { defaultCode?: string }) {
       <TextInput label="Credential code" name="code" required maxLength={40} autoCapitalize="characters" spellCheck={false} placeholder="DL-7KQ2-M9TX-4HPR" defaultValue={state.values?.code ?? defaultCode} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <SubmitButton pending="Checking…">Check credential</SubmitButton>
+    </form>
+  );
+}
+
+/**
+ * Revoking a credential the organisation issued (CRED-1). The reason is shown to anyone who checks the
+ * credential, so it is asked for in plain words; revoking cannot be undone.
+ */
+export function RevokeCredentialForm({ code, recipient }: { code: string; recipient: string }) {
+  const [state, action] = useActionState(revokeCredential, {} as FormState);
+  const id = useId();
+  if (state.notice && !state.error) return <Notice tone="success">{state.notice}</Notice>;
+  return (
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (!confirm(`Revoke ${recipient}’s credential ${code}? Its check page will say it is revoked, with your reason. This cannot be undone.`)) e.preventDefault();
+      }}
+      className="space-y-3"
+    >
+      <input type="hidden" name="code" value={code} />
+      <div className="space-y-1.5">
+        <label htmlFor={id} className={labelClass}>
+          Reason (shown on the credential’s check page)
+        </label>
+        <textarea id={id} name="reason" required minLength={5} maxLength={500} rows={3} className={textareaClass} defaultValue={state.values?.reason} placeholder="For example: issued in error before the final assessment was marked." />
+      </div>
+      <Feedback state={state} />
+      <SubmitButton pending="Revoking…" variant="danger">
+        Revoke credential
+      </SubmitButton>
     </form>
   );
 }

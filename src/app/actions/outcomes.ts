@@ -152,8 +152,12 @@ export async function lookUpCredential(_: FormState, fd: FormData): Promise<Form
 export async function revokeCredential(_: FormState, fd: FormData): Promise<FormState> {
   const code = str(fd, 'code');
   if (!CREDENTIAL_CODE.test(code)) return BAD_LINK;
-  const res = await api('POST', `/v1/learning/credentials/${code}/revoke`, { reason: str(fd, 'reason') });
-  if (!res.ok) return { error: friendlyError(res.error) };
+  const reason = str(fd, 'reason');
+  // The API trims the reason before checking its length (5 to 500 characters).
+  if (reason.trim().length < 5) return { error: 'Give the reason in a few words: it is shown on the credential’s check page.', values: { reason } };
+  if (reason.trim().length > 500) return { error: 'Keep the reason to 500 characters or fewer.', values: { reason } };
+  const res = await api('POST', `/v1/learning/credentials/${code}/revoke`, { reason });
+  if (!res.ok) return { error: friendlyError(res.error), values: { reason } };
   refresh();
   return { notice: 'Credential revoked. Its check page now says so.' };
 }
