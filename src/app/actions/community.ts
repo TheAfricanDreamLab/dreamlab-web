@@ -7,29 +7,11 @@ import { fieldErrors, friendlyError } from '@/lib/errors';
 import { type FormState, str } from '@/lib/forms';
 import { api } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
+import { LOCAL_TIME, NO_ZONE, zoneOf } from '@/lib/zones';
 
 export type Outcome<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const BAD_LINK = { error: 'This page’s link isn’t right. Open it again from the menu.' };
-const LOCAL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
-
-/**
- * The browser's time zone, sent with the form, so a typed time means what the person meant. Missing
- * (the form was sent before the page finished loading) or unknown: null, and the time is refused
- * rather than guessed.
- */
-function zoneOf(fd: FormData): string | null {
-  const tz = str(fd, 'timeZone');
-  if (!tz) return null;
-  try {
-    new Intl.DateTimeFormat('en-GB', { timeZone: tz });
-    return tz;
-  } catch {
-    return null;
-  }
-}
-
-const NO_ZONE = 'Your browser’s time zone isn’t known yet. Wait for the page to finish loading, then try again.';
 
 // ---------- recordings (LIVE-1) ----------
 

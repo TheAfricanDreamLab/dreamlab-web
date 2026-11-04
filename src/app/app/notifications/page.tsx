@@ -17,6 +17,7 @@ const ICONS: Record<NotificationCategory, IconName> = {
   authoring: 'grid',
   admissions: 'user',
   community: 'users',
+  circles: 'users',
   account: 'shield',
 };
 

@@ -3,12 +3,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CircleBoard } from '@/components/circles/circle-board';
+import { ContactForm, MemberCards } from '@/components/circles/circle-people';
+import { MeetupForm, MeetupList } from '@/components/circles/meetups';
 import { Icon } from '@/components/ui/icons';
 import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
-import { initials } from '@/lib/labels';
 import { isUuid } from '@/lib/learning';
 
 export const metadata: Metadata = { title: 'Dream Circle' };
@@ -16,8 +17,9 @@ export const metadata: Metadata = { title: 'Dream Circle' };
 type Props = { params: Promise<{ circleId: string }> };
 
 /**
- * A Dream Circle's space (COMM-2): its members, a call any of them can start, and its board. The space
- * and the first page of posts load together; everything after that loads in the page.
+ * A Dream Circle's space (COMM-2, COMM-3): a call any of them can start, its meetups, its board, and
+ * its people with whatever contact details each chose to share. The space and the first page of posts
+ * load together; everything after that loads in the page.
  */
 export default async function CirclePage({ params }: Props) {
   const { circleId } = await params;
@@ -34,20 +36,13 @@ export default async function CirclePage({ params }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <BackLink href={back.href} label={back.label} />
-      <header className="space-y-3">
+      <header className="space-y-1">
         <Eyebrow tone="gold">Dream Circle · {s.cohortName}</Eyebrow>
         <h1 className="text-[30px] font-extrabold leading-tight">{s.name}</h1>
-        <ul className="flex flex-wrap gap-2" aria-label="People in this circle">
-          {s.members.map((m) => (
-            <li key={m.userId} className="flex items-center gap-2 rounded-full bg-surface py-1 pl-1 pr-3 text-[13px] text-ink ring-1 ring-line">
-              <span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-success-tint text-[10.5px] font-bold text-link">
-                {initials(m.name)}
-              </span>
-              {m.name}
-              {m.role === 'mentor' && <span className="text-gold-ink">· mentor</span>}
-            </li>
-          ))}
-        </ul>
+        <p className="text-[14px] text-muted">
+          {s.members.filter((m) => m.role === 'member').length} members
+          {s.you.role !== 'member' && <> · you are here as {s.you.role === 'mentor' ? 'a mentor' : 'cohort team'}</>}
+        </p>
       </header>
 
       <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -74,7 +69,21 @@ export default async function CirclePage({ params }: Props) {
         </span>
       </Card>
 
+      <Card className="space-y-3 p-4">
+        <h2 className="text-[17px] font-bold text-ink">Meetups</h2>
+        <MeetupList circleId={s.id} meetups={s.meetups} />
+        <MeetupForm circleId={s.id} />
+      </Card>
+
       {posts.ok ? <CircleBoard circleId={s.id} initial={posts.data} /> : <Notice tone="error">{friendlyError(posts.error)}</Notice>}
+
+      <section className="space-y-3" aria-labelledby="circle-people">
+        <h2 id="circle-people" className="text-[17px] font-bold text-ink">
+          People
+        </h2>
+        {s.you.role !== 'staff' && <ContactForm circleId={s.id} contact={s.you.contact} />}
+        <MemberCards members={s.members} />
+      </section>
     </div>
   );
 }

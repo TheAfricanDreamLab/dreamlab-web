@@ -17,7 +17,7 @@ const chip =
 /** The browser's time zone, so times typed in a datetime-local field mean what the person meant. */
 const noSubscribe = () => () => undefined;
 
-function TimeZoneField() {
+export function TimeZoneField() {
   // Empty until hydrated: a form sent before then is refused rather than read as UTC. The value is
   // read again as the form is sent, in case the device's time zone changed while the page was open.
   const tz = useSyncExternalStore(noSubscribe, () => Intl.DateTimeFormat().resolvedOptions().timeZone || '', () => '');
