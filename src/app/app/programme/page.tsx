@@ -281,8 +281,13 @@ function Community({ c }: { c: MyCommunity }) {
           ) : (
             c.circles.map((circle) => (
               <div key={circle.id} className="space-y-2">
-                <p className="text-[14px]">
-                  <span className="font-semibold text-ink">{circle.name}</span> <span className="text-muted">· {circle.cohortName}</span>
+                <p className="flex flex-wrap items-center justify-between gap-2 text-[14px]">
+                  <span>
+                    <span className="font-semibold text-ink">{circle.name}</span> <span className="text-muted">· {circle.cohortName}</span>
+                  </span>
+                  <Link href={`/app/circles/${circle.id}`} className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 text-[13.5px] font-semibold text-white hover:bg-primary-hover">
+                    Open circle
+                  </Link>
                 </p>
                 <ul className="flex flex-wrap gap-1.5" aria-label={`Members of ${circle.name}`}>
                   {circle.members.map((m) => (

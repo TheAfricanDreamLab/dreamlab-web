@@ -1,6 +1,9 @@
 import { type Browser, expect, type Page, test } from '@playwright/test';
 import { createCompany, latestInviteLink, PASSWORD, signUpWithEmail, unique, WEB_URL } from './helpers';
 
+/** A real 1×1 PNG, for a picture post. */
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+
 /*
  * LIVE-1 and COMM-1, the parts that work without a media server: a cohort manager assigns a mentor
  * and forms a Dream Circle; the mentor schedules an online meeting, which opens for joining; the
@@ -129,6 +132,41 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   // Learners can't manage the cohort's community.
   await ada.goto(page.url().replace(/\/sessions\/.*$/, '/community'));
   await expect(ada.getByRole('heading', { name: 'Mentors and Dream Circles' })).toHaveCount(0);
+
+  // COMM-2: the circle's own space. Ada posts a picture and a link; Post waits for something to post.
+  await ada.goto('/app/programme');
+  await ada.getByRole('heading', { name: 'My community' }).locator('..').getByRole('link', { name: 'Open circle' }).click();
+  await expect(ada.getByRole('heading', { name: 'Sankofa', level: 1 })).toBeVisible();
+  const circleUrl = ada.url();
+  const post = ada.getByRole('button', { name: 'Post', exact: true });
+  await expect(post).toBeDisabled();
+  await ada.getByLabel('Share an update, a question or a win with your circle').fill('First prototype, notes at https://127.0.0.1/notes');
+  await ada.locator('input[type=file]').first().setInputFiles({ name: 'prototype.png', mimeType: 'image/png', buffer: PNG });
+  await expect(ada.getByText(/^\d+(\.\d+)? (B|KB)$/).first()).toBeVisible({ timeout: 30_000 });
+  await post.click();
+  const posted = ada.getByRole('article').filter({ hasText: 'First prototype' });
+  await expect(posted.getByRole('img', { name: 'prototype.png' })).toBeVisible();
+  await expect(posted.getByRole('link', { name: /127\.0\.0\.1/ }).first()).toBeVisible();
+
+  // Tunde replies; he cannot remove Ada's post. Her mentor pins it.
+  await tunde.goto(circleUrl);
+  const seen = tunde.getByRole('article').filter({ hasText: 'First prototype' }).first();
+  await expect(seen.getByRole('button', { name: 'Remove' })).toHaveCount(0);
+  await seen.getByRole('button', { name: 'Reply' }).click();
+  await seen.getByLabel('Reply to Ada Obi').fill('Love the colours.');
+  await seen.getByRole('button', { name: 'Reply', exact: true }).last().click();
+  await expect(seen.getByText('Love the colours.')).toBeVisible();
+  await mentor.goto(circleUrl);
+  await expect(mentor.getByText('· mentor')).toBeVisible();
+  await mentor.getByRole('article').filter({ hasText: 'First prototype' }).first().getByRole('button', { name: 'Pin' }).click();
+  await expect(mentor.getByRole('article').filter({ hasText: 'First prototype' }).first().getByText('Pinned')).toBeVisible();
+  await ada.reload();
+  await expect(ada.getByRole('article').filter({ hasText: 'First prototype' }).first().getByRole('button', { name: '1 reply' })).toBeVisible();
+
+  // Anyone in the circle starts a call; it is never recorded.
+  await ada.getByRole('link', { name: 'Start a call' }).click();
+  await expect(ada.getByText('Not recorded')).toBeVisible();
+  await expect(ada.locator('.lk-room-container, [data-lk-theme]').first()).toBeVisible({ timeout: 60_000 });
 
   for (const p of [mentor, ada, tunde]) await p.context().close();
 });

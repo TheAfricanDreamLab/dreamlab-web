@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { AssignMentorForm, CircleForm, DeleteCircleButton, EndAssignmentButton } from '@/components/community/community-forms';
@@ -109,7 +110,12 @@ export default async function CohortCommunityPage({ params }: Props) {
                 <Card key={c.id} className="space-y-3 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-[16px] font-bold">{c.name}</h3>
-                    <DeleteCircleButton circleId={c.id} name={c.name} />
+                    <span className="flex items-center gap-1">
+                      <Link href={`/app/circles/${c.id}`} className="min-h-10 content-center rounded-lg px-3 text-[13.5px] font-semibold text-link hover:bg-surface">
+                        Open circle
+                      </Link>
+                      <DeleteCircleButton circleId={c.id} name={c.name} />
+                    </span>
                   </div>
                   <details>
                     <summary className="min-h-10 cursor-pointer content-center text-[13.5px] font-semibold text-link">
