@@ -1,5 +1,6 @@
 'use client';
 
+import { ChangedButton } from '@/components/ui/changed-button';
 import { useActionState, useState } from 'react';
 import { gradeSubmission } from '@/app/actions/grading';
 import { Button, cx, Notice } from '@/components/ui/primitives';
@@ -90,9 +91,9 @@ export function GradeForm({
       {state.notice && <Notice tone="success">{state.notice}</Notice>}
       {!disabled && (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending}>
+          <ChangedButton name="intent" value="draft" variant="secondary" disabled={pending}>
             Save draft
-          </Button>
+          </ChangedButton>
           <Button type="submit" name="intent" value="release" disabled={pending}>
             {pending ? 'Saving…' : 'Release grade'}
           </Button>

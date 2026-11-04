@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useId, useState } from 'react';
 import { chooseElectives, createCohort, joinCohort, markAttendance, updateCohort, updateSession } from '@/app/actions/cohorts';
 import { SubmitButton } from '@/components/auth/forms';
 import { TextInput } from '@/components/ui/fields';
@@ -178,6 +178,8 @@ export function CohortSettingsForm({ cohort }: { cohort: Cohort }) {
 export function SessionEditor({ cohortId, timeZone, session }: { cohortId: string; timeZone: string; session: ClassSession }) {
   const [state, action] = useActionState(updateSession, {} as FormState);
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState(session.mode);
+  const modeId = useId();
   return (
     <div className="space-y-2">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="min-h-10 text-[13.5px] font-semibold text-link hover:underline">
@@ -189,7 +191,23 @@ export function SessionEditor({ cohortId, timeZone, session }: { cohortId: strin
           <input type="hidden" name="cohortId" value={cohortId} />
           <input type="hidden" name="sessionId" value={session.id} />
           <input type="hidden" name="timeZone" value={timeZone} />
-          <TextInput label={session.mode === 'virtual' ? 'Join link' : 'Place'} name="location" maxLength={500} defaultValue={session.location ?? ''} placeholder={session.mode === 'virtual' ? 'https://meet…' : 'Hub address'} />
+          <div className="space-y-1.5">
+            <label htmlFor={modeId} className={label}>
+              Where it happens
+            </label>
+            <select id={modeId} name="mode" value={mode} onChange={(e) => setMode(e.target.value as ClassSession['mode'])} className={selectClass}>
+              <option value="virtual">Online, in the class’s live room</option>
+              <option value="physical">In person</option>
+            </select>
+          </div>
+          <TextInput
+            label={mode === 'virtual' ? 'Join link' : 'Place'}
+            hint={mode === 'virtual' ? 'Optional: leave it empty to meet in the class’s live room.' : undefined}
+            name="location"
+            maxLength={500}
+            defaultValue={session.location ?? ''}
+            placeholder={mode === 'virtual' ? 'https://meet…' : 'Hub address'}
+          />
           <TextInput label={`Starts (${timeZone})`} name="startsAt" type="datetime-local" defaultValue={localInput(session.startsAt, timeZone)} />
           <label className="flex items-center gap-2 text-[14px] text-ink">
             <input type="hidden" name="cancelled" value="false" />
@@ -241,7 +259,7 @@ export function AttendanceForm({ cohortId, sessionId, items }: { cohortId: strin
       {state.error && <Notice tone="error">{state.error}</Notice>}
       {state.notice && <Notice tone="success">{state.notice}</Notice>}
       <div className="sm:max-w-xs">
-        <SubmitButton pending="Saving…">Save attendance</SubmitButton>
+        <SubmitButton always pending="Saving…">Save attendance</SubmitButton>
       </div>
     </form>
   );

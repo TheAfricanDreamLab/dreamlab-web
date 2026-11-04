@@ -28,5 +28,7 @@ export async function saveNotificationPreferences(_: FormState, fd: FormData): P
   const email = Object.fromEntries(CATEGORY_LABELS.map(([c]) => [c, fd.get(`email:${c}`) === 'on'])) as NotificationPreferences['email'];
   const res = await api<NotificationPreferences>('PUT', '/v1/notifications/preferences', { email });
   if (!res.ok) return { error: friendlyError(res.error) };
+  // React resets the form after the action: reload the page's data so the boxes show what was saved.
+  refresh();
   return { notice: 'Saved. You still see everything here in the app.' };
 }

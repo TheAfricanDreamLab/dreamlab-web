@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { removeMember, revokeInvitation, revokeRole } from '@/app/actions/org';
 import { answerJoinRequest } from '@/app/actions/security';
 import { AddRoleForm, InviteForm } from '@/components/directory/member-forms';
+import { ConfirmForm } from '@/components/ui/confirm-form';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -79,13 +80,13 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                             {roleName(r.roleKey)}
                             {scopeName(r) && <span className="text-muted">· {scopeName(r)}</span>}
                             {canRevoke && (
-                              <form action={revokeRole}>
+                              <ConfirmForm action={revokeRole} message={`Remove the ${roleName(r.roleKey)} role from ${m.user.fullName}? They lose what it lets them do at once.`}>
                                 <OrgField />
                                 <input type="hidden" name="assignmentId" value={r.id} />
                                 <button type="submit" className="-my-1 grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink sm:h-5 sm:w-5" aria-label={`Remove ${roleName(r.roleKey)} role`}>
                                   ×
                                 </button>
-                              </form>
+                              </ConfirmForm>
                             )}
                           </span>
                         ))}
@@ -95,13 +96,13 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                     <div className="flex items-center gap-2">
                       {m.status !== 'active' && <Badge tone={m.status === 'suspended' ? 'danger' : 'gold'}>{m.status}</Badge>}
                       {canRemove && !isMe && (
-                        <form action={removeMember}>
+                        <ConfirmForm action={removeMember} message={`Remove ${m.user.fullName} from the organisation? They lose access to its pages at once.`}>
                           <OrgField />
                           <input type="hidden" name="membershipId" value={m.id} />
                           <button type="submit" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-danger-ink hover:bg-danger-tint">
                             Remove
                           </button>
-                        </form>
+                        </ConfirmForm>
                       )}
                     </div>
                   </li>

@@ -6,7 +6,7 @@ import { OrgSwitcher } from '@/components/app/org-switcher';
 import { AppShell, QuickAction, SIDEBAR_COOKIE, SideLink, SidebarControls } from '@/components/app/shell';
 import { Dropdown } from '@/components/ui/dropdown';
 import { Icon, type IconName } from '@/components/ui/icons';
-import { ButtonLink, LogoMark } from '@/components/ui/primitives';
+import { ButtonLink, LogoMark, Notice } from '@/components/ui/primitives';
 import { initials } from '@/lib/labels';
 import { activeMembership, can, getMe } from '@/lib/me';
 import { unreadCount } from '@/lib/notifications';
@@ -246,7 +246,17 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
 
   return (
     <AppShell initialCollapsed={collapsed} sidebar={sidebar} topbar={topbar}>
-      <ActiveOrgProvider orgId={active?.org.id ?? null}>{children}</ActiveOrgProvider>
+      <ActiveOrgProvider orgId={active?.org.id ?? null}>
+        {active?.org.status === 'pending' && (
+          <div className="mb-6">
+            <Notice tone="info">
+              <b>{active.org.name}</b> is waiting for approval by The African Dream Lab. Until then you can set it up: settings, people, roles and teams. Cohorts, courses,
+              admissions and assigned learning open once it’s approved, usually within two working days.
+            </Notice>
+          </div>
+        )}
+        {children}
+      </ActiveOrgProvider>
     </AppShell>
   );
 }

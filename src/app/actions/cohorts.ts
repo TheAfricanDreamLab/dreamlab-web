@@ -90,6 +90,8 @@ export async function updateSession(_: FormState, fd: FormData): Promise<FormSta
   if (!isUuid(cohortId) || !isUuid(sessionId)) return BAD_LINK;
   const body: Record<string, unknown> = {};
   if (fd.has('location')) body.location = str(fd, 'location') || null;
+  const mode = str(fd, 'mode');
+  if (mode === 'virtual' || mode === 'physical') body.mode = mode;
   // The form sends a hidden "false" before the checkbox, so a ticked box adds "true" after it.
   if (fd.has('cancelled')) body.cancelled = fd.getAll('cancelled').includes('true');
   if (fd.has('startsAt')) {

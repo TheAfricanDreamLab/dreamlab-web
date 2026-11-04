@@ -102,7 +102,7 @@ export function AssignmentForm({
           Waiting for your files to upload…
         </button>
       ) : enough ? (
-        <SubmitButton pending="Submitting…">{previous || state.submission ? 'Submit a new version' : 'Submit for review'}</SubmitButton>
+        <SubmitButton always pending="Submitting…">{previous || state.submission ? 'Submit a new version' : 'Submit for review'}</SubmitButton>
       ) : (
         <button type="button" disabled className="h-12 w-full cursor-not-allowed rounded-[var(--radius-field)] bg-line-heavy px-5 text-[15px] font-semibold text-white">
           Write at least {min} words to submit

@@ -149,11 +149,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       )}
       {sp.requested && <Notice tone="info">We’ve asked the organisation’s admins. You’ll see it in your spaces once they say yes.</Notice>}
       {sp.join_error && <Notice tone="error">{messageForCode(sp.join_error)}</Notice>}
-      {active?.org.status === 'pending' && (
-        <Notice tone="info">
-          <b>{active.org.name}</b> is in review. You can organise teams and invite co-admins now; learners can join once it’s approved.
-        </Notice>
-      )}
 
       <ProfileCard
         name={me.user.fullName}

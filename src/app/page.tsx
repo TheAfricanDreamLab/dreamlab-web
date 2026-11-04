@@ -4,7 +4,9 @@ import { FactPill, Journey, SectionTitle, Showcase, Steps, WaysIn } from '@/comp
 import { type Milestone, Timeline } from '@/components/landing/timeline';
 import { PublicFooter, SiteNav } from '@/components/site/public-header';
 import { Brand, ButtonLink } from '@/components/ui/primitives';
+import { redirect } from 'next/navigation';
 import { getClaims } from '@/lib/session';
+import { currentTenant } from '@/lib/tenant';
 
 const AUDIENCES = [
   {
@@ -84,6 +86,8 @@ const MILESTONES: Milestone[] = [
 
 export default async function LandingPage() {
   const signedIn = Boolean(await getClaims());
+  // An organisation's own address (<org>.<domain>) opens its sign-in page, with its name on it.
+  if (!signedIn && (await currentTenant())) redirect('/login');
   return (
     <div className="min-h-dvh">
       <header className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-8 sm:py-5">
@@ -133,7 +137,7 @@ export default async function LandingPage() {
         <WaysIn audiences={AUDIENCES} />
         <Showcase />
 
-        <section id="weeks" className="scroll-mt-8 px-4 py-20 sm:px-8">
+        <section id="weeks" className="scroll-mt-8 overflow-x-clip px-4 py-20 sm:px-8">
           <SectionTitle
             n="04"
             eyebrow="The programme"

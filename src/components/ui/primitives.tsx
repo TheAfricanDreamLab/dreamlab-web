@@ -70,9 +70,9 @@ export function Brand({ subtitle, light = false, href = '/', compact = false }: 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 const buttonStyles: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-white hover:bg-primary-hover disabled:bg-line-heavy disabled:text-white',
-  secondary: 'bg-card text-ink ring-1 ring-line-strong hover:ring-line-heavy',
-  ghost: 'text-link hover:bg-success-tint',
-  danger: 'bg-card text-danger-ink ring-1 ring-danger-line hover:bg-danger-tint',
+  secondary: 'bg-card text-ink ring-1 ring-line-strong hover:ring-line-heavy disabled:opacity-50 disabled:hover:ring-line-strong',
+  ghost: 'text-link hover:bg-success-tint disabled:opacity-50 disabled:hover:bg-transparent',
+  danger: 'bg-card text-danger-ink ring-1 ring-danger-line hover:bg-danger-tint disabled:opacity-50 disabled:hover:bg-card',
 };
 
 export function Button({

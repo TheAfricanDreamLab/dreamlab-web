@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   adminLogin,
@@ -15,6 +15,7 @@ import {
 } from '@/app/actions/auth';
 import { NewPasswordInput, OtpInput, PasswordInput, ResendButton, TextInput } from '@/components/ui/fields';
 import { Button, cx, Divider, Notice, TextLink } from '@/components/ui/primitives';
+import { useFormChanged } from '@/components/ui/use-form-changed';
 import type { FormState } from '@/lib/forms';
 import { GoogleButton } from './google-button';
 
@@ -23,16 +24,24 @@ export function SubmitButton({
   pending: pendingLabel = 'One moment…',
   variant = 'primary',
   disabled = false,
+  always = false,
 }: {
   children: React.ReactNode;
   pending?: string;
   variant?: 'primary' | 'secondary' | 'danger';
   /** Also disabled while something else is still under way (an upload). */
   disabled?: boolean;
+  /**
+   * Active even before anything in the form changes: sign-in forms (browsers autofill without
+   * telling the page) and forms whose loaded values are meant to be sent as they are.
+   */
+  always?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const ref = useRef<HTMLButtonElement>(null);
+  const changed = useFormChanged(ref, !always);
   return (
-    <Button type="submit" disabled={pending || disabled} variant={variant} aria-busy={pending}>
+    <Button ref={ref} type="submit" disabled={pending || disabled || !changed} variant={variant} aria-busy={pending}>
       {pending ? pendingLabel : children}
     </Button>
   );
@@ -72,7 +81,7 @@ export function LoginForm({ next, banner, organisationSso }: { next: string; ban
           }
         />
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        <SubmitButton pending="Signing you in…">Sign in</SubmitButton>
+        <SubmitButton always pending="Signing you in…">Sign in</SubmitButton>
       </form>
       <Divider label="or" />
       <div className="space-y-3">
@@ -160,7 +169,7 @@ export function SignupForm({ next, banner }: { next: string; banner?: React.Reac
           </label>
         </fieldset>
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        <SubmitButton pending="Creating your account…">Create my account</SubmitButton>
+        <SubmitButton always pending="Creating your account…">Create my account</SubmitButton>
       </form>
       <p className="text-center text-[13.5px] text-muted">
         Already have an account? <TextLink href={`/login${next !== '/app' ? `?next=${encodeURIComponent(next)}` : ''}`}>Sign in</TextLink>
@@ -177,7 +186,7 @@ export function CodeForm({ next, submitLabel = 'Verify and continue' }: { next: 
       <input type="hidden" name="next" value={next} />
       <OtpInput />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <SubmitButton pending="Checking…">{submitLabel}</SubmitButton>
+      <SubmitButton always pending="Checking…">{submitLabel}</SubmitButton>
       <div className="flex items-center justify-between text-[13px] text-muted">
         <span>
           Didn’t get it? <ResendButton formAction={resendCode} />
@@ -201,7 +210,7 @@ export function RequestCodeForm({ purpose, next = '/app' }: { purpose: 'login' |
         <span>For a phone number, send the code on WhatsApp instead of SMS.</span>
       </label>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <SubmitButton pending="Sending…">{purpose === 'login' ? 'Send me a code' : 'Send reset code'}</SubmitButton>
+      <SubmitButton always pending="Sending…">{purpose === 'login' ? 'Send me a code' : 'Send reset code'}</SubmitButton>
       <Notice tone="neutral">
         We send the same message whether or not the address has an account, and limit how many codes go out each hour.
       </Notice>
@@ -220,7 +229,7 @@ export function ResetForm() {
       <NewPasswordInput label="New password" />
       <PasswordInput name="confirm" label="Type it again" autoComplete="new-password" required />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <SubmitButton pending="Saving…">Save new password</SubmitButton>
+      <SubmitButton always pending="Saving…">Save new password</SubmitButton>
       <p className="text-center font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted">This signs you out everywhere else</p>
     </form>
   );
@@ -246,7 +255,7 @@ export function AdminLoginForm({ next, banner }: { next: string; banner?: React.
           }
         />
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        <SubmitButton pending="Checking…">Sign in to the admin console</SubmitButton>
+        <SubmitButton always pending="Checking…">Sign in to the admin console</SubmitButton>
       </form>
       <p className="text-center text-[13px] text-muted">
         Not a platform admin?{' '}

@@ -206,8 +206,12 @@ test.describe('organisations', () => {
     await expect(page.getByText(/We check new/)).toBeVisible();
     await page.getByRole('button', { name: `Create ${school}` }).click();
     await expect(page).toHaveURL(/\/app\?created=pending/);
-    await expect(page.getByText(/is in review/)).toBeVisible();
+    // In review: set-up only (UAT ORG-003). Every page says so, and cohorts are closed until approval.
+    await expect(page.getByText(/is waiting for approval/)).toBeVisible();
+    const main = page.getByRole('navigation', { name: 'Main' });
+    await expect(main.getByRole('link', { name: 'Cohorts' })).toHaveCount(0);
     await page.getByRole('link', { name: 'People' }).click();
+    await expect(page.getByText(/is waiting for approval/)).toBeVisible();
     await expect(page.getByText('While you’re in review, you can invite co-admins.')).toBeVisible();
     await expect(page.getByRole('radio', { name: /Learner/ })).toHaveCount(0);
 
@@ -227,6 +231,8 @@ test.describe('organisations', () => {
 
     await page.reload();
     await expect(page.getByRole('radio', { name: /Learner/ })).toBeVisible();
+    await expect(page.getByText(/is waiting for approval/)).toHaveCount(0);
+    await expect(main.getByRole('link', { name: 'Cohorts' })).toBeVisible();
   });
 });
 
