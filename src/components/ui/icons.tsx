@@ -78,6 +78,26 @@ const PATHS: Record<string, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
   file: <path d="M13.5 3.5H7a1.5 1.5 0 0 0-1.5 1.5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5zM13.5 3.5v5h5" />,
   upload: <path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3" />,
+  mic: (
+    <>
+      <rect x="9" y="3.5" width="6" height="11" rx="3" />
+      <path d="M6 11.5a6 6 0 0 0 12 0M12 17.5v3M9 20.5h6" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="m3.5 16 4.5-4.5 4 4 3-3 5.5 5.5" />
+      <circle cx="15.5" cy="9.5" r="1.5" />
+    </>
+  ),
+  video: (
+    <>
+      <rect x="3.5" y="6.5" width="12" height="11" rx="2" />
+      <path d="m15.5 10.5 5-3v9l-5-3z" />
+    </>
+  ),
+  clip: <path d="M15.5 7.5 9 14a2 2 0 0 0 2.8 2.8l7-7a4 4 0 0 0-5.6-5.6l-7 7a6 6 0 0 0 8.5 8.5l6-6" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   dots: (
     <>

@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: 'Mentoring' };
 export default async function MentoringPage() {
   const res = await api<Mentoring>('GET', '/v1/learning/mentoring');
   if (!res.ok) return <Notice tone="error">{friendlyError(res.error)}</Notice>;
-  const { learners, meetings } = res.data;
+  const { learners, meetings, circles } = res.data;
   const upcoming = meetings.filter((m) => m.status === 'scheduled');
   const past = meetings.filter((m) => m.status !== 'scheduled');
 
@@ -56,6 +56,29 @@ export default async function MentoringPage() {
                 </ul>
               </Card>
             </section>
+
+            {circles.length > 0 && (
+              <section className="space-y-3" aria-labelledby="circles">
+                <h2 id="circles" className="text-[19px] font-bold">
+                  Your mentees’ Dream Circles
+                </h2>
+                <Card>
+                  <ul className="divide-y divide-line">
+                    {circles.map((c) => (
+                      <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                        <span className="min-w-0">
+                          <span className="block font-semibold text-ink">{c.name}</span>
+                          <span className="block text-[13px] text-muted">{c.cohortName}</span>
+                        </span>
+                        <Link href={`/app/circles/${c.id}`} className="inline-flex min-h-10 items-center rounded-full px-4 text-[13.5px] font-semibold text-link hover:bg-surface">
+                          Open circle
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </section>
+            )}
 
             <section className="space-y-3" aria-labelledby="upcoming">
               <h2 id="upcoming" className="text-[19px] font-bold">
