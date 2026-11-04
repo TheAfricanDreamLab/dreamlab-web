@@ -156,7 +156,9 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await seen.getByLabel('Reply to Ada Obi').fill('Love the colours.');
   await seen.getByRole('button', { name: 'Reply', exact: true }).last().click();
   await expect(seen.getByText('Love the colours.')).toBeVisible();
-  await mentor.goto(circleUrl);
+  await mentor.goto('/app/mentoring');
+  await mentor.getByRole('heading', { name: 'Your mentees’ Dream Circles' }).locator('..').getByRole('link', { name: 'Open circle' }).click();
+  await expect(mentor).toHaveURL(circleUrl);
   await expect(mentor.getByText('· mentor')).toBeVisible();
   await mentor.getByRole('article').filter({ hasText: 'First prototype' }).first().getByRole('button', { name: 'Pin' }).click();
   await expect(mentor.getByRole('article').filter({ hasText: 'First prototype' }).first().getByText('Pinned')).toBeVisible();
