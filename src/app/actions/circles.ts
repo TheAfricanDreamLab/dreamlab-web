@@ -2,7 +2,7 @@
 
 import type { CircleContact, CircleMeetup, CirclePost, CirclePostPage, CircleUploadTicket } from '@dreamlab/contracts';
 import { refresh } from 'next/cache';
-import { fromLocalInput } from '@/lib/cohorts';
+import { fromLocalInput, localInput } from '@/lib/cohorts';
 import { fieldErrors, friendlyError } from '@/lib/errors';
 import { type FormState, str } from '@/lib/forms';
 import { api } from '@/lib/gateway';
@@ -93,6 +93,10 @@ export async function scheduleCircleMeetup(_: FormState, fd: FormData): Promise<
   if (!zone) return { error: NO_ZONE, values };
   const startsAt = LOCAL_TIME.test(values.startsAt) ? fromLocalInput(values.startsAt, zone) : null;
   if (!startsAt) return { error: 'Choose a date and time.', fields: { startsAt: 'Choose a date and time' }, values };
+  // A time the clocks skip (daylight saving) would silently move by an hour: ask for another.
+  if (localInput(startsAt, zone) !== values.startsAt) {
+    return { error: 'That time doesn’t exist where you are (the clocks change then). Choose another.', fields: { startsAt: 'Choose another time' }, values };
+  }
   if (values.mode !== 'virtual' && values.mode !== 'physical') return { error: 'Choose online or in person.', values };
   if (values.mode === 'physical' && !values.location) return { error: 'Say where you will meet.', fields: { location: 'Where you will meet' }, values };
   const res = await api<CircleMeetup>('POST', `/v1/learning/circles/${circleId}/meetups`, {

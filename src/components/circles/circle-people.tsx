@@ -86,7 +86,7 @@ export function ContactForm({ circleId, contact }: { circleId: string; contact: 
       </summary>
       <form action={action} className="space-y-4 border-t border-line p-4">
         <input type="hidden" name="circleId" value={circleId} />
-        <p className="text-[13.5px] text-muted">Only people who can open this circle see these: its members, their mentors and the cohort team. Leave a field empty to keep it private.</p>
+        <p className="text-[13.5px] text-muted">Only the people in this circle see these: its members and their mentors. Leave a field empty to keep it private.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextInput label="Email" name="email" type="email" autoComplete="email" maxLength={320} defaultValue={v?.email ?? contact?.email ?? ''} error={state.fields?.email} />
           <TextInput
