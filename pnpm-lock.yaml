@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@dreamlab/contracts':
-        specifier: github:TheAfricanDreamLab/dreamlab-contracts#v0.18.0
-        version: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/5bb6e34a1ed28e6b0a24d361eddda6f42eaceae1(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)
+        specifier: github:TheAfricanDreamLab/dreamlab-contracts#v0.19.0
+        version: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/f42826b8f285cb3540e279fd03c687be38fe0685(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)
       '@livekit/components-react':
         specifier: 2.9.24
         version: 2.9.24(livekit-client@2.22.4(@types/dom-mediacapture-record@1.0.22))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tslib@2.8.1)
@@ -152,9 +152,9 @@ packages:
   '@bufbuild/protobuf@1.10.1':
     resolution: {integrity: sha512-wJ8ReQbHxsAfXhrf9ixl0aYbZorRuOWpBNzm8pL8ftmSxQx/wnJD5Eg861NwJU/czy2VXFIebCeZnZrI9rktIQ==}
 
-  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/5bb6e34a1ed28e6b0a24d361eddda6f42eaceae1':
-    resolution: {tarball: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/5bb6e34a1ed28e6b0a24d361eddda6f42eaceae1}
-    version: 0.18.0
+  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/f42826b8f285cb3540e279fd03c687be38fe0685':
+    resolution: {tarball: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/f42826b8f285cb3540e279fd03c687be38fe0685}
+    version: 0.19.0
     engines: {node: '>=22.23.4'}
     peerDependencies:
       '@ts-rest/core': ^3.52.1
@@ -2379,7 +2379,7 @@ snapshots:
 
   '@bufbuild/protobuf@1.10.1': {}
 
-  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/5bb6e34a1ed28e6b0a24d361eddda6f42eaceae1(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)':
+  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/f42826b8f285cb3540e279fd03c687be38fe0685(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@ts-rest/core': 3.52.1(@types/node@20.19.43)(zod@3.25.76)
       zod: 3.25.76
