@@ -99,12 +99,20 @@ test('ORG-002, ORG-008, ORG-013, ORG-021: an organisation admin’s fixes', asyn
   const inPerson = page.locator('li').filter({ hasText: '· In person' });
   const before = await inPerson.count();
   expect(before).toBeGreaterThan(0);
-  const saturday = inPerson.first();
-  await saturday.getByRole('button', { name: /^Edit/ }).click();
-  const saveClass = saturday.getByRole('button', { name: 'Save class' });
+  // The edited class by its own name ("Edit <title>, week 1"), so the check follows that class.
+  const edit = inPerson.first().getByRole('button', { name: /^Edit/ });
+  const editName = (await edit.getAttribute('aria-label')) ?? (await edit.innerText()).replace(/\s+/g, ' ').trim();
+  // While open the button reads "Close <title>, week 1": match the class's own part.
+  const own = editName.replace(/^Edit\s*/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const theClass = page.locator('li').filter({ has: page.getByRole('button', { name: new RegExp(`${own}$`) }) });
+  await edit.click();
+  const saveClass = theClass.getByRole('button', { name: 'Save class' });
   await expect(saveClass).toBeDisabled();
-  await saturday.getByLabel('Where it happens').selectOption('virtual');
+  await theClass.getByLabel('Where it happens').selectOption('virtual');
   await saveClass.click();
+  await expect(theClass).toBeVisible();
+  await expect(theClass).toContainText('· Online');
+  await expect(theClass).not.toContainText('· In person');
   await expect(page.locator('li').filter({ hasText: '· In person' })).toHaveCount(before - 1);
 
   // ORG-002: the organisation's own address opens its sign-in page for someone signed out.
