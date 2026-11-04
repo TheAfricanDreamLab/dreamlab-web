@@ -119,8 +119,11 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await mentor.getByLabel('Notes').fill('Agreed to interview five farmers before Friday.');
   await mentor.getByRole('button', { name: 'Save meeting' }).click();
   await expect(mentor.getByText('Logged as held.')).toBeVisible();
-  await ada.goto('/app/programme');
-  await expect(ada.getByText('Agreed to interview five farmers before Friday.')).toBeVisible();
+  // The save and Ada's page load can cross; she sees the notes once the save has landed.
+  await expect(async () => {
+    await ada.goto('/app/programme');
+    await expect(ada.getByText('Agreed to interview five farmers before Friday.')).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 
   // Faculty find the live room and the recordings on a class register.
   await page.goto(cohortUrl);
@@ -159,11 +162,44 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await mentor.goto('/app/mentoring');
   await mentor.getByRole('heading', { name: 'Your mentees’ Dream Circles' }).locator('..').getByRole('link', { name: 'Open circle' }).click();
   await expect(mentor).toHaveURL(circleUrl);
-  await expect(mentor.getByText('· mentor')).toBeVisible();
+  await expect(mentor.getByText('you are here as a mentor')).toBeVisible();
   await mentor.getByRole('article').filter({ hasText: 'First prototype' }).first().getByRole('button', { name: 'Pin' }).click();
   await expect(mentor.getByRole('article').filter({ hasText: 'First prototype' }).first().getByText('Pinned')).toBeVisible();
   await ada.reload();
   await expect(ada.getByRole('article').filter({ hasText: 'First prototype' }).first().getByRole('button', { name: '1 reply' })).toBeVisible();
+
+  // COMM-3: nothing is shared until Ada chooses to; then Tunde can reach her on WhatsApp.
+  const adaCard = tunde.getByRole('list', { name: 'People in this circle' }).getByRole('listitem').filter({ hasText: 'Ada Obi' });
+  await expect(adaCard.getByText('No contact details shared.')).toBeVisible();
+  await ada.getByText('Your contact details').click();
+  const save = ada.getByRole('button', { name: 'Save contact details' });
+  await expect(save).toBeDisabled();
+  await ada.getByLabel('Phone').fill('+234 801 234 5678');
+  await ada.getByLabel('This number is on WhatsApp').check();
+  await save.click();
+  await expect(ada.getByText('Saved. The people in this circle can now see what you shared.')).toBeVisible();
+  await tunde.reload();
+  await expect(adaCard.getByRole('link', { name: 'WhatsApp Ada Obi' })).toHaveAttribute('href', 'https://wa.me/2348012345678');
+  await expect(adaCard.getByRole('link', { name: 'Email Ada Obi' })).toHaveCount(0);
+
+  // Tunde sets up a meetup in person; Ada sees it, and can't cancel what she didn't set up.
+  await tunde.getByText('Set up a meetup').click();
+  await tunde.getByLabel('What', { exact: true }).fill('Market walk');
+  await tunde.getByLabel('When (your time)').fill(soon(24 * 60));
+  await tunde.getByText('In person', { exact: true }).click();
+  await tunde.getByLabel('Place', { exact: true }).fill('Ogbete Market');
+  await tunde.getByRole('button', { name: 'Schedule meetup' }).click();
+  await expect(tunde.getByText('Meetup scheduled.', { exact: false })).toBeVisible();
+  await ada.reload();
+  const meetups = ada.getByRole('list', { name: 'Coming meetups' });
+  await expect(meetups.getByText('Market walk')).toBeVisible();
+  await expect(meetups.getByText('At Ogbete Market')).toBeVisible();
+  await expect(meetups.getByRole('button', { name: /Cancel meetup/ })).toHaveCount(0);
+
+  // Circle news can be switched off by email on its own.
+  await ada.goto('/app/account');
+  await expect(ada.getByLabel('My Dream Circles: posts, replies, calls and meetups')).toBeChecked();
+  await ada.goto(circleUrl);
 
   // Anyone in the circle starts a call; it is never recorded.
   await ada.getByRole('link', { name: 'Start a call' }).click();

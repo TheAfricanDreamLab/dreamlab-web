@@ -136,6 +136,8 @@ test('a mentor and mentee meet on camera, and a learner joins a live class that 
   await online.getByRole('button', { name: 'Save class' }).click();
   await expect(online.getByRole('status').or(online.getByText(/saved|updated/i)).first()).toBeVisible();
   await online.getByRole('link', { name: /^(Register|Attendance) for / }).click();
+  // Read the address once the register has opened, not while the click is still navigating.
+  await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+/);
   const register = page.url();
   await page.getByRole('link', { name: 'Start class' }).click();
   await inRoom(page, 1);
