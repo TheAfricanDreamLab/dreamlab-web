@@ -6,6 +6,7 @@ import { postToCircle, startCircleUpload } from '@/app/actions/circles';
 import { Icon } from '@/components/ui/icons';
 import { cx, Notice } from '@/components/ui/primitives';
 import { CIRCLE_ACCEPT, clock, prepareFile, type PreparedFile, voiceMimeType } from '@/lib/circle-media';
+import { attempt } from './attempt';
 import { fileSize, putFile } from '@/lib/upload';
 
 interface Pending {
@@ -31,6 +32,8 @@ export function Composer({ circleId, parentId, placeholder, onPosted, compact = 
   const [posting, setPosting] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
   const seq = useRef(0);
+  /** Files on the post, counting those still being prepared, so quick picks cannot pass the limit. */
+  const slots = useRef(0);
   const textId = useId();
 
   // Object URLs for previews are released when their file is removed or posted, and when this closes.
@@ -50,11 +53,14 @@ export function Composer({ circleId, parentId, placeholder, onPosted, compact = 
 
   async function add(raw: File[]) {
     setError(null);
-    const room = CIRCLE_ATTACHMENTS_MAX - files.length;
+    const room = Math.max(0, CIRCLE_ATTACHMENTS_MAX - slots.current);
     if (raw.length > room) setError(`A post can carry ${CIRCLE_ATTACHMENTS_MAX} files at most.`);
-    for (const file of raw.slice(0, Math.max(0, room))) {
+    const taken = raw.slice(0, room);
+    slots.current += taken.length;
+    for (const file of taken) {
       const prepared = await prepareFile(file);
       if ('error' in prepared) {
+        slots.current -= 1;
         setError(prepared.error);
         continue;
       }
@@ -67,14 +73,16 @@ export function Composer({ circleId, parentId, placeholder, onPosted, compact = 
   }
 
   async function upload(key: string, p: PreparedFile) {
-    const ticket = await startCircleUpload(circleId, {
-      fileName: p.file.name,
-      contentType: p.file.type || 'application/octet-stream',
-      size: p.file.size,
-      durationSec: p.durationSec,
-      width: p.width,
-      height: p.height,
-    });
+    const ticket = await attempt(() =>
+      startCircleUpload(circleId, {
+        fileName: p.file.name,
+        contentType: p.file.type || 'application/octet-stream',
+        size: p.file.size,
+        durationSec: p.durationSec,
+        width: p.width,
+        height: p.height,
+      }),
+    );
     if (!ticket.ok) return update(key, { error: ticket.error });
     try {
       await putFile(ticket.data, p.file, (share) => update(key, { progress: Math.min(share, 0.99) }));
@@ -92,12 +100,16 @@ export function Composer({ circleId, parentId, placeholder, onPosted, compact = 
     if (!canPost) return;
     setPosting(true);
     setError(null);
-    const res = await postToCircle(circleId, { body: body.trim(), attachmentIds: ready.map((f) => f.attachmentId!), parentId });
+    // What is sent now; text and files added while it posts stay for the next one.
+    const sentBody = body;
+    const sent = new Set(ready.map((f) => f.key));
+    const res = await attempt(() => postToCircle(circleId, { body: sentBody.trim(), attachmentIds: ready.map((f) => f.attachmentId!), parentId }));
     setPosting(false);
     if (!res.ok) return setError(res.error);
-    setBody('');
-    release(files);
-    setFiles([]);
+    setBody((now) => (now === sentBody ? '' : now));
+    release(ready);
+    slots.current -= sent.size;
+    setFiles((all) => all.filter((f) => !sent.has(f.key)));
     onPosted(res.data);
   }
 
@@ -143,6 +155,7 @@ export function Composer({ circleId, parentId, placeholder, onPosted, compact = 
                 type="button"
                 onClick={() => {
                   release([f]);
+                  slots.current -= 1;
                   setFiles((all) => all.filter((x) => x.key !== f.key));
                 }}
                 aria-label={`Remove ${f.prepared.file.name}`}
@@ -190,14 +203,16 @@ function VoiceRecorder({ onRecorded, onError, disabled }: { onRecorded: (file: F
   const [seconds, setSeconds] = useState<number | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const mounted = useRef(true);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       clearInterval(timer.current);
       recorder.current?.stream.getTracks().forEach((t) => t.stop());
-    },
-    [],
-  );
+    };
+  }, []);
 
   async function start() {
     const mimeType = voiceMimeType();
@@ -207,6 +222,11 @@ function VoiceRecorder({ onRecorded, onError, disabled }: { onRecorded: (file: F
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     } catch {
       return onError('Allow the microphone to record a voice message.');
+    }
+    // Closed while the browser was asking for the microphone: let it go, record nothing.
+    if (!mounted.current) {
+      stream.getTracks().forEach((t) => t.stop());
+      return;
     }
     const chunks: Blob[] = [];
     const rec = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 32_000 });

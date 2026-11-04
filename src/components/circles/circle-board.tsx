@@ -8,6 +8,7 @@ import { Badge, cx, Notice } from '@/components/ui/primitives';
 import { clock } from '@/lib/circle-media';
 import { initials } from '@/lib/labels';
 import { fileSize } from '@/lib/upload';
+import { attempt } from './attempt';
 import { Composer } from './composer';
 
 const ROLE_BADGE = { mentor: 'Mentor', staff: 'Cohort team', member: null } as const;
@@ -30,7 +31,8 @@ export function CircleBoard({ circleId, initial }: { circleId: string; initial: 
     if (!el || !cursor) return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting) && !loading) void more();
+        // After a failure, loading waits for "Show older posts" instead of retrying on its own.
+        if (entries.some((e) => e.isIntersecting) && !loading && !error) void more();
       },
       { rootMargin: '600px' },
     );
@@ -41,14 +43,21 @@ export function CircleBoard({ circleId, initial }: { circleId: string; initial: 
   async function more() {
     if (!cursor || loading) return;
     setLoading(true);
-    const res = await loadCirclePosts(circleId, { before: cursor });
+    setError(null);
+    const res = await attempt(() => loadCirclePosts(circleId, { before: cursor }));
     setLoading(false);
     if (!res.ok) return setError(res.error);
     setPosts((all) => [...all, ...res.data.items.filter((p) => !all.some((a) => a.id === p.id))]);
     setCursor(res.data.nextCursor);
   }
 
-  const replace = (post: CirclePost) => setPosts((all) => sortPinned(all.map((p) => (p.id === post.id ? post : p))));
+  // A post pinned just now goes to the top of the pinned ones.
+  const replace = (post: CirclePost) =>
+    setPosts((all) => {
+      const before = all.find((p) => p.id === post.id);
+      const rest = all.filter((p) => p.id !== post.id);
+      return sortPinned(post.pinned && !before?.pinned ? [post, ...rest] : all.map((p) => (p.id === post.id ? post : p)));
+    });
   const remove = (id: string) => setPosts((all) => all.filter((p) => p.id !== id));
 
   return (
@@ -77,9 +86,10 @@ export function CircleBoard({ circleId, initial }: { circleId: string; initial: 
   );
 }
 
-/** Pinned posts stay on top, most recently pinned first; the rest keep their order. */
+/** Pinned posts on top, most recently pinned first (as listed); the rest newest first. */
 function sortPinned(posts: CirclePost[]): CirclePost[] {
-  return [...posts.filter((p) => p.pinned), ...posts.filter((p) => !p.pinned)];
+  const newest = (a: CirclePost, b: CirclePost) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id);
+  return [...posts.filter((p) => p.pinned), ...posts.filter((p) => !p.pinned).sort(newest)];
 }
 
 function PostCard({ circleId, post, onChange, onRemoved, reply = false }: { circleId: string; post: CirclePost; onChange: (p: CirclePost) => void; onRemoved: () => void; reply?: boolean }) {
@@ -91,7 +101,8 @@ function PostCard({ circleId, post, onChange, onRemoved, reply = false }: { circ
   async function toggleReplies() {
     setOpen((o) => !o);
     if (replies !== null || open) return;
-    const res = await loadCirclePosts(circleId, { parentId: post.id });
+    setError(null);
+    const res = await attempt(() => loadCirclePosts(circleId, { parentId: post.id }));
     if (res.ok) setReplies(res.data.items);
     else setError(res.error);
   }
@@ -99,7 +110,7 @@ function PostCard({ circleId, post, onChange, onRemoved, reply = false }: { circ
   async function remove() {
     if (!confirm(reply ? 'Remove this reply?' : 'Remove this post and its files? Replies go with it.')) return;
     setBusy(true);
-    const res = await removeCirclePost(post.id);
+    const res = await attempt(() => removeCirclePost(post.id));
     setBusy(false);
     if (res.ok) onRemoved();
     else setError(res.error);
@@ -107,7 +118,7 @@ function PostCard({ circleId, post, onChange, onRemoved, reply = false }: { circ
 
   async function pin() {
     setBusy(true);
-    const res = await pinCirclePost(post.id, !post.pinned);
+    const res = await attempt(() => pinCirclePost(post.id, !post.pinned));
     setBusy(false);
     if (res.ok) onChange(res.data);
     else setError(res.error);
@@ -165,7 +176,7 @@ function PostCard({ circleId, post, onChange, onRemoved, reply = false }: { circ
           {open && (
             <div className="space-y-3">
               {replies === null ? (
-                <p className="text-[13px] text-muted">Loading replies…</p>
+                !error && <p className="text-[13px] text-muted">Loading replies…</p>
               ) : (
                 replies.map((r) => (
                   <PostCard

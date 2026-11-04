@@ -67,8 +67,19 @@ export async function callGateway<T>(
       error: { statusCode: 503, error: 'Service Unavailable', message: 'We could not reach Dream Lab. Check your connection and try again.', code: 'network' },
     };
   }
-  const text = await res.text();
-  const json = text ? (JSON.parse(text) as unknown) : null;
+  // A proxy in between can answer with an HTML error page, or the body can break off: never throw.
+  let json: unknown;
+  try {
+    const text = await res.text();
+    json = text ? (JSON.parse(text) as unknown) : null;
+  } catch {
+    const status = res.ok ? 502 : res.status;
+    return {
+      ok: false,
+      status,
+      error: { statusCode: status, error: 'Bad Gateway', message: 'Dream Lab sent an answer we could not read. Please try again.', code: 'bad_response' },
+    };
+  }
   if (res.ok) return { ok: true, status: res.status, data: json as T };
   return { ok: false, status: res.status, error: (json as ErrorResponse) ?? { statusCode: res.status, error: res.statusText, message: res.statusText } };
 }
