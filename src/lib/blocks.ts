@@ -158,11 +158,11 @@ export function youtubeId(input: string): string | null {
   try {
     const url = new URL(s);
     const host = url.hostname.replace(/^www\.|^m\./, '');
-    if (host === 'youtu.be') return /^\/([A-Za-z0-9_-]{11})/.exec(url.pathname)?.[1] ?? null;
+    if (host === 'youtu.be') return /^\/([A-Za-z0-9_-]{11})(?:\/|$)/.exec(url.pathname)?.[1] ?? null;
     if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
       const v = url.searchParams.get('v');
       if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
-      return /^\/(?:shorts|embed|live)\/([A-Za-z0-9_-]{11})/.exec(url.pathname)?.[1] ?? null;
+      return /^\/(?:shorts|embed|live)\/([A-Za-z0-9_-]{11})(?:\/|$)/.exec(url.pathname)?.[1] ?? null;
     }
   } catch {
     // not a link

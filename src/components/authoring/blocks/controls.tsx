@@ -58,10 +58,15 @@ export function RichTextField({
     // Lists start on their own line.
     const isList = tool.label === '•' || tool.label === '1.';
     const needsBreak = isList && start > 0 && value[start - 1] !== '\n' ? '\n' : '';
-    const next = value.slice(0, start) + needsBreak + text + value.slice(end);
-    onChange(next.slice(0, maxLength));
+    const inserted = needsBreak + text;
+    // Formatting that would not fit is skipped rather than cutting the end of the text.
+    if (value.length - (end - start) + inserted.length > maxLength) return;
+    el.focus();
+    el.setSelectionRange(start, end);
+    // Inserted as typing, so the field's own undo (Ctrl+Z) reverses it; React sees the input event.
+    const typed = typeof document.execCommand === 'function' && document.execCommand('insertText', false, inserted);
+    if (!typed) onChange(value.slice(0, start) + inserted + value.slice(end));
     requestAnimationFrame(() => {
-      el.focus();
       const at = start + needsBreak.length;
       el.setSelectionRange(caret ? at + caret[0] : at + text.length, caret ? at + caret[1] : at + text.length);
     });
@@ -137,22 +142,28 @@ export function ListEditor<T>({
   ordered?: boolean;
   hint?: ReactNode;
 }) {
+  const list = useRef<HTMLOListElement>(null);
+  // After a move, focus follows the row that moved (rows are keyed by position).
+  const moveRow = (from: number, to: number, dir: 'up' | 'down') => {
+    onChange(move(items, from, to));
+    requestAnimationFrame(() => list.current?.querySelector<HTMLButtonElement>(`[aria-label="Move ${noun} ${to + 1} ${dir}"]:not(:disabled)`)?.focus());
+  };
   return (
     <fieldset className="space-y-2">
       <legend className="flex w-full flex-wrap items-baseline justify-between gap-2 text-[13px] font-semibold text-ink">
         {legend}
         <span className="text-[12px] font-normal text-muted">{hint ?? `${min}–${max}`}</span>
       </legend>
-      <ol className="space-y-2">
+      <ol ref={list} className="space-y-2">
         {items.map((item, i) => (
           <li key={i} className="flex gap-2 rounded-[var(--radius-field)] bg-surface p-2.5 ring-1 ring-line">
             {ordered && <span className="pt-2.5 font-mono text-[12px] text-muted">{i + 1}.</span>}
             <div className="min-w-0 flex-1">{render(item, (next) => onChange(items.map((x, j) => (j === i ? next : x))), i)}</div>
             <span className="flex shrink-0 flex-col items-center gap-0.5">
-              <SmallButton onClick={() => onChange(move(items, i, i - 1))} disabled={i === 0} label={`Move ${noun} ${i + 1} up`}>
+              <SmallButton onClick={() => moveRow(i, i - 1, 'up')} disabled={i === 0} label={`Move ${noun} ${i + 1} up`}>
                 ↑
               </SmallButton>
-              <SmallButton onClick={() => onChange(move(items, i, i + 1))} disabled={i === items.length - 1} label={`Move ${noun} ${i + 1} down`}>
+              <SmallButton onClick={() => moveRow(i, i + 1, 'down')} disabled={i === items.length - 1} label={`Move ${noun} ${i + 1} down`}>
                 ↓
               </SmallButton>
               <SmallButton tone="danger" onClick={() => onChange(items.filter((_, j) => j !== i))} disabled={items.length <= min} label={`Remove ${noun} ${i + 1}`}>

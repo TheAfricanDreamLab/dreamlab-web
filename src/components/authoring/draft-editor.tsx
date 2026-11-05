@@ -35,6 +35,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   }, [doc]);
 
   // Undo and redo across the whole course. Quick edits in a row (typing) count as one step.
+  const saved = useRef<Doc>(initial.doc as Doc);
   const past = useRef<Doc[]>([]);
   const future = useRef<Doc[]>([]);
   const lastEdit = useRef(0);
@@ -59,7 +60,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     future.current = [latest.current, ...future.current];
     lastEdit.current = 0;
     setDocState(prev);
-    setDirty(true);
+    setDirty(prev !== saved.current);
     setJsonVersion((v) => v + 1);
     setHistory({ past: past.current.length, future: future.current.length });
   }, []);
@@ -70,7 +71,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     past.current = [...past.current, latest.current];
     lastEdit.current = 0;
     setDocState(next);
-    setDirty(true);
+    setDirty(next !== saved.current);
     setJsonVersion((v) => v + 1);
     setHistory({ past: past.current.length, future: future.current.length });
   }, []);
@@ -95,6 +96,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       return null;
     }
     setDraft(res.data);
+    saved.current = sent;
     // Edits made while the save was on its way are still unsaved.
     setDirty(latest.current !== sent);
     setMessage({ tone: 'success', text: res.data.issues.length ? `Saved. ${res.data.issues.length} thing(s) to fix before review.` : 'Saved. Ready to send for review.' });
@@ -117,7 +119,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   // where the field's own undo applies.
   const saveRef = useRef(save);
   useEffect(() => {
-    saveRef.current = save;
+    // One save at a time, and only when there is something to save.
+    saveRef.current = async () => (busy === null && dirty ? save() : null);
   });
   useEffect(() => {
     if (!editable) return;

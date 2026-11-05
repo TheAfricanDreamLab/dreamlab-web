@@ -47,7 +47,7 @@ export function OutlineEditor({ modules, setModules, open, setOpen }: { modules:
           onMove={(to) => setModules(move(modules, mi, to))}
           onDuplicate={() => {
             const copy = structuredClone(m);
-            copy.key = uniqueKey(`${m.key}-copy`, modules.map((x) => x.key));
+            copy.key = uniqueKey(`${m.key.slice(0, 38)}-copy`, modules.map((x) => x.key));
             copy.title = `${m.title} (copy)`;
             const next = [...modules];
             next.splice(mi + 1, 0, copy);
@@ -158,7 +158,7 @@ function ModuleCard({
                       label={`Duplicate ${item.title}`}
                       onClick={() => {
                         const copy = structuredClone(item);
-                        copy.key = uniqueKey(`${item.key}-copy`, m.items.map((x) => x.key));
+                        copy.key = uniqueKey(`${item.key.slice(0, 38)}-copy`, m.items.map((x) => x.key));
                         copy.title = `${item.title} (copy)`;
                         const items = [...m.items];
                         items.splice(ii + 1, 0, copy);
@@ -236,7 +236,7 @@ function ItemEditor({ item, onChange }: { item: ItemDoc; onChange: (i: ItemDoc) 
         Required to complete the course
       </label>
 
-      {item.type === 'lesson' && <LessonEditor steps={(p.steps as Step[] | undefined) ?? []} onChange={(steps) => setPayload({ steps })} />}
+      {item.type === 'lesson' && <LessonEditor steps={Array.isArray(p.steps) ? (p.steps as Step[]) : []} onChange={(steps) => setPayload({ steps })} />}
 
       {item.type === 'quiz' && (
         <div className="space-y-3">
@@ -250,7 +250,7 @@ function ItemEditor({ item, onChange }: { item: ItemDoc; onChange: (i: ItemDoc) 
               Questions <span className="font-normal text-muted">(multiple choice, put in order or match pairs; answers stay on the server)</span>
             </p>
             <BlockList
-              blocks={(p.questions as BlockDoc[] | undefined) ?? []}
+              blocks={Array.isArray(p.questions) ? (p.questions as BlockDoc[]) : []}
               onChange={(questions) => setPayload({ questions })}
               types={QUESTION_TYPES}
               max={LIMITS.quizQuestions}
@@ -317,7 +317,7 @@ function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]
                 disabled={steps.length >= LIMITS.stepsPerLesson}
                 onClick={() => {
                   const next = [...steps];
-                  next.splice(i + 1, 0, { ...structuredClone(step), id: uniqueKey(`${step.id}-copy`, ids), title: step.title ? `${step.title} (copy)` : undefined });
+                  next.splice(i + 1, 0, { ...structuredClone(step), id: uniqueKey(`${step.id.slice(0, 38)}-copy`, ids), title: step.title ? `${step.title} (copy)` : undefined });
                   onChange(next);
                 }}
               >

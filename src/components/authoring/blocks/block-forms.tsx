@@ -16,12 +16,15 @@ type Props = { block: BlockDoc; set: (b: BlockDoc) => void };
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
-const rows = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+/** List rows, skipping anything that isn't an object (a hand-edited or imported list can hold nulls). */
+const rows = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v.filter((x) => x && typeof x === 'object') as T[]) : []);
 const ids = (v: unknown) => rows<{ id?: string }>(v).map((o) => o.id ?? '');
 /** Optional text: empty means "not set", so the schema's optional fields stay absent. */
 const opt = (v: string) => (v.trim() ? v : undefined);
 
 export function BlockForm({ block, set }: Props) {
+  // Radio groups need a name unique on the page; block ids repeat across steps.
+  const group = useId();
   const patch = (p: Record<string, unknown>) => set({ ...block, ...p });
   switch (block.type) {
     case 'text':
@@ -149,7 +152,7 @@ export function BlockForm({ block, set }: Props) {
                   <label className={cx('flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-[13px] font-semibold ring-1', o.correct ? 'bg-success-tint text-link ring-success-line' : 'text-muted ring-line')}>
                     <input
                       type={multiple ? 'checkbox' : 'radio'}
-                      name={`${block.id}-correct`}
+                      name={`${group}-correct`}
                       checked={o.correct}
                       onChange={(e) =>
                         multiple ? setO({ ...o, correct: e.target.checked }) : patch({ options: options.map((x, j) => ({ ...x, correct: j === i })) })

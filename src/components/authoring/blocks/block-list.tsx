@@ -42,8 +42,9 @@ const FIELD_NAMES: Record<string, string> = {
 };
 
 /** What stops a block being published, in words an author recognises. */
-export function blockProblems(block: BlockDoc): string[] {
+export function blockProblems(block: BlockDoc, types?: BlockType[]): string[] {
   const out: string[] = [];
+  if (types && !types.includes(block.type)) out.push(`Only ${types.map((t) => BLOCK_INFO[t].label.toLowerCase()).join(', ')} can go here`);
   const parsed = BlockAuthoringSchema.safeParse(block);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
@@ -55,7 +56,9 @@ export function blockProblems(block: BlockDoc): string[] {
       out.push(where ? `${where}: ${message}` : message);
     }
   }
-  if (block.type === 'choice' && Array.isArray(block.options) && !(block.options as { correct?: boolean }[]).some((o) => o.correct)) out.push('Tick at least one right answer');
+  if (block.type === 'choice' && Array.isArray(block.options) && !(block.options as unknown[]).some((o) => !!o && typeof o === 'object' && (o as { correct?: unknown }).correct === true)) {
+    out.push('Tick at least one right answer');
+  }
   if (block.type === 'video' && !block.videoId) out.push('Video: paste a YouTube link or upload a file');
   if (block.type === 'image' && !block.url) out.push('Image: upload one or give an address');
   return [...new Set(out)].slice(0, 6);
@@ -84,6 +87,7 @@ export function BlockList({
   const full = blocks.length >= max;
 
   const insert = (at: number, type: BlockType) => {
+    if (blocks.length >= max) return setPicker(null);
     const next = [...blocks];
     next.splice(at, 0, newBlock(type, taken));
     onChange(next);
@@ -91,6 +95,8 @@ export function BlockList({
     setOpen(at);
   };
   const duplicate = (i: number) => {
+    setPicker(null);
+    if (blocks.length >= max) return;
     const copy = { ...structuredClone(blocks[i]!), id: freshId(blocks[i]!.type.replace('_', '-'), taken) };
     const next = [...blocks];
     next.splice(i + 1, 0, copy);
@@ -126,6 +132,7 @@ export function BlockList({
           {picker === i && adder(i)}
           <BlockCard
             block={b}
+            types={types}
             index={i}
             count={blocks.length}
             noun={noun}
@@ -188,6 +195,7 @@ type Mode = 'form' | 'preview' | 'json';
 
 function BlockCard({
   block,
+  types,
   index,
   count,
   noun,
@@ -201,6 +209,7 @@ function BlockCard({
   onRemove,
 }: {
   block: BlockDoc;
+  types?: BlockType[];
   index: number;
   count: number;
   noun: string;
@@ -216,7 +225,7 @@ function BlockCard({
   const [mode, setMode] = useState<Mode>('form');
   const [jsonKey, setJsonKey] = useState(0);
   const info = BLOCK_INFO[block.type] ?? { label: String(block.type), icon: '?', help: '' };
-  const problems = blockProblems(block);
+  const problems = blockProblems(block, types);
   const name = `${info.label} ${noun} ${index + 1}`;
   let preview: Block | null = null;
   if (problems.length === 0) {
