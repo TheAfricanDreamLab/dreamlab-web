@@ -34,9 +34,46 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     latest.current = doc;
   }, [doc]);
 
+  // Undo and redo across the whole course. Quick edits in a row (typing) count as one step.
+  const saved = useRef<Doc>(initial.doc as Doc);
+  const past = useRef<Doc[]>([]);
+  const future = useRef<Doc[]>([]);
+  const lastEdit = useRef(0);
+  const [history, setHistory] = useState({ past: 0, future: 0 });
   const setDoc = useCallback((next: Doc) => {
+    // Typing in a field merges into one undo step; anything else (adding, moving, removing) is its own.
+    const now = Date.now();
+    const typing = document.activeElement instanceof HTMLElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+    if (!typing || now - lastEdit.current > 800) {
+      past.current = [...past.current.slice(-99), latest.current];
+      future.current = [];
+    }
+    lastEdit.current = typing ? now : 0;
     setDocState(next);
     setDirty(true);
+    setHistory({ past: past.current.length, future: future.current.length });
+  }, []);
+  const undo = useCallback(() => {
+    const prev = past.current.at(-1);
+    if (!prev) return;
+    past.current = past.current.slice(0, -1);
+    future.current = [latest.current, ...future.current];
+    lastEdit.current = 0;
+    setDocState(prev);
+    setDirty(prev !== saved.current);
+    setJsonVersion((v) => v + 1);
+    setHistory({ past: past.current.length, future: future.current.length });
+  }, []);
+  const redo = useCallback(() => {
+    const [next, ...rest] = future.current;
+    if (!next) return;
+    future.current = rest;
+    past.current = [...past.current, latest.current];
+    lastEdit.current = 0;
+    setDocState(next);
+    setDirty(next !== saved.current);
+    setJsonVersion((v) => v + 1);
+    setHistory({ past: past.current.length, future: future.current.length });
   }, []);
   const set = (key: string, value: unknown) => setDoc({ ...doc, [key]: value });
   const modules = normaliseModules(doc.modules);
@@ -59,6 +96,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       return null;
     }
     setDraft(res.data);
+    saved.current = sent;
     // Edits made while the save was on its way are still unsaved.
     setDirty(latest.current !== sent);
     setMessage({ tone: 'success', text: res.data.issues.length ? `Saved. ${res.data.issues.length} thing(s) to fix before review.` : 'Saved. Ready to send for review.' });
@@ -75,6 +113,60 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     setNote('');
     const done = { submit: 'Sent for review.', withdraw: 'Back with you: keep editing.', publish: `Published as version ${res.data.publishedVersionNo ?? ''}.`, 'request-changes': 'Returned to the authors with your note.' };
     setMessage({ tone: 'success', text: done[name] });
+  };
+
+  // Ctrl/Cmd+S saves; Ctrl/Cmd+Z and Shift+Z (or Y) undo and redo, except while typing in a field,
+  // where the field's own undo applies.
+  const saveRef = useRef(save);
+  useEffect(() => {
+    // One save at a time, and only when there is something to save.
+    saveRef.current = async () => (busy === null && dirty ? save() : null);
+  });
+  useEffect(() => {
+    if (!editable) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 's') {
+        e.preventDefault();
+        void saveRef.current();
+        return;
+      }
+      const typing = e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if (typing) return;
+      if (key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editable, undo, redo]);
+
+  const download = () => {
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${draft.slug}-draft-r${draft.revision}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const importFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('The file is not a course (expected a JSON object).');
+      if (!window.confirm(`Replace this whole draft with “${file.name}”? You can undo it, and nothing is saved until you click Save.`)) return;
+      // The web address belongs to the draft and can't change.
+      setDoc({ ...(parsed as Doc), slug: draft.slug });
+      setJsonVersion((v) => v + 1);
+      setMessage({ tone: 'success', text: `Imported ${file.name}. Check it, then save.` });
+    } catch (err) {
+      setMessage({ tone: 'error', text: err instanceof Error ? `Couldn’t import ${file.name}: ${err.message}` : `Couldn’t import ${file.name}.` });
+    }
   };
 
   const jump = (path: string) => {
@@ -146,6 +238,28 @@ export function DraftEditor({ initial }: { initial: Draft }) {
             <Button type="button" onClick={save} disabled={!dirty || busy !== null}>
               {busy === 'save' ? 'Saving…' : 'Save'}
             </Button>
+          </div>
+        )}
+        {editable && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={history.past === 0}
+              title="Undo (Ctrl+Z)"
+              className="min-h-11 rounded-full px-4 text-[14px] font-semibold text-link ring-1 ring-line hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ↶ Undo
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={history.future === 0}
+              title="Redo (Ctrl+Shift+Z)"
+              className="min-h-11 rounded-full px-4 text-[14px] font-semibold text-link ring-1 ring-line hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ↷ Redo
+            </button>
           </div>
         )}
         {draft.can.submit && (
@@ -236,7 +350,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
           [
             ['details', 'Details'],
             ['outline', `Outline & content (${modules.length})`],
-            ['json', 'JSON'],
+            ['json', 'Advanced: JSON'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -260,6 +374,30 @@ export function DraftEditor({ initial }: { initial: Draft }) {
           {tab === 'details' && <DetailsEditor draftId={draft.id} doc={doc} set={set} />}
           {tab === 'outline' && <OutlineEditor modules={modules} setModules={(m) => set('modules', m)} open={open} setOpen={setOpen} />}
           {tab === 'json' && (
+            <div className="space-y-4">
+              <Card className="space-y-3 p-4">
+                <p className="text-[14px] text-body">
+                  For power users and for moving a course between environments: download the whole course as a file, or replace this draft with one. The web address stays{' '}
+                  <span className="font-mono text-[13px]">/courses/{draft.slug}</span>.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={download} className="min-h-11 rounded-full px-4 text-[14px] font-semibold text-link ring-1 ring-line-strong hover:bg-surface">
+                    Download as JSON
+                  </button>
+                  <label className="inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 text-[14px] font-semibold text-link ring-1 ring-line-strong focus-within:ring-2 focus-within:ring-primary hover:bg-surface">
+                    Import a JSON file
+                    <input
+                      type="file"
+                      accept="application/json,.json"
+                      className="sr-only"
+                      onChange={(e) => {
+                        void importFile(e.target.files?.[0]);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+              </Card>
             <JsonField
               key={jsonVersion}
               label="The whole course"
@@ -270,6 +408,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
               }}
               hint="Everything the forms cover and more (trailer, instructors). The slug can't change."
             />
+            </div>
           )}
         </fieldset>
       </DraftIdContext.Provider>

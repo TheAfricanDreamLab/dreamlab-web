@@ -1,11 +1,13 @@
 'use client';
 
-import { useContext, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { Badge, Card, cx } from '@/components/ui/primitives';
 import { type ItemDoc, ITEM_TYPES, type ItemType, type ModuleDoc, newItem, slugify, uniqueKey } from '@/lib/authoring';
+import { type BlockDoc, LIMITS, QUESTION_TYPES } from '@/lib/blocks';
 import { ITEM_LABELS } from '@/lib/learning';
-import { DraftIdContext, MediaUploadButton } from './media-upload';
-import { AreaField, JsonField, LinesField, NumberField, SmallButton, TextField } from './fields';
+import { BlockList } from './blocks/block-list';
+import { RichTextField } from './blocks/controls';
+import { AreaField, LinesField, NumberField, SmallButton, TextField } from './fields';
 
 type Open = { module: number; item?: number } | null;
 
@@ -43,6 +45,15 @@ export function OutlineEditor({ modules, setModules, open, setOpen }: { modules:
           setOpen={(item) => setOpen(open?.module === mi && item === undefined && open.item === undefined ? null : { module: mi, ...(item !== undefined && { item }) })}
           onChange={(next) => setModule(mi, next)}
           onMove={(to) => setModules(move(modules, mi, to))}
+          onDuplicate={() => {
+            const copy = structuredClone(m);
+            copy.key = uniqueKey(`${m.key.slice(0, 38)}-copy`, modules.map((x) => x.key));
+            copy.title = `${m.title} (copy)`;
+            const next = [...modules];
+            next.splice(mi + 1, 0, copy);
+            setModules(next);
+            setOpen({ module: mi + 1 });
+          }}
           onRemove={() => {
             if (window.confirm(`Remove the module “${m.title}” and its ${m.items.length} item(s)?`)) setModules(modules.filter((_, j) => j !== mi));
           }}
@@ -69,6 +80,7 @@ function ModuleCard({
   setOpen,
   onChange,
   onMove,
+  onDuplicate,
   onRemove,
 }: {
   index: number;
@@ -79,6 +91,7 @@ function ModuleCard({
   setOpen: (item?: number) => void;
   onChange: (m: ModuleDoc) => void;
   onMove: (to: number) => void;
+  onDuplicate: () => void;
   onRemove: () => void;
 }) {
   const [type, setType] = useState<ItemType>('lesson');
@@ -107,6 +120,9 @@ function ModuleCard({
           </SmallButton>
           <SmallButton onClick={() => onMove(index + 1)} disabled={index === count - 1} label={`Move module ${index + 1} down`}>
             ↓
+          </SmallButton>
+          <SmallButton onClick={onDuplicate} label={`Duplicate module ${index + 1}`}>
+            Duplicate
           </SmallButton>
           <SmallButton onClick={onRemove} tone="danger" label={`Remove module ${index + 1}`}>
             Remove
@@ -137,6 +153,20 @@ function ModuleCard({
                     </SmallButton>
                     <SmallButton onClick={() => onChange({ ...m, items: move(m.items, ii, ii + 1) })} disabled={ii === m.items.length - 1} label={`Move ${item.title} down`}>
                       ↓
+                    </SmallButton>
+                    <SmallButton
+                      label={`Duplicate ${item.title}`}
+                      onClick={() => {
+                        const copy = structuredClone(item);
+                        copy.key = uniqueKey(`${item.key.slice(0, 38)}-copy`, m.items.map((x) => x.key));
+                        copy.title = `${item.title} (copy)`;
+                        const items = [...m.items];
+                        items.splice(ii + 1, 0, copy);
+                        onChange({ ...m, items });
+                        setOpen(ii + 1);
+                      }}
+                    >
+                      Duplicate
                     </SmallButton>
                     <SmallButton
                       tone="danger"
@@ -206,28 +236,34 @@ function ItemEditor({ item, onChange }: { item: ItemDoc; onChange: (i: ItemDoc) 
         Required to complete the course
       </label>
 
-      {item.type === 'lesson' && <LessonEditor steps={(p.steps as Step[] | undefined) ?? []} onChange={(steps) => setPayload({ steps })} />}
+      {item.type === 'lesson' && <LessonEditor steps={Array.isArray(p.steps) ? (p.steps as Step[]) : []} onChange={(steps) => setPayload({ steps })} />}
 
       {item.type === 'quiz' && (
         <div className="space-y-3">
-          <AreaField label="Introduction" rows={2} value={s(p.intro)} onChange={(v) => setPayload({ intro: v })} />
+          <RichTextField label="Introduction" rows={2} value={s(p.intro)} onChange={(v) => setPayload({ intro: v })} />
           <div className="grid gap-3 sm:grid-cols-2">
             <NumberField label="Pass mark (%)" min={1} max={100} value={n(p.passPct, 70)} onChange={(v) => setPayload({ passPct: v ?? 70 })} />
             <NumberField label="Attempts" allowEmpty min={1} value={(p.maxAttempts as number | null) ?? null} onChange={(v) => setPayload({ maxAttempts: v })} hint="Empty: unlimited" />
           </div>
-          <JsonField
-            label="Questions"
-            rows={14}
-            value={p.questions ?? []}
-            onChange={(v) => setPayload({ questions: v })}
-            hint="choice, order or match questions; answers stay on the server"
-          />
+          <div className="space-y-2">
+            <p className="text-[13px] font-semibold text-ink">
+              Questions <span className="font-normal text-muted">(multiple choice, put in order or match pairs; answers stay on the server)</span>
+            </p>
+            <BlockList
+              blocks={Array.isArray(p.questions) ? (p.questions as BlockDoc[]) : []}
+              onChange={(questions) => setPayload({ questions })}
+              types={QUESTION_TYPES}
+              max={LIMITS.quizQuestions}
+              noun="question"
+              context="the quiz"
+            />
+          </div>
         </div>
       )}
 
       {item.type === 'assignment' && (
         <div className="space-y-3">
-          <AreaField label="Brief" rows={5} value={s(p.brief)} onChange={(v) => setPayload({ brief: v })} />
+          <RichTextField label="Brief" rows={5} value={s(p.brief)} onChange={(v) => setPayload({ brief: v })} />
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField label="Practical Output" value={s(p.practicalOutput)} maxLength={160} onChange={(v) => setPayload({ practicalOutput: v || null })} hint="e.g. Problem Definition Canvas" />
             <NumberField label="Minimum words" min={0} max={5000} value={n(p.minWords, 150)} onChange={(v) => setPayload({ minWords: v ?? 0 })} />
@@ -240,7 +276,7 @@ function ItemEditor({ item, onChange }: { item: ItemDoc; onChange: (i: ItemDoc) 
 
       {item.type === 'discussion' && (
         <div className="space-y-3">
-          <AreaField label="Prompt" rows={3} value={s(p.prompt)} onChange={(v) => setPayload({ prompt: v })} />
+          <RichTextField label="Prompt" rows={3} value={s(p.prompt)} onChange={(v) => setPayload({ prompt: v })} />
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField label="Guidance (optional)" value={s(p.guidance)} maxLength={600} onChange={(v) => setPayload({ guidance: v || undefined })} />
             <NumberField label="Minimum words" min={0} max={1000} value={n(p.minWords, 40)} onChange={(v) => setPayload({ minWords: v ?? 0 })} />
@@ -251,17 +287,16 @@ function ItemEditor({ item, onChange }: { item: ItemDoc; onChange: (i: ItemDoc) 
   );
 }
 
-type Step = { id: string; title?: string; blocks: unknown[] };
+type Step = { id: string; title?: string; blocks: BlockDoc[] };
 
-/** Steps of a lesson. Each step's blocks are JSON (text, callouts, examples, videos, questions…). */
+/** Steps of a lesson, each a list of blocks edited with forms (text, callouts, media, questions…). */
 function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) => void }) {
   const setStep = (i: number, step: Step) => onChange(steps.map((x, j) => (j === i ? step : x)));
-  const [version, setVersion] = useState(0);
-  const draftId = useContext(DraftIdContext);
+  const ids = steps.map((x) => x.id);
   return (
     <div className="space-y-3">
       {steps.map((step, i) => (
-        <div key={`${i}-${version}`} className="space-y-3 rounded-[var(--radius-field)] bg-surface p-3 ring-1 ring-line">
+        <section key={`${i}-${step.id}`} className="space-y-3 rounded-[var(--radius-field)] bg-surface p-3 ring-1 ring-line" aria-label={`Step ${i + 1}`}>
           <div className="flex flex-wrap items-end gap-3">
             <span className="pb-3 font-mono text-[12px] text-muted">Step {i + 1}</span>
             <div className="min-w-0 flex-1">
@@ -270,50 +305,36 @@ function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]
             <div className="w-40">
               <TextField label="Step key" value={step.id} maxLength={48} onChange={(v) => setStep(i, { ...step, id: v })} />
             </div>
-            <SmallButton
-              label={`Add a text block to step ${i + 1}`}
-              onClick={() => {
-                const ids = step.blocks.map((b) => (b as { id?: string }).id ?? '');
-                setStep(i, { ...step, blocks: [...step.blocks, { id: uniqueKey(`text-${step.blocks.length + 1}`, ids), type: 'text', body: 'New paragraph.' }] });
-                setVersion((v) => v + 1);
-              }}
-            >
-              + Text block
-            </SmallButton>
-            <SmallButton tone="danger" label={`Remove step ${i + 1}`} disabled={steps.length === 1} onClick={() => onChange(steps.filter((_, j) => j !== i))}>
-              Remove step
-            </SmallButton>
+            <span className="flex flex-wrap items-center gap-0.5 pb-1">
+              <SmallButton label={`Move step ${i + 1} up`} disabled={i === 0} onClick={() => onChange(move(steps, i, i - 1))}>
+                ↑
+              </SmallButton>
+              <SmallButton label={`Move step ${i + 1} down`} disabled={i === steps.length - 1} onClick={() => onChange(move(steps, i, i + 1))}>
+                ↓
+              </SmallButton>
+              <SmallButton
+                label={`Duplicate step ${i + 1}`}
+                disabled={steps.length >= LIMITS.stepsPerLesson}
+                onClick={() => {
+                  const next = [...steps];
+                  next.splice(i + 1, 0, { ...structuredClone(step), id: uniqueKey(`${step.id.slice(0, 38)}-copy`, ids), title: step.title ? `${step.title} (copy)` : undefined });
+                  onChange(next);
+                }}
+              >
+                Duplicate
+              </SmallButton>
+              <SmallButton tone="danger" label={`Remove step ${i + 1}`} disabled={steps.length === 1} onClick={() => window.confirm(`Remove step ${i + 1} and its blocks?`) && onChange(steps.filter((_, j) => j !== i))}>
+                Remove
+              </SmallButton>
+            </span>
           </div>
-          {draftId && (
-            <div className="flex flex-wrap gap-2">
-              {(['video', 'image'] as const).map((kind) => (
-                <MediaUploadButton
-                  key={kind}
-                  draftId={draftId}
-                  kind={kind}
-                  label={kind === 'video' ? '+ Uploaded video' : '+ Uploaded image'}
-                  onUploaded={(path) => {
-                    const ids = step.blocks.map((b) => (b as { id?: string }).id ?? '');
-                    const id = uniqueKey(`${kind}-${step.blocks.length + 1}`, ids);
-                    const name = path.split('/').pop()!.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
-                    // Title, credit and description are for the author to finish in the blocks below.
-                    const block =
-                      kind === 'video'
-                        ? { id, type: 'video', provider: 'file', videoId: path, title: name, channel: 'Course team' }
-                        : { id, type: 'image', url: `/media/${path}`, alt: `Describe this image: ${name}` };
-                    setStep(i, { ...step, blocks: [...step.blocks, block] });
-                    setVersion((v) => v + 1);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          <JsonField label="Blocks" rows={8} value={step.blocks} onChange={(v) => setStep(i, { ...step, blocks: Array.isArray(v) ? v : step.blocks })} hint="text, callout, example, video, choice, reflection…" />
-        </div>
+          <BlockList blocks={Array.isArray(step.blocks) ? step.blocks : []} onChange={(blocks) => setStep(i, { ...step, blocks })} max={LIMITS.blocksPerStep} context={`step ${i + 1}`} />
+        </section>
       ))}
       <SmallButton
+        disabled={steps.length >= LIMITS.stepsPerLesson}
         onClick={() => {
-          const id = uniqueKey(`step-${steps.length + 1}`, steps.map((x) => x.id));
+          const id = uniqueKey(`step-${steps.length + 1}`, ids);
           onChange([...steps, { id, title: 'New step', blocks: [{ id: 'text-1', type: 'text', body: 'Write this step here.' }] }]);
         }}
       >
