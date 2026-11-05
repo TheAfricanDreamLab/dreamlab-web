@@ -6,6 +6,7 @@ import { gradeSubmission } from '@/app/actions/grading';
 import { Button, cx, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { RUBRIC_LEVELS, RUBRIC_MAX_LEVEL } from '@/lib/grading';
+import { NoticeToast } from '@/components/ui/toast';
 
 type Criterion = { id: string; criterion: string; description: string };
 
@@ -88,7 +89,7 @@ export function GradeForm({
       </p>
       {disabled && <Notice tone="neutral">{disabled}</Notice>}
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       {!disabled && (
         <div className="flex flex-col gap-2 sm:flex-row">
           <ChangedButton name="intent" value="draft" variant="secondary" disabled={pending}>

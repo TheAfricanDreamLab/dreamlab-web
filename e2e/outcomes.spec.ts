@@ -22,7 +22,7 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await page.getByLabel('First day of week 1').fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel('Who can join').selectOption('open');
   await page.getByRole('button', { name: 'Schedule cohort' }).click();
-  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+(?:\?created=1)?$/);
   await page.getByRole('button', { name: 'Open for joining' }).click();
   await expect(page.getByText('Open to join', { exact: true })).toBeVisible();
   const cohortUrl = page.url().split('?')[0]!;
@@ -32,7 +32,7 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await signUpWithEmail(learner, learnerName, unique('nkem'));
   await learner.goto('/programs/the-african-dream-lab');
   await learner.getByRole('button', { name: `Join ${cohortName}` }).click();
-  await expect(learner).toHaveURL(/\/app\/programme\?joined=/);
+  await expect(learner).toHaveURL(/\/app\/programme(?:\?joined=[^&]*)?$/);
   await learner.getByRole('link', { name: 'Dream Residency' }).first().click();
   await expect(learner.getByRole('heading', { name: 'Dream Residency', level: 1 })).toBeVisible();
   await expect(learner.getByRole('heading', { name: 'Dream Definition', level: 2 })).toBeVisible();

@@ -20,7 +20,7 @@ test('an organisation runs an admission cycle; an applicant applies through six 
   await expect(page.getByRole('heading', { name: 'Admissions', level: 1 })).toBeVisible();
   await page.getByLabel('Name').fill(cycleName);
   await page.getByRole('button', { name: 'Create cycle' }).click();
-  await expect(page).toHaveURL(/\/app\/admissions\/cycles\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/admissions\/cycles\/[0-9a-f-]+(?:\?created=1)?$/);
   await expect(page.getByText('Cycle created as a draft')).toBeVisible();
   await page.getByRole('button', { name: 'Open for applications' }).click();
   await expect(page.getByText('Open', { exact: true })).toBeVisible();
@@ -104,7 +104,9 @@ test('an organisation runs an admission cycle; an applicant applies through six 
     ['Commitment', 5],
     ['Communication', 3],
   ] as const) {
-    await page.getByLabel(`${dimension}: ${score}`).check({ force: true });
+    // The visible score chip, as a person clicks it (it waits for anything on top, such as a toast).
+    await page.getByLabel(`${dimension}: ${score}`).locator('..').click();
+    await expect(page.getByLabel(`${dimension}: ${score}`)).toBeChecked();
   }
   await page.getByLabel('Why', { exact: true }).fill('Built and sold a working product already.');
   await page.getByRole('button', { name: 'Save review' }).click();

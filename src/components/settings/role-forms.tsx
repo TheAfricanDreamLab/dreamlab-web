@@ -8,6 +8,7 @@ import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { PERMISSION_GROUPS, PERMISSION_LABELS } from '@/lib/labels';
 import { OrgField } from '@/components/app/org-binding';
+import { NoticeToast } from '@/components/ui/toast';
 
 const initial: FormState = {};
 
@@ -43,7 +44,7 @@ export function CreateRoleForm() {
         <PermissionPicker />
       </div>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <SubmitButton pending="Creating…">Create role</SubmitButton>
     </form>
   );
@@ -59,7 +60,7 @@ export function EditRoleForm({ roleKey, permissions, assignedCount }: { roleKey:
         <input type="hidden" name="roleKey" value={roleKey} />
         <PermissionPicker selected={permissions} />
         {saved.error && <Notice tone="error">{saved.error}</Notice>}
-        {saved.notice && <Notice tone="success">{saved.notice}</Notice>}
+        <NoticeToast state={saved} />
         <SubmitButton pending="Saving…" variant="secondary">
           Save permissions
         </SubmitButton>

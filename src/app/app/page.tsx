@@ -12,6 +12,7 @@ import { api } from '@/lib/gateway';
 import { KIND_LABELS, ROLE_LABELS } from '@/lib/labels';
 import { type JournalEntry, LEVEL_LABELS, plural } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
+import { FlashToast } from '@/components/ui/toast';
 
 export const metadata: Metadata = { title: 'My space' };
 
@@ -139,11 +140,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         intro={active ? `You’re working in ${active.org.name} as ${role}.` : 'You’re learning on your own. Pick a course and start.'}
       />
 
-      {sp.created === 'active' && <Notice tone="success">Your organisation is ready. Invite your team whenever you like.</Notice>}
+      {sp.created === 'active' && <FlashToast clear={['created']}>Your organisation is ready. Invite your team whenever you like.</FlashToast>}
       {sp.created === 'pending' && (
         <Notice tone="info">We’ve got your request. We review new organisations within two working days. Meanwhile you can set things up and invite co-admins.</Notice>
       )}
-      {sp.joined && <Notice tone="success">You’ve joined. Welcome aboard!</Notice>}
+      {sp.joined && <FlashToast clear={['joined']}>You’ve joined. Welcome aboard!</FlashToast>}
       {sp.org_changed && (
         <Notice tone="error">Nothing was changed: you switched organisation (perhaps in another tab) after that page opened. Open it again and retry.</Notice>
       )}

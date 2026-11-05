@@ -6,6 +6,7 @@ import { SubmitButton } from '@/components/auth/forms';
 import { cx, Notice } from '@/components/ui/primitives';
 import { FileAttachments } from './file-attachments';
 import { type AssignmentContent, wordCount } from '@/lib/learning';
+import { NoticeToast } from '@/components/ui/toast';
 
 export function AssignmentForm({
   enrollmentId,
@@ -95,7 +96,7 @@ export function AssignmentForm({
 
       <div aria-live="polite" className="space-y-3 empty:hidden">
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.notice && <Notice tone="success">{state.notice}</Notice>}
+        <NoticeToast state={state} />
       </div>
       {uploading ? (
         <button type="button" disabled className="h-12 w-full cursor-wait rounded-[var(--radius-field)] bg-line-heavy px-5 text-[15px] font-semibold text-white">

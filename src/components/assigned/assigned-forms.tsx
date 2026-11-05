@@ -7,6 +7,7 @@ import { TextInput } from '@/components/ui/fields';
 import { cx, Notice } from '@/components/ui/primitives';
 import { DIMENSIONS, type Weights } from '@/lib/assigned';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 const selectClass = 'h-12 w-full rounded-[var(--radius-field)] bg-card px-3 text-[15px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary';
 const areaClass = 'w-full rounded-[var(--radius-field)] bg-card px-4 py-3 text-[15px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary';
@@ -20,7 +21,7 @@ function Feedback({ state }: { state: FormState }) {
   return (
     <>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
     </>
   );
 }

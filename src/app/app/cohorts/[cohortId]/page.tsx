@@ -10,6 +10,7 @@ import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
+import { FlashToast } from '@/components/ui/toast';
 
 export const metadata: Metadata = { title: 'Cohort' };
 
@@ -64,7 +65,11 @@ export default async function CohortPage({ params, searchParams }: Props) {
         </div>
       </header>
 
-      {sp.created && <Notice tone="success">Scheduled: {c.calendar.length} weeks and {c.sessions.length} classes. Open it for joining when you’re ready.</Notice>}
+      {sp.created && (
+        <FlashToast clear={['created']}>
+          Scheduled: {c.calendar.length} weeks and {c.sessions.length} classes. Open it for joining when you’re ready.
+        </FlashToast>
+      )}
       {c.status === 'draft' && !sp.created && <Notice tone="neutral">This cohort is a draft: learners can’t see it yet.</Notice>}
       <CohortStatusActions cohort={c} />
 

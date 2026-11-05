@@ -7,6 +7,7 @@ import { TextInput } from '@/components/ui/fields';
 import { cx, Notice } from '@/components/ui/primitives';
 import { ATTENDANCE_LABELS, type AttendanceEntry, type AttendanceStatus, type ClassSession, type Cohort, localInput, type MyProgram, TIME_ZONES } from '@/lib/cohorts';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 const selectClass = 'h-12 w-full rounded-[var(--radius-field)] bg-card px-3 text-[15px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary';
 const label = 'text-[13px] font-semibold text-ink';
@@ -54,7 +55,7 @@ export function ElectiveForm({ enrollmentId, choice }: { enrollmentId: string; c
         </div>
       </fieldset>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       {!choice.locked && (
         <div className="sm:max-w-xs">
           <SubmitButton pending="Saving…">{choice.chosen.length > 0 ? 'Change my choice' : 'Save my choice'}</SubmitButton>
@@ -166,7 +167,7 @@ export function CohortSettingsForm({ cohort }: { cohort: Cohort }) {
         </select>
       </div>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <SubmitButton variant="secondary" pending="Saving…">
         Save settings
       </SubmitButton>
@@ -215,7 +216,7 @@ export function SessionEditor({ cohortId, timeZone, session }: { cohortId: strin
             Cancelled
           </label>
           {state.error && <Notice tone="error">{state.error}</Notice>}
-          {state.notice && <Notice tone="success">{state.notice}</Notice>}
+          <NoticeToast state={state} />
           <SubmitButton variant="secondary" pending="Saving…">
             Save class
           </SubmitButton>
@@ -257,7 +258,7 @@ export function AttendanceForm({ cohortId, sessionId, items }: { cohortId: strin
         ))}
       </ul>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <div className="sm:max-w-xs">
         <SubmitButton always pending="Saving…">Save attendance</SubmitButton>
       </div>

@@ -133,14 +133,25 @@ export function totp(secretBase32: string, offsetSteps = 0): string {
   return String((mac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
 }
 
+/**
+ * Type the organisation name in the set-up wizard. Under load the page can finish loading after the
+ * name was typed and clear it; type again until the Create button shows the name.
+ */
+export async function fillOrganisationName(page: Page, name: string): Promise<void> {
+  await expect(async () => {
+    await page.getByLabel('Organisation name').fill(name);
+    await expect(page.getByRole('button', { name: `Create ${name}` })).toBeEnabled({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+}
+
 /** Create a company as a freshly signed-up founder; leaves the page inside the new organisation. */
 export async function createCompany(page: Page, founderName: string, founderEmail: string, name: string): Promise<void> {
   await signUpWithEmail(page, founderName, founderEmail);
   await page.goto('/orgs/start?kind=enterprise');
   await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
-  await page.getByLabel('Organisation name').fill(name);
+  await fillOrganisationName(page, name);
   await page.getByRole('button', { name: `Create ${name}` }).click();
-  await expect(page).toHaveURL(/\/app\?created=active/);
+  await expect(page).toHaveURL(/\/app(?:\?created=active)?$/);
 }
 
 /** Switch space with the header switcher. */

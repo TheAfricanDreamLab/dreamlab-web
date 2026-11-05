@@ -8,6 +8,7 @@ import { TextInput } from '@/components/ui/fields';
 import { Badge, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { initials } from '@/lib/labels';
+import { NoticeToast } from '@/components/ui/toast';
 
 const ROLE = { mentor: 'Mentor', staff: 'Cohort team', member: null } as const;
 const link = 'inline-flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3 text-[13px] font-semibold text-link ring-1 ring-line hover:bg-success-tint';
@@ -115,7 +116,7 @@ export function ContactForm({ circleId, contact }: { circleId: string; contact: 
           error={state.fields?.linkedin}
         />
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.notice && <Notice tone="success">{state.notice}</Notice>}
+        <NoticeToast state={state} />
         <div className="sm:max-w-xs">
           <SubmitButton pending="Saving…">Save contact details</SubmitButton>
         </div>

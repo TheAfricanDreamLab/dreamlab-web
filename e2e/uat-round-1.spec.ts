@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { signUpWithEmail, unique, WEB_URL } from './helpers';
+import { signUpWithEmail, unique, WEB_URL, fillOrganisationName } from './helpers';
 
 /*
  * Fixes from the first round of production UAT (November 2026), one test per reported case.
@@ -54,10 +54,10 @@ test('ORG-002, ORG-008, ORG-013, ORG-021: an organisation admin’s fixes', asyn
   await signUpWithEmail(page, 'Fola Admin', unique('fixadmin'));
   await page.goto('/orgs/start?kind=enterprise');
   await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
-  await page.getByLabel('Organisation name').fill(orgName);
+  await fillOrganisationName(page, orgName);
   const orgSlug = (await page.locator('span.font-mono').filter({ hasText: '.localhost' }).innerText()).split('.')[0]!;
   await page.getByRole('button', { name: `Create ${orgName}` }).click();
-  await expect(page).toHaveURL(/\/app\?created=active/);
+  await expect(page).toHaveURL(/\/app(?:\?created=active)?$/);
 
   // ORG-021: the weights' Save waits for a change; Reset waits until the weights differ.
   await page.goto('/app/settings/dream-score');
@@ -94,7 +94,7 @@ test('ORG-002, ORG-008, ORG-013, ORG-021: an organisation admin’s fixes', asyn
   await page.getByLabel('Name').fill(`Fix cohort ${tag}`);
   await page.getByLabel('First day of week 1').fill(new Date().toISOString().slice(0, 10));
   await page.getByRole('button', { name: 'Schedule cohort' }).click();
-  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+(?:\?created=1)?$/);
   await page.goto(`${page.url().split('?')[0]}?week=1`);
   const inPerson = page.locator('li').filter({ hasText: '· In person' });
   const before = await inPerson.count();

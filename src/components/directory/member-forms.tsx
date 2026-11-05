@@ -8,6 +8,7 @@ import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { INVITABLE_ROLES } from '@/lib/labels';
 import { OrgField } from '@/components/app/org-binding';
+import { NoticeToast } from '@/components/ui/toast';
 
 type RoleOption = { key: string; label: string; hint: string };
 
@@ -35,7 +36,7 @@ export function InviteForm({ orgPending, canAssignRoles, customRoles = [] }: { o
         </div>
       </fieldset>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <SubmitButton pending="Sending…">Send invitation</SubmitButton>
     </form>
   );

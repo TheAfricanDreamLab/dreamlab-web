@@ -6,6 +6,7 @@ import { SubmitButton } from '@/components/auth/forms';
 import { NewPasswordInput, PasswordInput } from '@/components/ui/fields';
 import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 export function ChangePasswordForm({ avoid }: { avoid: string[] }) {
   const [state, action] = useActionState(changePassword, {} as FormState);
@@ -15,7 +16,7 @@ export function ChangePasswordForm({ avoid }: { avoid: string[] }) {
       <NewPasswordInput label="New password" avoid={avoid} />
       <PasswordInput name="confirm" label="Type the new one again" autoComplete="new-password" required />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <SubmitButton pending="Saving…">Change password</SubmitButton>
     </form>
   );

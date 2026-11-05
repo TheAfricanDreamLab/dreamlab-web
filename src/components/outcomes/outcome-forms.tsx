@@ -19,6 +19,7 @@ import { TextInput } from '@/components/ui/fields';
 import { Button, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { type ActionPlan, type Graduation, type ResidencyStage, STAGE_MIN_CHARS } from '@/lib/outcomes';
+import { NoticeToast } from '@/components/ui/toast';
 
 const textareaClass =
   'w-full rounded-[var(--radius-field)] bg-card px-4 py-3 text-[15px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary';
@@ -29,7 +30,7 @@ function Feedback({ state }: { state: FormState }) {
   return (
     <>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && !state.error && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       {state.notice && state.error && <p className="text-[13px] text-muted">{state.notice}</p>}
     </>
   );
@@ -347,7 +348,14 @@ export function VerifyForm({ defaultCode = '' }: { defaultCode?: string }) {
 export function RevokeCredentialForm({ code, recipient }: { code: string; recipient: string }) {
   const [state, action] = useActionState(revokeCredential, {} as FormState);
   const id = useId();
-  if (state.notice && !state.error) return <Notice tone="success">{state.notice}</Notice>;
+  if (state.notice && !state.error) {
+    return (
+      <>
+        <NoticeToast state={state} />
+        <p className="text-[13.5px] font-semibold text-muted">Revoked.</p>
+      </>
+    );
+  }
   return (
     <form
       action={action}

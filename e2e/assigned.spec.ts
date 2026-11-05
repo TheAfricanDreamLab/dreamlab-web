@@ -88,7 +88,7 @@ async function join(browser: Browser, link: string, name: string, email: string)
   await signUpWithEmail(page, name, email, PASSWORD, page.url());
   await expect(page).toHaveURL(/\/invitations\/accept$/);
   await page.getByRole('button', { name: 'Accept and join' }).click();
-  await expect(page).toHaveURL(/\/app\?joined=1/);
+  await expect(page).toHaveURL(/\/app(?:\?joined=1)?$/);
   return page;
 }
 
@@ -110,7 +110,7 @@ test('an organisation assigns a course with a due date; the member starts it and
   await page.getByLabel('Due date').fill(due);
   await page.getByLabel(/Note to the people assigned/).fill('Please finish before the planning retreat.');
   await page.getByRole('button', { name: 'Assign course' }).click();
-  await expect(page).toHaveURL(/\/app\/assignments\/[0-9a-f-]{36}\?created=1/);
+  await expect(page).toHaveURL(/\/app\/assignments\/[0-9a-f-]{36}(?:\?created=1)?$/);
   const assignmentUrl = page.url().split('?')[0]!;
   await expect(page.getByRole('heading', { name: 'Problem Solving', level: 1 })).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Musa Member' })).toContainText('Not started');

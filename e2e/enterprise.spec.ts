@@ -107,7 +107,7 @@ test.describe('company sign-in and security', () => {
     const offer = colleague.locator('form').filter({ hasText: company });
     await expect(offer.getByText(`Everyone at @${domain}`)).toBeVisible();
     await offer.getByRole('button', { name: 'Join' }).click();
-    await expect(colleague).toHaveURL(/\/app\?joined=1/);
+    await expect(colleague).toHaveURL(/\/app(?:\?joined=1)?$/);
     await expect(colleague.locator('summary').filter({ hasText: company })).toBeVisible();
     await ctx.close();
   });

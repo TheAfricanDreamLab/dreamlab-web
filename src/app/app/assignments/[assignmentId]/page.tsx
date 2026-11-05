@@ -8,6 +8,7 @@ import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { dateTime, isUuid } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
+import { FlashToast } from '@/components/ui/toast';
 
 export const metadata: Metadata = { title: 'Assigned course' };
 
@@ -35,7 +36,7 @@ export default async function AssignmentPage({ params, searchParams }: Props) {
         </p>
         {a.note && <p className="whitespace-pre-line pt-1 text-[14.5px] text-body">{a.note}</p>}
       </header>
-      {sp.created && <Notice tone="success">Assigned. Everyone below is enrolled and has been told.</Notice>}
+      {sp.created && <FlashToast clear={['created']}>Assigned. Everyone below is enrolled and has been told.</FlashToast>}
 
       <div className="flex flex-wrap gap-1.5" aria-label="Progress">
         {ASSIGNEE_STATUSES.map((s) => (
