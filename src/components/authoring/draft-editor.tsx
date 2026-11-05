@@ -166,6 +166,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       // The web address belongs to the draft and can't change.
       setDoc({ ...(parsed as Doc), slug: draft.slug });
       setJsonVersion((v) => v + 1);
+      setMessage(null);
       toastSuccess(`Imported ${file.name}. Check it, then save.`);
     } catch (err) {
       setMessage({ tone: 'error', text: err instanceof Error ? `Couldn’t import ${file.name}: ${err.message}` : `Couldn’t import ${file.name}.` });

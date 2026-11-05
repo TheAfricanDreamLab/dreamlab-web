@@ -55,11 +55,13 @@ export function Toaster() {
 
 function ToastCard({ toast }: { toast: Toast }) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const start = () => {
+  // Held open while the pointer is over it or focus is inside it; the timer restarts when neither is.
+  const held = useRef({ hover: false, focus: false });
+  const hold = (what: 'hover' | 'focus', on: boolean) => {
+    held.current[what] = on;
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => dismiss(toast.id), TTL_MS);
+    if (!held.current.hover && !held.current.focus) timer.current = setTimeout(() => dismiss(toast.id), TTL_MS);
   };
-  const stop = () => clearTimeout(timer.current);
   useEffect(() => {
     timer.current = setTimeout(() => dismiss(toast.id), TTL_MS);
     return () => clearTimeout(timer.current);
@@ -67,10 +69,12 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       role="status"
-      onMouseEnter={stop}
-      onMouseLeave={start}
-      onFocus={stop}
-      onBlur={start}
+      onMouseEnter={() => hold('hover', true)}
+      onMouseLeave={() => hold('hover', false)}
+      onFocus={() => hold('focus', true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hold('focus', false);
+      }}
       className={cx(
         'dl-toast pointer-events-auto flex w-full max-w-[26rem] items-start gap-3 rounded-[var(--radius-card)] bg-forest px-4 py-3 text-[14px] leading-relaxed text-white shadow-[var(--shadow-panel)] ring-1 ring-white/10',
       )}
@@ -91,10 +95,11 @@ function ToastCard({ toast }: { toast: Toast }) {
  * of an inline success notice: `<NoticeToast state={state} />`.
  */
 const shownStates = new WeakSet<object>();
-export function NoticeToast({ state }: { state: { notice?: string | null } }) {
+export function NoticeToast({ state }: { state: { notice?: string | null; error?: string | null } }) {
   useEffect(() => {
-    // Each result toasts once, even when the same words come back for a second save.
-    if (!state.notice || shownStates.has(state)) return;
+    // Each result toasts once, even when the same words come back for a second save. A result that
+    // also failed (saved, but not sent) shows only its error, inline.
+    if (!state.notice || state.error || shownStates.has(state)) return;
     shownStates.add(state);
     toastSuccess(state.notice, `notice:${++seq}`);
   }, [state]);
