@@ -11,6 +11,7 @@ import {
   signOut,
   signUpWithEmail,
   unique,
+  fillOrganisationName,
   WEB_URL,
 } from './helpers';
 
@@ -91,7 +92,7 @@ test.describe('individual learner', () => {
     await page.getByLabel('New password').fill('a-brand-new-password');
     await page.getByLabel('Type it again').fill('a-brand-new-password');
     await page.getByRole('button', { name: 'Save new password' }).click();
-    await expect(page).toHaveURL(/\/login\?reset=1/);
+    await expect(page).toHaveURL(/\/login(?:\?reset=1)?$/);
     await expect(page.getByText('Your password is changed')).toBeVisible();
     await signIn(page, email, 'a-brand-new-password');
     await expect(page).toHaveURL(/\/app$/);
@@ -140,13 +141,13 @@ test.describe('organisations', () => {
     await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
     await page.getByRole('radio', { name: /A company or team/ }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
-    await page.getByLabel('Organisation name').fill(orgName);
+    await fillOrganisationName(page, orgName);
     orgSlug = (await page.locator('span.font-mono').filter({ hasText: '.localhost' }).innerText()).split('.')[0]!;
     expect(orgSlug).toMatch(/^kano-builders-/);
     await page.getByRole('button', { name: '11-50' }).click();
     await expect(page.getByText('it’s ready the moment you create it')).toBeVisible();
     await page.getByRole('button', { name: `Create ${orgName}` }).click();
-    await expect(page).toHaveURL(/\/app\?created=active/);
+    await expect(page).toHaveURL(/\/app(?:\?created=active)?$/);
     await expect(page.getByText('Your organisation is ready.')).toBeVisible();
     await expect(page.locator('summary').filter({ hasText: orgName })).toBeVisible();
     await page.getByRole('link', { name: 'People' }).click();
@@ -178,7 +179,7 @@ test.describe('organisations', () => {
     await signUpWithEmail(invitee, 'Chidi Invitee', inviteeEmail, PASSWORD, invitee.url());
     await expect(invitee).toHaveURL(/\/invitations\/accept$/);
     await invitee.getByRole('button', { name: 'Accept and join' }).click();
-    await expect(invitee).toHaveURL(/\/app\?joined=1/);
+    await expect(invitee).toHaveURL(/\/app(?:\?joined=1)?$/);
     await expect(invitee.getByText('You’ve joined.')).toBeVisible();
     await expect(invitee.locator('summary').filter({ hasText: orgName })).toBeVisible();
     // A learner sees no People page.
@@ -202,7 +203,7 @@ test.describe('organisations', () => {
     await expect(page.getByRole('heading', { name: 'Set up an organisation?' })).toBeVisible();
     await page.getByRole('button', { name: 'Yes, set up an organisation' }).click();
     // The type came with the link, so the wizard opens at the name.
-    await page.getByLabel('Organisation name').fill(school);
+    await fillOrganisationName(page, school);
     await expect(page.getByText(/We check new/)).toBeVisible();
     await page.getByRole('button', { name: `Create ${school}` }).click();
     await expect(page).toHaveURL(/\/app\?created=pending/);

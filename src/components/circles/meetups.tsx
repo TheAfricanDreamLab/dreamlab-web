@@ -9,6 +9,7 @@ import { LocalTime, TimeZoneField } from '@/components/community/community-forms
 import { TextInput } from '@/components/ui/fields';
 import { Badge, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 const selectClass = 'h-12 w-full rounded-[var(--radius-field)] bg-card px-3 text-[15px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary';
 const label = 'text-[13px] font-semibold text-ink';
@@ -123,7 +124,7 @@ export function MeetupForm({ circleId }: { circleId: string }) {
         )}
         <TextInput label="Notes (optional)" name="details" maxLength={1000} placeholder="Bring your one-page pitch" defaultValue={v?.details} error={state.fields?.details} />
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.notice && <Notice tone="success">{state.notice}</Notice>}
+        <NoticeToast state={state} />
         <div className="sm:max-w-xs">
           <SubmitButton pending="Scheduling…">Schedule meetup</SubmitButton>
         </div>

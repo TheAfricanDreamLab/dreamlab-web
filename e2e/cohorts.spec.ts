@@ -20,7 +20,7 @@ test('an organisation runs a cohort; a learner joins it, chooses an elective and
   await page.getByLabel('First day of week 1').fill(today);
   await page.getByLabel('Who can join').selectOption('open');
   await page.getByRole('button', { name: 'Schedule cohort' }).click();
-  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+(?:\?created=1)?$/);
   await expect(page.getByText('Scheduled: 15 weeks and 45 classes')).toBeVisible();
   await page.getByRole('button', { name: 'Open for joining' }).click();
   await expect(page.getByText('Open to join', { exact: true })).toBeVisible();
@@ -46,7 +46,7 @@ test('an organisation runs a cohort; a learner joins it, chooses an elective and
   await learner.goto('/programs/the-african-dream-lab');
   await expect(learner.getByRole('heading', { name: 'Join a cohort' })).toBeVisible();
   await learner.getByRole('button', { name: `Join ${cohortName}` }).click();
-  await expect(learner).toHaveURL(/\/app\/programme\?joined=/);
+  await expect(learner).toHaveURL(/\/app\/programme(?:\?joined=[^&]*)?$/);
   await expect(learner.getByText(`You’ve joined ${cohortName}`)).toBeVisible();
   await expect(learner.getByRole('heading', { name: 'Your courses' })).toBeVisible();
   await expect(learner.getByText('Week 1 of 15')).toBeVisible();

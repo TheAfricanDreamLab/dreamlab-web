@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { saveProgram } from '@/app/actions/platform';
 import { AreaField, JsonField, NumberField, SelectField, SmallButton, TextField } from '@/components/authoring/fields';
 import { Button, Card, cx, Notice } from '@/components/ui/primitives';
+import { toastSuccess } from '@/components/ui/toast';
 
 type Phase = ProgramAuthoring['phases'][number];
 type Options = { programTypes: readonly string[]; deliveryModes: readonly string[]; features: readonly string[]; courses: { slug: string; title: string }[] };
@@ -31,7 +32,7 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
   const [doc, setDoc] = useState(initial);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: 'error'; text: string } | null>(null);
   const [created, setCreated] = useState(!isNew);
   const router = useRouter();
   // Bumped on every edit, so a save that finishes after more edits leaves the editor marked unsaved.
@@ -63,7 +64,7 @@ export function ProgramEditor({ initial, isNew, options }: { initial: ProgramAut
       // Moving to the programme's own address reloads the page; only when nothing is unsaved.
       if (!created && unchanged) router.replace(`/app/admin/catalog/programs/${sent.slug}`);
       setCreated(true);
-      setMessage({ tone: 'success', text: `Saved. ${credits(sent)} credits. New cohorts use this programme from now on.` });
+      toastSuccess(`Saved. ${credits(sent)} credits. New cohorts use this programme from now on.`);
     } catch {
       setMessage({ tone: 'error', text: 'We could not reach Dream Lab to save. Check your connection and try again.' });
     } finally {

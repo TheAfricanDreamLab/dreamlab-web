@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/auth/forms';
 import { TextInput } from '@/components/ui/fields';
 import { Badge, Button, Card, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 interface Status {
   enabled: boolean;
@@ -92,7 +93,7 @@ export function TwoStepCard({ status }: { status: Status }) {
         </>
       )}
 
-      {confirmed.notice && <Notice tone="success">{confirmed.notice}</Notice>}
+      <NoticeToast state={confirmed} />
       {fresh && <RecoveryCodes codes={fresh} />}
 
       {status.enabled && (
@@ -109,13 +110,13 @@ export function TwoStepCard({ status }: { status: Status }) {
               <SubmitButton pending="Checking…">Confirm</SubmitButton>
             </form>
           )}
-          {stepped.notice && <Notice tone="success">{stepped.notice}</Notice>}
+          <NoticeToast state={stepped} />
           <details className="rounded-[var(--radius-field)] ring-1 ring-line">
             <summary className="cursor-pointer px-4 py-3 text-[13.5px] font-semibold text-ink">New recovery codes</summary>
             <form action={regenAction} className="space-y-3 px-4 pb-4">
               <TextInput label="Code from your app" name="code" required autoComplete="one-time-code" />
               {regen.error && <Notice tone="error">{regen.error}</Notice>}
-              {regen.notice && <Notice tone="success">{regen.notice}</Notice>}
+              <NoticeToast state={regen} />
               <SubmitButton pending="Making new codes…" variant="secondary">
                 Replace my recovery codes
               </SubmitButton>
@@ -126,7 +127,7 @@ export function TwoStepCard({ status }: { status: Status }) {
             <form action={offAction} className="space-y-3 px-4 pb-4">
               <TextInput label="Code from your app (or a recovery code)" name="code" required autoComplete="one-time-code" />
               {off.error && <Notice tone="error">{off.error}</Notice>}
-              {off.notice && <Notice tone="success">{off.notice}</Notice>}
+              <NoticeToast state={off} />
               <SubmitButton pending="Turning off…" variant="danger">
                 Turn off
               </SubmitButton>

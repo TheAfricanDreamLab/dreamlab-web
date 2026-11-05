@@ -5,6 +5,7 @@ import { importContent, setUserStatus } from '@/app/actions/platform';
 import { SubmitButton } from '@/components/auth/forms';
 import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 export function ImportForm() {
   const [state, action] = useActionState(importContent, {} as FormState);
@@ -43,7 +44,7 @@ export function ImportForm() {
       </div>
       <div aria-live="polite" className="space-y-2 empty:hidden">
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.notice && <Notice tone="success">{state.notice}</Notice>}
+        <NoticeToast state={state} />
       </div>
       <SubmitButton pending="Importing…">Import</SubmitButton>
     </form>
@@ -75,7 +76,7 @@ export function UserStatusForm({ userId, status, name }: { userId: string; statu
       </div>
       <div aria-live="polite" className="space-y-2 empty:hidden">
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.notice && <Notice tone="success">{state.notice}</Notice>}
+        <NoticeToast state={state} />
       </div>
       <SubmitButton variant={suspending ? 'danger' : 'primary'} pending="Saving…">
         {suspending ? `Suspend ${name}` : `Reactivate ${name}`}

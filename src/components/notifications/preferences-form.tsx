@@ -5,6 +5,7 @@ import { saveNotificationPreferences } from '@/app/actions/notifications';
 import { SubmitButton } from '@/components/auth/forms';
 import { Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 export function NotificationPreferencesForm({ categories, email }: { categories: [string, string][]; email: Record<string, boolean> }) {
   const [state, action] = useActionState(saveNotificationPreferences, {} as FormState);
@@ -20,7 +21,7 @@ export function NotificationPreferencesForm({ categories, email }: { categories:
         ))}
       </fieldset>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <SubmitButton pending="Saving…">Save email choices</SubmitButton>
     </form>
   );

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Figtree, JetBrains_Mono, Outfit } from 'next/font/google';
+import { Toaster } from '@/components/ui/toast';
 import './globals.css';
 
 // All three are variable fonts: one file covers every weight, so no weight list.
@@ -19,7 +20,10 @@ export const viewport: Viewport = { themeColor: '#0a3d29' };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${outfit.variable} ${figtree.variable} ${jetbrains.variable}`}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

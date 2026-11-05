@@ -19,6 +19,7 @@ import { Field, TextInput } from '@/components/ui/fields';
 import { Badge, Button, cx, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { OrgField } from '@/components/app/org-binding';
+import { NoticeToast } from '@/components/ui/toast';
 
 const initial: FormState = {};
 
@@ -157,7 +158,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
     <div className="space-y-5">
       {c && !editing && (
         <div className="space-y-4">
-          {saved.notice && <Notice tone="success">{saved.notice}</Notice>}
+          <NoticeToast state={saved} />
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="green">{c.protocol === 'oidc' ? 'OpenID Connect' : 'SAML 2.0'}</Badge>
             {c.enabled ? <Badge tone="green">On</Badge> : <Badge>Off</Badge>}
@@ -206,7 +207,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
               </select>
             </div>
             {updated.error && <Notice tone="error">{updated.error}</Notice>}
-            {updated.notice && <Notice tone="success">{updated.notice}</Notice>}
+            <NoticeToast state={updated} />
             <SubmitButton pending="Saving…">Save sign-on settings</SubmitButton>
           </form>
           <form action={removeSso}>
@@ -281,7 +282,7 @@ export function SsoSetup({ sso, orgId, roles, hasVerifiedDomain }: { sso: SsoVie
             </>
           )}
           {saved.error && <Notice tone="error">{saved.error}</Notice>}
-          {saved.notice && <Notice tone="success">{saved.notice}</Notice>}
+          <NoticeToast state={saved} />
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <SubmitButton pending="Checking and saving…">Save identity provider</SubmitButton>
             {c && (
@@ -353,7 +354,7 @@ export function AdminMfaPolicy({ required, sessionHasMfa }: { required: boolean;
       </p>
       {!required && !sessionHasMfa && <Notice tone="info">Turn on two-step sign-in for your own account first (Account → Two-step sign-in), and confirm a code.</Notice>}
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <SubmitButton pending="Saving…" variant={required ? 'secondary' : 'primary'}>
         {required ? 'Stop requiring it' : 'Require two-step sign-in for admins'}
       </SubmitButton>

@@ -9,6 +9,7 @@ import { messageForCode } from '@/lib/errors';
 import { safeNext } from '@/lib/forms';
 import { callGateway, incomingRequest } from '@/lib/gateway';
 import { currentTenant } from '@/lib/tenant';
+import { FlashToast } from '@/components/ui/toast';
 
 export const metadata: Metadata = { title: 'Sign in' };
 
@@ -16,9 +17,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const next = safeNext(sp.next);
   const banner = sp.reset ? (
-    <Notice tone="success">Your password is changed. Sign in with the new one.</Notice>
+    <FlashToast clear={['reset']}>Your password is changed. Sign in with the new one.</FlashToast>
   ) : sp.signedout ? (
-    <Notice tone="success">You’ve been signed out on every device.</Notice>
+    <FlashToast clear={['signedout']}>You’ve been signed out on every device.</FlashToast>
   ) : sp.sso_error ? (
     <Notice tone="error">{messageForCode(sp.sso_error)}</Notice>
   ) : sp.next?.startsWith('/orgs/') ? (

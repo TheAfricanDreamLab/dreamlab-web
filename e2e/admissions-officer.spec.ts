@@ -16,7 +16,7 @@ test('an admin invites an Admissions officer, who reviews cycles without running
   await page.goto('/app/admissions');
   await page.getByLabel('Name').fill(cycleName);
   await page.getByRole('button', { name: 'Create cycle' }).click();
-  await expect(page).toHaveURL(/\/app\/admissions\/cycles\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/admissions\/cycles\/[0-9a-f-]+(?:\?created=1)?$/);
 
   // The role is offered when inviting someone.
   await page.goto('/app/members');
@@ -33,7 +33,7 @@ test('an admin invites an Admissions officer, who reviews cycles without running
   await signUpWithEmail(officer, 'Olu Officer', officerEmail, PASSWORD, officer.url());
   await expect(officer).toHaveURL(/\/invitations\/accept$/);
   await officer.getByRole('button', { name: 'Accept and join' }).click();
-  await expect(officer).toHaveURL(/\/app\?joined=1/);
+  await expect(officer).toHaveURL(/\/app(?:\?joined=1)?$/);
 
   // Admissions is in their menu; they see the cycle but not the controls that run it.
   await officer.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Admissions' }).click();

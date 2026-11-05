@@ -11,6 +11,7 @@ import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
+import { FlashToast } from '@/components/ui/toast';
 
 export const metadata: Metadata = { title: 'Admission cycle' };
 
@@ -56,7 +57,7 @@ export default async function CyclePage({ params, searchParams }: Props) {
         </div>
       </header>
 
-      {sp.created && <Notice tone="success">Cycle created as a draft. Open it when you’re ready for applications.</Notice>}
+      {sp.created && <FlashToast clear={['created']}>Cycle created as a draft. Open it when you’re ready for applications.</FlashToast>}
       {manage && <CycleStatusActions cycle={cycle} />}
 
       <section className="space-y-3" aria-labelledby="pipeline">

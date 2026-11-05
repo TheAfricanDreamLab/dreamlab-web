@@ -9,6 +9,7 @@ import { DetailsEditor } from './details-editor';
 import { DraftIdContext } from './media-upload';
 import { JsonField } from './fields';
 import { OutlineEditor } from './outline-editor';
+import { toastSuccess } from '@/components/ui/toast';
 
 type Tab = 'details' | 'outline' | 'json';
 type Open = { module: number; item?: number } | null;
@@ -24,7 +25,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   const [tab, setTab] = useState<Tab>('details');
   const [open, setOpen] = useState<Open>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string; reload?: boolean } | null>(null);
+  const [message, setMessage] = useState<{ tone: 'error'; text: string; reload?: boolean } | null>(null);
   const [note, setNote] = useState('');
   const [jsonVersion, setJsonVersion] = useState(0);
   const editable = draft.can.edit;
@@ -99,7 +100,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     saved.current = sent;
     // Edits made while the save was on its way are still unsaved.
     setDirty(latest.current !== sent);
-    setMessage({ tone: 'success', text: res.data.issues.length ? `Saved. ${res.data.issues.length} thing(s) to fix before review.` : 'Saved. Ready to send for review.' });
+    setMessage(null);
+    toastSuccess(res.data.issues.length ? `Saved. ${res.data.issues.length} thing(s) to fix before review.` : 'Saved. Ready to send for review.');
     return res.data;
   };
 
@@ -112,7 +114,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     setDraft(res.data);
     setNote('');
     const done = { submit: 'Sent for review.', withdraw: 'Back with you: keep editing.', publish: `Published as version ${res.data.publishedVersionNo ?? ''}.`, 'request-changes': 'Returned to the authors with your note.' };
-    setMessage({ tone: 'success', text: done[name] });
+    setMessage(null);
+    toastSuccess(done[name]);
   };
 
   // Ctrl/Cmd+S saves; Ctrl/Cmd+Z and Shift+Z (or Y) undo and redo, except while typing in a field,
@@ -163,7 +166,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       // The web address belongs to the draft and can't change.
       setDoc({ ...(parsed as Doc), slug: draft.slug });
       setJsonVersion((v) => v + 1);
-      setMessage({ tone: 'success', text: `Imported ${file.name}. Check it, then save.` });
+      toastSuccess(`Imported ${file.name}. Check it, then save.`);
     } catch (err) {
       setMessage({ tone: 'error', text: err instanceof Error ? `Couldn’t import ${file.name}: ${err.message}` : `Couldn’t import ${file.name}.` });
     }

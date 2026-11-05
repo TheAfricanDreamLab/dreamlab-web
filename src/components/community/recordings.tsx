@@ -5,9 +5,10 @@ import { useRef, useState } from 'react';
 import { startRecordingUpload } from '@/app/actions/community';
 import { TextInput } from '@/components/ui/fields';
 import { Icon } from '@/components/ui/icons';
-import { cx, Notice } from '@/components/ui/primitives';
+import { cx } from '@/components/ui/primitives';
 import { MAX_RECORDING_BYTES, type Recording, RECORDING_TYPES } from '@/lib/community';
 import { fileSize, putFile } from '@/lib/upload';
+import { toastSuccess } from '@/components/ui/toast';
 
 /** A session's recordings; each opens through /recordings/<id>, which checks who may see it. */
 export function RecordingList({ recordings }: { recordings: Recording[] }) {
@@ -41,13 +42,11 @@ export function RecordingUploadForm({ cohortId, sessionId, defaultTitle }: { coh
   const [title, setTitle] = useState(defaultTitle);
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   async function upload(file: File | undefined) {
     if (!file) return;
     setError(null);
-    setDone(null);
     if (!(RECORDING_TYPES as readonly string[]).includes(file.type)) return setError('Choose an MP4 or WebM video, or an MP3, OGG, WebM or M4A audio file.');
     if (file.size > MAX_RECORDING_BYTES) return setError(`That file is ${fileSize(file.size)}; the limit is 2 GB.`);
     if (title.trim().length < 2) return setError('Give the recording a title first.');
@@ -56,7 +55,7 @@ export function RecordingUploadForm({ cohortId, sessionId, defaultTitle }: { coh
       const ticket = await startRecordingUpload(cohortId, sessionId, { title: title.trim(), fileName: file.name, contentType: file.type, size: file.size });
       if (!ticket.ok) return setError(ticket.error);
       await putFile(ticket.data, file, setProgress);
-      setDone(`${title.trim()} is uploaded. The cohort’s learners can open it now.`);
+      toastSuccess(`${title.trim()} is uploaded. The cohort’s learners can open it now.`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The upload failed. Try again.');
@@ -84,7 +83,6 @@ export function RecordingUploadForm({ cohortId, sessionId, defaultTitle }: { coh
           {error}
         </p>
       )}
-      {done && <Notice tone="success">{done}</Notice>}
     </div>
   );
 }

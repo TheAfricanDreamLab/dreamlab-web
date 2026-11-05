@@ -18,6 +18,7 @@ import { type AdmissionCycle, ADMISSIONS_TIME_ZONE, DIMENSION_LABELS, DIMENSIONS
 import { localInput } from '@/lib/cohorts';
 import type { FormState } from '@/lib/forms';
 import { labelClass, selectClass, textareaClass } from './application-forms';
+import { NoticeToast } from '@/components/ui/toast';
 
 type Option = { value: string; label: string };
 /** A cohort to choose, with the programme it runs. */
@@ -27,7 +28,7 @@ function Feedback({ state }: { state: FormState }) {
   return (
     <>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
     </>
   );
 }

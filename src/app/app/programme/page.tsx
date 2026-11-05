@@ -9,6 +9,7 @@ import { friendlyError } from '@/lib/errors';
 import { outcomeHref } from '@/lib/outcomes';
 import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
+import { FlashToast } from '@/components/ui/toast';
 
 export const metadata: Metadata = { title: 'My programme' };
 
@@ -60,7 +61,7 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
 
   return (
     <section className="space-y-6" aria-labelledby={`programme-${p.enrollment.id}`}>
-      {justJoined && <Notice tone="success">You’ve joined {p.cohort.name}. Your courses are ready below.</Notice>}
+      {justJoined && <FlashToast clear={['joined']}>You’ve joined {p.cohort.name}. Your courses are ready below.</FlashToast>}
       <Card className="space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">

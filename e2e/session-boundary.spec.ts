@@ -92,7 +92,7 @@ test.describe('sign-in and sign-out boundary', () => {
     // On the phone: sign out everywhere.
     await phone.page.goto('/app/account');
     await phone.page.getByRole('button', { name: 'Sign out everywhere' }).click();
-    await expect(phone.page).toHaveURL(/\/login\?signedout=1/);
+    await expect(phone.page).toHaveURL(/\/login(?:\?signedout=1)?$/);
     // The laptop's next page finds the session over and lands on sign-in.
     await laptop.page.goto('/app/learning');
     await expect(laptop.page).toHaveURL(/\/login/);
@@ -136,7 +136,7 @@ test.describe('joining an organisation with a personal account', () => {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/invitations\/accept$/);
     await page.getByRole('button', { name: 'Accept and join' }).click();
-    await expect(page).toHaveURL(/\/app\?joined=1/);
+    await expect(page).toHaveURL(/\/app(?:\?joined=1)?$/);
     await expect(page.locator('summary').filter({ hasText: orgName })).toBeVisible();
     await close();
   });

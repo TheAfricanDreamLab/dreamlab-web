@@ -28,7 +28,7 @@ async function acceptInvite(browser: Browser, link: string, name: string, email:
   await signUpWithEmail(page, name, email, PASSWORD, page.url());
   await expect(page).toHaveURL(/\/invitations\/accept$/);
   await page.getByRole('button', { name: 'Accept and join' }).click();
-  await expect(page).toHaveURL(/\/app\?joined=1/);
+  await expect(page).toHaveURL(/\/app(?:\?joined=1)?$/);
   return page;
 }
 
@@ -81,7 +81,7 @@ test('a mentor and mentee meet on camera, and a learner joins a live class that 
   await page.getByLabel('First day of week 1').fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel('Who can join').selectOption('open');
   await page.getByRole('button', { name: 'Schedule cohort' }).click();
-  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+(?:\?created=1)?$/);
   await page.getByRole('button', { name: 'Open for joining' }).click();
   await expect(page.getByText('Open to join', { exact: true })).toBeVisible();
   const cohortUrl = page.url().split('?')[0]!;
@@ -91,7 +91,7 @@ test('a mentor and mentee meet on camera, and a learner joins a live class that 
   await signUpWithEmail(ada, 'Ada Obi', unique('roomada'));
   await ada.goto('/programs/the-african-dream-lab');
   await ada.getByRole('button', { name: `Join ${cohortName}` }).click();
-  await expect(ada).toHaveURL(/\/app\/programme\?joined=/);
+  await expect(ada).toHaveURL(/\/app\/programme(?:\?joined=[^&]*)?$/);
 
   await page.goto(cohortUrl);
   await page.getByRole('link', { name: 'Mentors and Dream Circles' }).click();
@@ -134,7 +134,7 @@ test('a mentor and mentee meet on camera, and a learner joins a live class that 
   const cohortTz = /Starts \((.+)\)/.exec((await online.locator('label').filter({ hasText: 'Starts (' }).innerText()) ?? '')?.[1] ?? 'Africa/Lagos';
   await starts.fill(soonIn(cohortTz.trim(), 5));
   await online.getByRole('button', { name: 'Save class' }).click();
-  await expect(online.getByRole('status').or(online.getByText(/saved|updated/i)).first()).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /saved|updated/i }).first()).toBeVisible();
   await online.getByRole('link', { name: /^(Register|Attendance) for / }).click();
   // Read the address once the register has opened, not while the click is still navigating.
   await expect(page).toHaveURL(/\/sessions\/[0-9a-f-]+/);

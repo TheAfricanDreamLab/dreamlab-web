@@ -9,6 +9,7 @@ import { cx, Notice } from '@/components/ui/primitives';
 import type { FormState } from '@/lib/forms';
 import { type InstructorProfile, STAFF_ROLE_LABELS, STAFF_ROLES, type StaffRole } from '@/lib/instructors';
 import { COURSE_IMAGE_TYPES, fileSize, putFile } from '@/lib/upload';
+import { NoticeToast } from '@/components/ui/toast';
 
 const MAX_PHOTO = 5 * 1024 * 1024;
 const selectClass = 'h-11 rounded-[var(--radius-field)] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary';
@@ -96,7 +97,7 @@ export function InstructorForm({ profile }: { profile?: InstructorProfile }) {
         </p>
       )}
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <div className="sm:max-w-xs">
         <SubmitButton pending="Saving…" disabled={!!upload}>
           {profile ? 'Save' : 'Add instructor'}
@@ -157,7 +158,7 @@ export function CourseStaffForm({ course, profiles }: { course: { slug: string; 
         })}
       </fieldset>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      {state.notice && <Notice tone="success">{state.notice}</Notice>}
+      <NoticeToast state={state} />
       <div className="sm:max-w-xs">
         <SubmitButton pending="Saving…">Save course staff</SubmitButton>
       </div>

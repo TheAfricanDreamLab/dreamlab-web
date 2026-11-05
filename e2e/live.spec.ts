@@ -30,7 +30,7 @@ async function acceptInvite(browser: Browser, link: string, name: string, email:
   await signUpWithEmail(page, name, email, PASSWORD, page.url());
   await expect(page).toHaveURL(/\/invitations\/accept$/);
   await page.getByRole('button', { name: 'Accept and join' }).click();
-  await expect(page).toHaveURL(/\/app\?joined=1/);
+  await expect(page).toHaveURL(/\/app(?:\?joined=1)?$/);
   return page;
 }
 
@@ -40,7 +40,7 @@ async function joinCohort(browser: Browser, name: string, cohortName: string): P
   await signUpWithEmail(page, name, unique(name.split(' ')[0]!.toLowerCase()));
   await page.goto('/programs/the-african-dream-lab');
   await page.getByRole('button', { name: `Join ${cohortName}` }).click();
-  await expect(page).toHaveURL(/\/app\/programme\?joined=/);
+  await expect(page).toHaveURL(/\/app\/programme(?:\?joined=[^&]*)?$/);
   return page;
 }
 
@@ -66,7 +66,7 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await page.getByLabel('First day of week 1').fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel('Who can join').selectOption('open');
   await page.getByRole('button', { name: 'Schedule cohort' }).click();
-  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+\?created=1/);
+  await expect(page).toHaveURL(/\/app\/cohorts\/[0-9a-f-]+(?:\?created=1)?$/);
   await page.getByRole('button', { name: 'Open for joining' }).click();
   await expect(page.getByText('Open to join', { exact: true })).toBeVisible();
   const cohortUrl = page.url().split('?')[0]!;
