@@ -2,9 +2,10 @@
 
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { type Editor, EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { Plugin } from '@tiptap/pm/state';
+import { type Editor, EditorContent, Extension, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useId, useRef, useState } from 'react';
 import { cx } from '@/components/ui/primitives';
 import { docToText, textToDoc } from '@/lib/rich-editor-doc';
 import { safeHref, wordCount } from '@/lib/rich-markdown';
@@ -15,6 +16,9 @@ import { safeHref, wordCount } from '@/lib/rich-markdown';
  * pasting from Word or Google Docs keeps headings, lists, links and tables. It stores the same safe
  * course markup the learner pages render (lib/rich-markdown), never HTML.
  */
+
+/** False while the draft can't be edited (read only, or a version is being restored). */
+export const EditableContext = createContext(true);
 
 type Command = { label: string; hint: string; keys?: string; run: (e: Editor) => void; active?: (e: Editor) => boolean };
 
@@ -61,6 +65,32 @@ const ICON = {
   ),
 };
 
+/** Stops any change that would make the text longer than the limit; shorter is always allowed. */
+const LengthLimit = Extension.create<{ max: number; onRefused: () => void }>({
+  name: 'lengthLimit',
+  addOptions: () => ({ max: 12_000, onRefused: () => {} }),
+  addProseMirrorPlugins() {
+    const { options } = this;
+    return [
+      new Plugin({
+        filterTransaction: (tr, state) => {
+          if (!tr.docChanged || tr.getMeta('preventUpdate')) return true;
+          const len = docToText(tr.doc.toJSON()).length;
+          if (len <= options.max || len <= docToText(state.doc.toJSON()).length) return true;
+          options.onRefused();
+          return false;
+        },
+      }),
+    ];
+  },
+});
+
+/** "/" typed alone on an empty paragraph, with the cursor after it. */
+const slashTyped = (e: Editor) => {
+  const { $from, empty } = e.state.selection;
+  return empty && $from.parent.type.name === 'paragraph' && $from.parent.textContent === '/' && $from.parentOffset === 1;
+};
+
 function Tool({ label, onClick, active, children, disabled }: { label: string; onClick: () => void; active?: boolean; children: ReactNode; disabled?: boolean }) {
   return (
     <button
@@ -100,6 +130,7 @@ export function RichEditor({
   onInsertBlock?: () => void;
 }) {
   const id = useId();
+  const editable = useContext(EditableContext);
   const emitted = useRef(value);
   const [slash, setSlash] = useState<{ index: number } | null>(null);
   const [tooLong, setTooLong] = useState(false);
@@ -116,10 +147,12 @@ export function RichEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable,
     extensions: [
+      LengthLimit.configure({ max: maxLength, onRefused: () => setTooLong(true) }),
       StarterKit.configure({ heading: { levels: [2, 3] }, horizontalRule: false, link: { openOnClick: false, autolink: true, protocols: ['https'], isAllowedUri: (url) => safeHref(url) !== null } }),
       Placeholder.configure({ placeholder: 'Write here, or type / for headings, lists, tables and more' }),
-      Table.configure({ resizable: false }),
+      Table.configure({ resizable: false, renderWrapper: true }),
       TableRow,
       TableHeader,
       TableCell,
@@ -139,14 +172,22 @@ export function RichEditor({
     onUpdate: ({ editor: e }) => {
       const text = docToText(e.getJSON());
       // "/" alone on an empty line opens the menu.
-      const { $from } = e.state.selection;
-      setSlash($from.parent.type.name === 'paragraph' && $from.parent.textContent === '/' ? { index: 0 } : null);
-      if (text.length > maxLength) return setTooLong(true);
+      setSlash(slashTyped(e) ? { index: 0 } : null);
       setTooLong(false);
       emitted.current = text;
       change.current(text);
     },
+    // Moving away from the "/" closes the menu.
+    onSelectionUpdate: ({ editor: e }) => {
+      if (slashRef.current && !slashTyped(e)) setSlash(null);
+    },
+    onBlur: () => setSlash(null),
   });
+
+  useEffect(() => {
+    if (!editor || editor.isEditable === editable) return;
+    editor.setEditable(editable, false);
+  }, [editor, editable]);
 
   // Changes from outside (undo, import, restore) replace the content; our own edits don't.
   useEffect(() => {
@@ -166,17 +207,22 @@ export function RichEditor({
             code: e.isActive('code'),
             link: e.isActive('link'),
             inTable: e.isActive('table'),
-            block: COMMANDS.findIndex((c) => c.active?.(e)),
+            // Each is checked on its own: a quote can hold a list, a list item a heading.
+            style: e.isActive('heading', { level: 2 }) ? '1' : e.isActive('heading', { level: 3 }) ? '2' : '0',
+            bullets: e.isActive('bulletList'),
+            numbers: e.isActive('orderedList'),
+            quote: e.isActive('blockquote'),
+            codeBlock: e.isActive('codeBlock'),
           }
         : null,
   });
 
   const menu: Command[] = [...COMMANDS, ...(onInsertBlock ? [{ label: 'Course block…', hint: 'Image, video, question, callout…', run: () => onInsertBlock() }] : [])];
   const runSlash = (cmd: Command) => {
-    if (!editor) return;
-    // Remove the "/" first.
-    editor.chain().focus().deleteRange({ from: editor.state.selection.from - 1, to: editor.state.selection.from }).run();
     setSlash(null);
+    // Only when the "/" is still there to remove: the text may have changed since the menu opened.
+    if (!editor || !slashTyped(editor)) return;
+    editor.chain().focus().deleteRange({ from: editor.state.selection.from - 1, to: editor.state.selection.from }).run();
     cmd.run(editor);
   };
 
@@ -219,10 +265,11 @@ export function RichEditor({
         {label}
       </span>
       <div className="relative rounded-[var(--radius-field)] bg-card ring-1 ring-line-strong focus-within:ring-2 focus-within:ring-primary">
-        <div role="toolbar" aria-label="Formatting" className="flex flex-wrap items-center gap-0.5 border-b border-line px-1.5 py-1">
+        <div role="toolbar" aria-label="Formatting" className={cx('flex flex-wrap items-center gap-0.5 border-b border-line px-1.5 py-1', !editable && 'hidden')}>
           <select
             aria-label="Paragraph style"
-            value={state && state.block >= 0 && state.block <= 2 ? String(state.block) : '0'}
+            value={state?.style ?? '0'}
+            disabled={!editable}
             onChange={(e) => editor && COMMANDS[Number(e.target.value)]!.run(editor)}
             className="h-8 rounded-md bg-transparent px-1.5 text-[13px] text-body hover:bg-surface"
           >
@@ -247,16 +294,16 @@ export function RichEditor({
             {ICON.link}
           </Tool>
           <span className="mx-1 h-5 w-px bg-line" aria-hidden />
-          <Tool label="Bulleted list" active={state?.block === 3} onClick={() => editor && COMMANDS[3]!.run(editor)}>
+          <Tool label="Bulleted list" active={state?.bullets} onClick={() => editor && COMMANDS[3]!.run(editor)}>
             {ICON.bullets}
           </Tool>
-          <Tool label="Numbered list" active={state?.block === 4} onClick={() => editor && COMMANDS[4]!.run(editor)}>
+          <Tool label="Numbered list" active={state?.numbers} onClick={() => editor && COMMANDS[4]!.run(editor)}>
             {ICON.numbers}
           </Tool>
-          <Tool label="Quote" active={state?.block === 5} onClick={() => editor && COMMANDS[5]!.run(editor)}>
+          <Tool label="Quote" active={state?.quote} onClick={() => editor && COMMANDS[5]!.run(editor)}>
             {ICON.quote}
           </Tool>
-          <Tool label="Code block" active={state?.block === 6} onClick={() => editor && COMMANDS[6]!.run(editor)}>
+          <Tool label="Code block" active={state?.codeBlock} onClick={() => editor && COMMANDS[6]!.run(editor)}>
             {ICON.code}
           </Tool>
           <Tool label="Insert a table" onClick={() => editor && COMMANDS[7]!.run(editor)}>
@@ -284,7 +331,7 @@ export function RichEditor({
           )}
         </div>
         <EditorContent editor={editor} aria-labelledby={`${id}-label`} />
-        {slash && editor && (
+        {slash && editor && editable && (
           <div
             role="listbox"
             aria-label="Insert"
@@ -312,7 +359,13 @@ export function RichEditor({
         )}
       </div>
       <p className="flex flex-wrap justify-between gap-2 text-[12px] text-muted">
-        <span>{tooLong ? <span className="text-danger-ink">Too long: the last change wasn’t kept (at most {maxLength.toLocaleString()} characters).</span> : (hint ?? 'Type / for headings, lists and tables. Paste from Word or Google Docs keeps the formatting.')}</span>
+        <span>
+          {tooLong ? (
+            <span className="text-danger-ink">Too long: that change wasn’t made (at most {maxLength.toLocaleString()} characters).</span>
+          ) : editable ? (
+            (hint ?? 'Type / for headings, lists and tables. Paste from Word or Google Docs keeps the formatting.')
+          ) : null}
+        </span>
         <span>
           {words} {words === 1 ? 'word' : 'words'} · {Math.max(1, Math.round(words / 200))} min read
         </span>

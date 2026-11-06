@@ -69,6 +69,14 @@ export function blockProblems(block: BlockDoc, types?: BlockType[]): string[] {
   return [...new Set(out)].slice(0, 6);
 }
 
+/** Where block `n` ends up after the block at `from` moves to `to`. */
+export function movedIndex(n: number, from: number, to: number): number {
+  if (n === from) return to;
+  if (from < to && n > from && n <= to) return n - 1;
+  if (from > to && n >= to && n < from) return n + 1;
+  return n;
+}
+
 export function BlockList({
   blocks,
   onChange,
@@ -102,7 +110,7 @@ export function BlockList({
   const duplicate = (i: number) => {
     setPicker(null);
     if (blocks.length >= max) return;
-    const copy = { ...structuredClone(blocks[i]!), id: freshId(blocks[i]!.type.replace('_', '-'), taken) };
+    const copy = { ...structuredClone(blocks[i]!), id: freshId(String(blocks[i]!.type ?? 'block').replace('_', '-'), taken) };
     const next = [...blocks];
     next.splice(i + 1, 0, copy);
     onChange(next);
@@ -135,7 +143,8 @@ export function BlockList({
     const from = Number(String(e.active.id).slice(4));
     const to = Number(String(e.over.id).slice(4));
     onChange(move(blocks, from, to));
-    setOpen(open === from ? to : open);
+    // The open block stays open wherever it ends up.
+    setOpen(open === null ? null : movedIndex(open, from, to));
   };
 
   return (
@@ -158,7 +167,7 @@ export function BlockList({
             onChange={(next) => onChange(blocks.map((x, j) => (j === i ? next : x)))}
             onMove={(to) => {
               onChange(move(blocks, i, to));
-              setOpen(open === i ? to : open);
+              setOpen(open === null ? null : movedIndex(open, i, to));
             }}
             onDuplicate={() => duplicate(i)}
             onInsertBefore={() => setPicker(i)}
@@ -263,7 +272,7 @@ function BlockCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cx(
-        'group overflow-hidden rounded-[var(--radius-field)] bg-card ring-1 transition-shadow',
+        'group overflow-visible rounded-[var(--radius-field)] bg-card ring-1 transition-shadow',
         problems.length ? 'ring-danger-line' : 'ring-line',
         open && 'shadow-[var(--shadow-soft)]',
         isDragging && 'relative z-10 shadow-[var(--shadow-panel)] ring-2 ring-primary',

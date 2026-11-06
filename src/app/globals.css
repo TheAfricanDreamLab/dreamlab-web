@@ -381,10 +381,19 @@
   font-weight: 600;
   text-decoration: underline;
 }
+/* Wide tables scroll sideways instead of widening the page. */
+.dl-rich .tableWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
 .dl-rich table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95em;
+}
+.dl-rich td,
+.dl-rich th {
+  min-width: 6rem;
 }
 .dl-rich th,
 .dl-rich td {

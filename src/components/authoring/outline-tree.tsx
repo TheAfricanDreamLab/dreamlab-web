@@ -57,13 +57,18 @@ export function RowMenu({ label, items }: { label: string; items: ({ label: stri
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current?.contains(e.target as Node)) setOpen(false);
+      if (e instanceof KeyboardEvent) {
+        if (e.key !== 'Escape') return;
+        // Escape closes this menu only, not a drawer or dialog around it.
+        e.preventDefault();
+        setOpen(false);
+      } else if (!box.current?.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', close);
+    document.addEventListener('keydown', close, true);
     return () => {
       document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', close);
+      document.removeEventListener('keydown', close, true);
     };
   }, [open]);
   return (

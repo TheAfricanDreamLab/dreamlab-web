@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Button, Steps } from '@/components/ui/primitives';
 import { type Doc, newItem, slugify } from '@/lib/authoring';
 import { safeImageUrl } from '@/lib/media';
@@ -11,17 +11,25 @@ import { DraftIdContext, MediaUploadButton } from './media-upload';
 /*
  * Setting up a new course (CAT-5): four short steps (the basics, who it's for, a cover, the first
  * module) before the full workspace. Every step can be skipped and changed later in Course details.
+ * Each change goes straight into the draft, so it saves itself like any other edit.
  */
 
 const LABELS = ['The basics', 'Who it’s for', 'Cover', 'First module'];
 
-export function SetupWizard({ doc, onFinish, onSkip }: { doc: Doc; onFinish: (doc: Doc) => void; onSkip: () => void }) {
+export function SetupWizard({ doc: d, onChange, onFinish, onSkip }: { doc: Doc; onChange: (doc: Doc) => void; onFinish: (doc: Doc) => void; onSkip: () => void }) {
   const draftId = useContext(DraftIdContext);
   const [step, setStep] = useState(0);
-  const [d, setD] = useState<Doc>(doc);
   const [moduleTitle, setModuleTitle] = useState('Getting started');
   const [lessonTitle, setLessonTitle] = useState('Welcome');
-  const set = (key: string, value: unknown) => setD((x) => ({ ...x, [key]: value }));
+  // An upload finishes later: it adds to the course as it is then, not as it was when it started.
+  const latest = useRef(d);
+  useEffect(() => {
+    latest.current = d;
+  }, [d]);
+  const set = (key: string, value: unknown) => {
+    latest.current = { ...latest.current, [key]: value };
+    onChange(latest.current);
+  };
   const str = (v: unknown) => (typeof v === 'string' ? v : '');
   const cover = (d.cover ?? {}) as { imageUrl?: string; imageAlt?: string; imageCredit?: string };
 
@@ -74,7 +82,7 @@ export function SetupWizard({ doc, onFinish, onSkip }: { doc: Doc; onFinish: (do
               // eslint-disable-next-line @next/next/no-img-element -- the author's own upload
               <img src={safeImageUrl(cover.imageUrl)!} alt="" className="aspect-[21/9] w-full rounded-lg object-cover ring-1 ring-line" />
             )}
-            {draftId && <MediaUploadButton draftId={draftId} kind="image" label={cover.imageUrl ? 'Replace the photo' : 'Upload a photo'} onUploaded={(path) => set('cover', { ...(d.cover as object), imageUrl: `/media/${path}` })} />}
+            {draftId && <MediaUploadButton draftId={draftId} kind="image" label={cover.imageUrl ? 'Replace the photo' : 'Upload a photo'} onUploaded={(path) => set('cover', { ...(latest.current.cover as object), imageUrl: `/media/${path}` })} />}
             {cover.imageUrl && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <TextField label="Photo description" value={cover.imageAlt ?? ''} maxLength={300} onChange={(v) => set('cover', { ...(d.cover as object), imageAlt: v })} />

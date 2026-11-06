@@ -37,6 +37,12 @@ export type Doc = Record<string, unknown> & {
 export type ModuleDoc = { key: string; title: string; summary: string; weekNo: number | null; items: ItemDoc[] };
 export type ItemDoc = Record<string, unknown> & { key: string; type: ItemType; title: string; minutes: number; required?: boolean; gradeWeight?: number; payload: Record<string, unknown> };
 
+/** A plain object: what a module, item, step or block must be. Anything else in a list is skipped. */
+export const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** The objects of a list that may hold anything (an imported course can contain nulls). */
+export const records = <T = Record<string, unknown>>(v: unknown): T[] => (Array.isArray(v) ? (v.filter(isRecord) as T[]) : []);
+
 /**
  * The outline as the editor can render it, whatever the JSON tab left behind: modules with item lists,
  * items with a payload. Only shapes are mended; the API still reports what is wrong.

@@ -20,7 +20,15 @@ export type RichBlock =
 /** Only https links (and same-site paths) are links; anything else stays plain text. */
 export function safeHref(raw: string): string | null {
   const href = raw.trim();
-  if (href.startsWith('/') && !href.startsWith('//')) return href;
+  // Backslashes and control characters can make a "/path" resolve to another site.
+  if (/[\u0000-\u001f\u007f\\]/.test(href)) return null;
+  if (href.startsWith('/') && !href.startsWith('//')) {
+    try {
+      return new URL(href, 'https://same.invalid').origin === 'https://same.invalid' ? href : null;
+    } catch {
+      return null;
+    }
+  }
   try {
     const url = new URL(href);
     return url.protocol === 'https:' ? url.toString() : null;
@@ -31,9 +39,37 @@ export function safeHref(raw: string): string | null {
 
 // ---------- inline ----------
 
-const INLINE = /(\*\*(?=\S)[\s\S]*?\S\*\*|\+\+(?=\S)[\s\S]*?\S\+\+|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)|\*(?=[^*\s])[^*\n]*?[^*\s]\*|\*[^*\s]\*)/;
+/*
+ * A backslash makes the next markup character literal: \* \+ \_ \` \[ \] \( \) \| \# \> \- \. \\
+ * While parsing, escaped characters are swapped for private-use stand-ins so they never form markup,
+ * then swapped back in the text that comes out.
+ */
+const ESCAPABLE = '\\*+_`[]()|#>-.';
+const STAND_IN = 0xe000;
+const encode = (t: string) => t.replace(/\\([\\*+_`[\]()|#>\-.])/g, (_m, c: string) => String.fromCharCode(STAND_IN + ESCAPABLE.indexOf(c)));
+const decode = (t: string) => t.replace(/[\ue000-\ue00f]/g, (c) => ESCAPABLE[c.charCodeAt(0) - STAND_IN] ?? c);
+
+// **bold**, ++underline++, `code`, [link](url), *italic* or _italic_ (underscores only at word edges).
+const INLINE = /(\*\*(?=\S)[\s\S]*?\S\*\*|\+\+(?=\S)[\s\S]*?\S\+\+|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)|\*(?=[^*\s])[^*\n]*?[^*\s]\*|\*[^*\s]\*|(?<![\p{L}\p{N}_])_(?=[^_\s])[^_\n]*?[^_\s]_(?![\p{L}\p{N}_])|(?<![\p{L}\p{N}_])_[^_\s]_(?![\p{L}\p{N}_]))/u;
 
 export function parseInline(text: string, marks: Mark[] = [], href?: string): Line {
+  return merge(parseEncoded(encode(text), marks, href).map((seg) => ({ ...seg, text: decode(seg.text) })));
+}
+
+const sameStyle = (a: Inline, b: Inline) => a.href === b.href && a.marks.length === b.marks.length && a.marks.every((m) => b.marks.includes(m));
+
+/** Neighbouring pieces with the same style become one. */
+function merge(line: Line): Line {
+  const out: Line = [];
+  for (const seg of line) {
+    const last = out[out.length - 1];
+    if (last && sameStyle(last, seg)) last.text += seg.text;
+    else out.push({ ...seg });
+  }
+  return out;
+}
+
+function parseEncoded(text: string, marks: Mark[], href?: string): Line {
   const out: Line = [];
   let rest = text;
   while (rest) {
@@ -44,14 +80,14 @@ export function parseInline(text: string, marks: Mark[] = [], href?: string): Li
     }
     if (m.index > 0) out.push({ text: rest.slice(0, m.index), marks, ...(href && { href }) });
     const tok = m[0];
-    if (tok.startsWith('**')) out.push(...parseInline(tok.slice(2, -2), [...marks, 'bold'], href));
-    else if (tok.startsWith('++')) out.push(...parseInline(tok.slice(2, -2), [...marks, 'underline'], href));
+    if (tok.startsWith('**')) out.push(...parseEncoded(tok.slice(2, -2), [...marks, 'bold'], href));
+    else if (tok.startsWith('++')) out.push(...parseEncoded(tok.slice(2, -2), [...marks, 'underline'], href));
     else if (tok.startsWith('`')) out.push({ text: tok.slice(1, -1), marks: [...marks, 'code'], ...(href && { href }) });
     else if (tok.startsWith('[')) {
       const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(tok)!;
-      const safe = safeHref(link[2]!);
-      out.push(...(safe ? parseInline(link[1]!, marks, safe) : [{ text: tok, marks, ...(href && { href }) }]));
-    } else out.push(...parseInline(tok.slice(1, -1), [...marks, 'italic'], href));
+      const safe = safeHref(decode(link[2]!));
+      out.push(...(safe ? parseEncoded(link[1]!, marks, safe) : [{ text: tok, marks, ...(href && { href }) }]));
+    } else out.push(...parseEncoded(tok.slice(1, -1), [...marks, 'italic'], href));
     rest = rest.slice(m.index + tok.length);
   }
   return out.filter((i) => i.text.length > 0);
@@ -66,12 +102,15 @@ const HEADING = /^(#{1,3})\s+/;
 const TABLE_ROW = /^\s*\|.*\|\s*$/;
 const TABLE_RULE = /^\s*\|(\s*:?-{2,}:?\s*\|)+\s*$/;
 
+// Escaped pipes (\|) stay inside their cell.
 const cells = (row: string) =>
-  row
+  encode(row)
     .trim()
     .replace(/^\||\|$/g, '')
     .split('|')
-    .map((c) => parseInline(c.trim()));
+    .map((c) => parseInline(decodeToEscapes(c.trim())));
+/** Stand-ins back to backslash escapes, for text that is parsed again. */
+const decodeToEscapes = (t: string) => t.replace(/[\ue000-\ue00f]/g, (c) => `\\${ESCAPABLE[c.charCodeAt(0) - STAND_IN] ?? ''}`);
 
 export function parseRich(text: string): RichBlock[] {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
@@ -138,24 +177,34 @@ export function parseRich(text: string): RichBlock[] {
 const WRAP: [Mark, string][] = [
   ['bold', '**'],
   ['underline', '++'],
-  ['italic', '*'],
+  ['italic', '_'],
 ];
 
-/** Runs that share a mark are wrapped once: "**bold *and italic***", not "**bold *****and italic***". */
+/** Plain text with its markup characters made literal. */
+const escapeText = (t: string) => t.replace(/[\\*+_`[\]|]/g, (c) => `\\${c}`);
+/** A line that would otherwise start a list, heading or quote. */
+const escapeLineStart = (t: string) => t.replace(/^(\s*)(\d+)([.)])(\s)/, '$1$2\\$3$4').replace(/^(\s*)([-•#>])/, '$1\\$2');
+
+/** Runs that share a mark are wrapped once: "**bold _and italic_**", not "**bold *****and italic***". */
 function marked(segs: Inline[], outer: Mark[]): string {
   let out = '';
   for (let k = 0; k < segs.length; ) {
     const seg = segs[k]!;
     const next = WRAP.find(([m]) => seg.marks.includes(m) && !outer.includes(m));
     if (!next) {
-      out += seg.marks.includes('code') ? `\`${seg.text}\`` : seg.text;
+      out += seg.marks.includes('code') ? `\`${seg.text.replace(/`/g, "'")}\`` : escapeText(seg.text);
       k++;
       continue;
     }
     const [mark, sym] = next;
     let j = k;
     while (j < segs.length && segs[j]!.marks.includes(mark)) j++;
-    out += `${sym}${marked(segs.slice(k, j), [...outer, mark])}${sym}`;
+    // Spaces at the edges of the run stay outside it: "**word** ", not "**word **".
+    const inner = marked(segs.slice(k, j), [...outer, mark]);
+    const [, lead, core, trail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(inner)!;
+    // Underscores mark italics only at word edges; next to a letter, use an asterisk.
+    const mk = mark === 'italic' ? (/[\p{L}\p{N}]$/u.test(out + lead) ? '*' : '_') : sym;
+    out += core ? `${lead}${mk}${core}${mk}${trail}` : inner;
     k = j;
   }
   return out;
@@ -168,7 +217,7 @@ export function lineToText(line: Line): string {
     let j = k;
     while (j < line.length && line[j]!.href === href) j++;
     const inner = marked(line.slice(k, j), []);
-    out += href ? `[${inner}](${href})` : inner;
+    out += href ? `[${inner}](${href.replace(/\)/g, '%29').replace(/\s/g, '%20')})` : inner;
     k = j;
   }
   return out;
@@ -179,7 +228,7 @@ export function richToText(blocks: RichBlock[]): string {
     .map((b) => {
       switch (b.type) {
         case 'paragraph':
-          return b.lines.map(lineToText).join('\n');
+          return b.lines.map((l) => escapeLineStart(lineToText(l))).join('\n');
         case 'heading':
           return `${b.level === 2 ? '##' : '###'} ${lineToText(b.content)}`;
         case 'bullets':
@@ -192,7 +241,7 @@ export function richToText(blocks: RichBlock[]): string {
           return '```\n' + b.text + '\n```';
         case 'table': {
           const [head, ...body] = b.rows;
-          const row = (r: Line[]) => `| ${r.map((c) => lineToText(c).replace(/\|/g, '/')).join(' | ')} |`;
+          const row = (r: Line[]) => `| ${r.map((c) => lineToText(c)).join(' | ')} |`;
           return [row(head ?? []), `|${(head ?? []).map(() => ' --- ').join('|')}|`, ...body.map(row)].join('\n');
         }
       }

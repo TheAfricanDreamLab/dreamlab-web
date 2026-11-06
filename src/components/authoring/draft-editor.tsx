@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { discardDraft, draftStep, restoreDraftSave, saveDraft } from '@/app/actions/authoring';
 import { Icon } from '@/components/ui/icons';
 import { Badge, Button, Card, cx, Notice } from '@/components/ui/primitives';
@@ -14,6 +14,7 @@ import { JsonField } from './fields';
 import { HistoryPanel } from './history-panel';
 import { ItemEditor, ModuleEditor } from './item-editors';
 import { ItemPreview } from './item-preview';
+import { EditableContext } from './rich-editor';
 import { DraftIdContext } from './media-upload';
 import { type OutlineActions, OutlineTree, RowMenu } from './outline-tree';
 import { SetupWizard } from './setup-wizard';
@@ -25,6 +26,10 @@ import { SetupWizard } from './setup-wizard';
  * earlier checkpoints. The API refuses a save made over someone else's newer one.
  */
 
+/*
+ * A failed save stops autosave until the next edit (or, after someone else's newer save, until a
+ * reload). Errors from sending for review, importing or discarding are shown apart and never block it.
+ */
 type SaveState = { kind: 'saved'; at: number } | { kind: 'saving' } | { kind: 'unsaved' } | { kind: 'error'; text: string; reload?: boolean };
 const AUTOSAVE_MS = 2500;
 
@@ -63,6 +68,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   const [saveState, setSaveState] = useState<SaveState>({ kind: 'saved', at: Date.parse(initial.updatedAt) || 0 });
   const [sel, setSel] = useState<Selection>(() => (normaliseModules(initial.doc.modules).length ? { kind: 'item', m: 0, i: 0 } : { kind: 'details' }));
   const [busy, setBusy] = useState<string | null>(null);
+  const [flowError, setFlowError] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [preview, setPreview] = useState(false);
   const [device, setDevice] = useState<'phone' | 'laptop'>('laptop');
@@ -72,6 +78,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   const isNew = initial.baseVersionNo === null && normaliseModules(initial.doc.modules).length === 0 && !String(initial.doc.description ?? '').trim();
   const [wizard, setWizard] = useState(isNew && initial.can.edit);
   const editable = draft.can.edit;
+  // Nothing can change while a version is being restored.
+  const canChange = editable && busy !== 'restore';
 
   const latest = useRef(doc);
   useEffect(() => {
@@ -98,14 +106,16 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       lastEdit.current = typing ? now : 0;
       setDocState(next);
       setDirty(true);
-      setSaveState((s) => (s.kind === 'error' ? s : { kind: 'unsaved' }));
+      // Editing again retries a failed save, unless someone else saved first (that needs a reload).
+      setSaveState((s) => (s.kind === 'error' && s.reload ? s : { kind: 'unsaved' }));
       syncHist();
     },
     [syncHist],
   );
+  const busyRef = useRef<string | null>(null);
   const undo = useCallback(() => {
     const prev = past.current.at(-1);
-    if (!prev) return;
+    if (!prev || busyRef.current === 'restore') return;
     past.current = past.current.slice(0, -1);
     future.current = [latest.current, ...future.current];
     lastEdit.current = 0;
@@ -116,7 +126,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   }, [syncHist]);
   const redo = useCallback(() => {
     const [next, ...rest] = future.current;
-    if (!next) return;
+    if (!next || busyRef.current === 'restore') return;
     future.current = rest;
     past.current = [...past.current, latest.current];
     lastEdit.current = 0;
@@ -171,7 +181,6 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   }, [dirty]);
 
   // Ctrl/Cmd+S saves (a checkpoint); Ctrl/Cmd+Z and Shift+Z (or Y) undo and redo outside text fields.
-  const busyRef = useRef(busy);
   useEffect(() => {
     busyRef.current = busy;
   }, [busy]);
@@ -199,23 +208,40 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [editable, undo, redo, save]);
 
+  // One workflow step at a time: a second click while the first is saving does nothing.
+  const stepping = useRef(false);
   const step = async (name: 'submit' | 'withdraw' | 'publish' | 'request-changes') => {
-    if (name === 'submit' && dirty && !(await save(true))) return;
-    setBusy(name);
-    const res = await draftStep(draft.id, name, note);
-    setBusy(null);
-    if (!res.ok) return setSaveState({ kind: 'error', text: res.error });
-    setDraft(res.data);
-    setNote('');
-    const done = { submit: 'Sent for review.', withdraw: 'Back with you: keep editing.', publish: `Published as version ${res.data.publishedVersionNo ?? ''}.`, 'request-changes': 'Returned to the authors with your note.' };
-    toastSuccess(done[name]);
+    if (stepping.current || busyRef.current !== null) return;
+    stepping.current = true;
+    try {
+      setFlowError(null);
+      if (name === 'submit' && dirty && !(await save(true))) return;
+      setBusy(name);
+      const res = await draftStep(draftRef.current.id, name, note);
+      setBusy(null);
+      if (!res.ok) return setFlowError(res.error);
+      setDraft(res.data);
+      draftRef.current = res.data;
+      setNote('');
+      const done = { submit: 'Sent for review.', withdraw: 'Back with you: keep editing.', publish: `Published as version ${res.data.publishedVersionNo ?? ''}.`, 'request-changes': 'Returned to the authors with your note.' };
+      toastSuccess(done[name]);
+    } finally {
+      stepping.current = false;
+    }
   };
 
   const restore = async (revision: number) => {
+    if (busyRef.current !== null) return;
     if (dirty && !(await save(true))) return;
-    const res = await restoreDraftSave(draft.id, draftRef.current.revision, revision);
+    // Editing is locked until the restore answers, so nothing typed meanwhile is replaced.
+    setBusy('restore');
+    busyRef.current = 'restore';
+    const res = await restoreDraftSave(draftRef.current.id, draftRef.current.revision, revision);
+    setBusy(null);
+    busyRef.current = null;
     if (!res.ok) return setSaveState({ kind: 'error', text: res.error, reload: res.code === 'draft_changed' });
     setDraft(res.data);
+    draftRef.current = res.data;
     const restored = res.data.doc as Doc;
     past.current = [...past.current, latest.current];
     future.current = [];
@@ -245,7 +271,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       setJsonVersion((v) => v + 1);
       toastSuccess(`Imported ${file.name}. It saves in a moment.`);
     } catch (err) {
-      setSaveState({ kind: 'error', text: err instanceof Error ? `Couldn’t import ${file.name}: ${err.message}` : `Couldn’t import ${file.name}.` });
+      setFlowError(err instanceof Error ? `Couldn’t import ${file.name}: ${err.message}` : `Couldn’t import ${file.name}.`);
     }
   };
 
@@ -315,7 +341,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   };
 
   // ---------- problems and tips ----------
-  const described = useMemo(() => draft.issues.map((i) => describeIssue(modules, i)), [draft.issues, modules]);
+  const described = useMemo(() => draft.issues.map((i) => describeIssue(modules, i, doc.modules)), [draft.issues, modules, doc.modules]);
   const problems = useMemo(() => {
     const map = new Map<string, number>();
     for (const d of described) map.set(selKey(d.sel), (map.get(selKey(d.sel)) ?? 0) + 1);
@@ -339,6 +365,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       <DraftIdContext.Provider value={draft.id}>
         <SetupWizard
           doc={doc}
+          onChange={setDoc}
           onSkip={() => setWizard(false)}
           onFinish={(next) => {
             setDoc(next);
@@ -350,7 +377,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     );
   }
 
-  const outline = <OutlineTree modules={modules} sel={view} setSel={pick} problems={problems} tipCount={tips.length} actions={actions} editable={editable} />;
+  const outline = <OutlineTree modules={modules} sel={view} setSel={pick} problems={problems} tipCount={tips.length} actions={actions} editable={canChange} />;
   const side = preview || history;
 
   return (
@@ -379,10 +406,10 @@ export function DraftEditor({ initial }: { initial: Draft }) {
             <div className="flex flex-wrap items-center gap-1.5">
               {editable && (
                 <>
-                  <button type="button" onClick={undo} disabled={hist.past === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className={cx(pill, 'max-sm:hidden')}>
+                  <button type="button" onClick={undo} disabled={hist.past === 0 || !canChange} title="Undo (Ctrl+Z)" aria-label="Undo" className={cx(pill, 'max-sm:hidden')}>
                     ↶
                   </button>
-                  <button type="button" onClick={redo} disabled={hist.future === 0} title="Redo (Ctrl+Shift+Z)" aria-label="Redo" className={cx(pill, 'max-sm:hidden')}>
+                  <button type="button" onClick={redo} disabled={hist.future === 0 || !canChange} title="Redo (Ctrl+Shift+Z)" aria-label="Redo" className={cx(pill, 'max-sm:hidden')}>
                     ↷
                   </button>
                   <button type="button" onClick={() => void save(true)} disabled={busy !== null || (!dirty && saveState.kind !== 'error')} title="Save now (Ctrl+S)" className={cx(pill, 'max-sm:hidden')}>
@@ -443,7 +470,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                             if (!window.confirm('Discard this draft? Published versions are not affected.')) return;
                             setDirty(false);
                             const res = await discardDraft(draft.id);
-                            if (res && !res.ok) setSaveState({ kind: 'error', text: res.error });
+                            if (res && !res.ok) setFlowError(res.error);
                           },
                         },
                       ]
@@ -465,6 +492,16 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                     Try again
                   </button>
                 )}
+              </Notice>
+            </div>
+          )}
+          {flowError && (
+            <div className="mt-2">
+              <Notice tone="error">
+                {flowError}{' '}
+                <button type="button" onClick={() => setFlowError(null)} className="font-semibold underline">
+                  Dismiss
+                </button>
               </Notice>
             </div>
           )}
@@ -515,23 +552,17 @@ export function DraftEditor({ initial }: { initial: Draft }) {
         <div className={cx('grid items-start gap-5', side ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)_25rem]' : 'lg:grid-cols-[17rem_minmax(0,1fr)]')}>
           {/* The outline: a column on large screens, a drawer on small ones. */}
           <div className="sticky top-[9.5rem] hidden h-[calc(100dvh-11rem)] overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line lg:block">{outline}</div>
-          {outlineOpen && (
-            <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Course outline">
-              <div className="absolute inset-0 bg-forest/35 backdrop-blur-[2px]" onClick={() => setOutlineOpen(false)} aria-hidden />
-              <div className="absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] flex-col bg-card shadow-[var(--shadow-panel)]">
-                <div className="flex items-center justify-between border-b border-line px-3 py-2">
-                  <span className="text-[14px] font-bold">Outline</span>
-                  <button type="button" onClick={() => setOutlineOpen(false)} aria-label="Close the outline" className="grid h-9 w-9 place-items-center rounded-full hover:bg-surface">
-                    <Icon name="close" className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="min-h-0 flex-1">{outline}</div>
-              </div>
-            </div>
-          )}
+          {outlineOpen && <OutlineDrawer onClose={() => setOutlineOpen(false)}>{outline}</OutlineDrawer>}
 
           <section id="workspace-main" aria-label="Editor" className="min-w-0 scroll-mt-40">
-            <fieldset disabled={!editable} className="min-w-0">
+            {/* The checklist only navigates, so it works on a read-only draft too. */}
+            {view.kind === 'checklist' ? (
+              <Card className="p-5 sm:p-7">
+                <Checklist described={described} tips={tips} onGo={pick} canSubmit={draft.can.submit} busy={busy !== null} onSubmit={() => void step('submit')} />
+              </Card>
+            ) : (
+            <EditableContext.Provider value={canChange}>
+            <fieldset disabled={!canChange} aria-busy={busy === 'restore'} className="min-w-0">
               <legend className="sr-only">Course content{editable ? '' : ' (read only)'}</legend>
               <Card className="p-5 sm:p-7">
                 {view.kind === 'details' && (
@@ -543,7 +574,6 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                     <DetailsEditor draftId={draft.id} doc={doc} set={set} />
                   </div>
                 )}
-                {view.kind === 'checklist' && <Checklist described={described} tips={tips} onGo={pick} canSubmit={draft.can.submit} onSubmit={() => void step('submit')} />}
                 {view.kind === 'json' && (
                   <div className="space-y-4">
                     <header className="space-y-1">
@@ -593,6 +623,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                 )}
               </Card>
             </fieldset>
+            </EditableContext.Provider>
+            )}
           </section>
 
           {side && (
@@ -639,7 +671,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
 
 type Found = { sel: Selection; where: string; message: string };
 
-function Checklist({ described, tips, onGo, canSubmit, onSubmit }: { described: Found[]; tips: Found[]; onGo: (s: Selection) => void; canSubmit: boolean; onSubmit: () => void }) {
+function Checklist({ described, tips, onGo, canSubmit, busy, onSubmit }: { described: Found[]; tips: Found[]; onGo: (s: Selection) => void; canSubmit: boolean; busy: boolean; onSubmit: () => void }) {
   const row = (d: Found, k: number, tone: 'danger' | 'gold') => (
     <li key={k}>
       <button type="button" onClick={() => onGo(d.sel)} className="group flex w-full items-start gap-3 rounded-[var(--radius-field)] p-3 text-left ring-1 ring-line hover:bg-surface">
@@ -665,8 +697,8 @@ function Checklist({ described, tips, onGo, canSubmit, onSubmit }: { described: 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] bg-success-tint p-4 ring-1 ring-success-line">
           <p className="text-[14.5px] text-forest">Everything required is in place.</p>
           {canSubmit && (
-            <button type="button" onClick={onSubmit} className="rounded-full bg-primary px-4 py-2 text-[13.5px] font-semibold text-white hover:bg-forest">
-              Send for review
+            <button type="button" onClick={onSubmit} disabled={busy} className="rounded-full bg-primary px-4 py-2 text-[13.5px] font-semibold text-white hover:bg-forest disabled:opacity-50">
+              {busy ? 'Working…' : 'Send for review'}
             </button>
           )}
         </div>
@@ -678,6 +710,64 @@ function Checklist({ described, tips, onGo, canSubmit, onSubmit }: { described: 
           <ul className="space-y-2">{tips.map((t, k) => row(t, k, 'gold'))}</ul>
         </section>
       )}
+    </div>
+  );
+}
+
+/** The outline as a drawer on small screens: focus moves in, stays in, and goes back when it closes. */
+function OutlineDrawer({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  const panel = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  }, [onClose]);
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusable = () =>
+      Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []).filter(
+        (el) => el.getClientRects().length > 0,
+      );
+    focusable()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      // A menu open inside the outline handles its own Escape first.
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        e.preventDefault();
+        close.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const els = focusable();
+      const first = els[0];
+      const last = els.at(-1);
+      if (!first || !last) return;
+      const inside = panel.current?.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      // Back to the button that opened it, if it is still on the page.
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
+  return (
+    <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Course outline">
+      <div className="absolute inset-0 bg-forest/35 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
+      <div ref={panel} className="absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] flex-col bg-card shadow-[var(--shadow-panel)]">
+        <div className="flex items-center justify-between border-b border-line px-3 py-2">
+          <span className="text-[14px] font-bold">Outline</span>
+          <button type="button" onClick={onClose} aria-label="Close the outline" className="grid h-9 w-9 place-items-center rounded-full hover:bg-surface">
+            <Icon name="close" className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1">{children}</div>
+      </div>
     </div>
   );
 }

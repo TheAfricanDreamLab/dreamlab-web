@@ -3,7 +3,7 @@
  * and the quality tips that don't block publishing.
  */
 import type { DraftIssue } from '@dreamlab/contracts';
-import { type ItemDoc, ITEM_TYPES, type ModuleDoc } from './authoring';
+import { isRecord, type ItemDoc, ITEM_TYPES, type ModuleDoc, records } from './authoring';
 import { BLOCK_INFO, type BlockDoc } from './blocks';
 
 export type Selection = { kind: 'details' } | { kind: 'checklist' } | { kind: 'json' } | { kind: 'module'; m: number } | { kind: 'item'; m: number; i: number };
@@ -80,24 +80,40 @@ export function plainMessage(raw: string): string {
 
 const quoted = (s: unknown) => (typeof s === 'string' && s.trim() ? `“${s.trim().slice(0, 40)}”` : '(untitled)');
 
+/**
+ * Where entry `raw` of a saved list is in the outline, which skips entries that aren't objects
+ * (an imported course can contain nulls). -1 when it isn't shown.
+ */
+function outlineIndex(list: unknown, raw: number): number {
+  if (!Array.isArray(list)) return raw;
+  if (!isRecord(list[raw])) return -1;
+  return list.slice(0, raw).filter(isRecord).length;
+}
+
 /** Where an issue is, as a selection and a readable trail: "Module 1 › Lesson “Why” › Step 2 › Multiple choice › Explanation". */
-export function describeIssue(modules: ModuleDoc[], issue: DraftIssue): { sel: Selection; where: string; message: string } {
+export function describeIssue(modules: ModuleDoc[], issue: DraftIssue, rawModules?: unknown): { sel: Selection; where: string; message: string } {
   const parts = issue.path.split('.').filter(Boolean);
   const message = plainMessage(issue.message);
   if (parts[0] !== 'modules' || parts.length < 2) {
     const field = parts.map((p) => FIELD[p] ?? (Number.isInteger(Number(p)) ? `#${Number(p) + 1}` : p)).join(' › ');
     return { sel: { kind: 'details' }, where: field || 'Course', message };
   }
-  const m = Number(parts[1]);
-  const mod = modules[m];
+  // The API counts entries in the saved lists; the outline leaves out the ones that aren't objects.
+  const rawM = Number(parts[1]);
+  const m = rawModules === undefined ? rawM : outlineIndex(rawModules, rawM);
+  const mod = m >= 0 ? modules[m] : undefined;
+  if (!mod) return { sel: { kind: 'json' }, where: `Module ${rawM + 1}`, message: `${message} (fix it in Advanced: JSON)` };
   const trail = [`Module ${m + 1}`];
   if (parts[2] !== 'items' || parts.length < 4) {
     const rest = parts.slice(2).map((p) => FIELD[p] ?? p);
     return { sel: { kind: 'module', m }, where: [...trail, ...rest].join(' › '), message };
   }
-  const i = Number(parts[3]);
-  const item = mod?.items[i];
-  trail.push(`${item ? ITEM_NAMES[item.type] : 'Item'} ${quoted(item?.title)}`);
+  const rawI = Number(parts[3]);
+  const rawItems = Array.isArray(rawModules) && isRecord(rawModules[rawM]) ? rawModules[rawM].items : undefined;
+  const i = rawModules === undefined ? rawI : outlineIndex(rawItems, rawI);
+  const item = i >= 0 ? mod.items[i] : undefined;
+  if (!item) return { sel: { kind: 'module', m }, where: [...trail, `Item ${rawI + 1}`].join(' › '), message: `${message} (fix it in Advanced: JSON)` };
+  trail.push(`${ITEM_NAMES[item.type]} ${quoted(item.title)}`);
   let k = 4;
   if (parts[k] === 'payload') k++;
   if (parts[k] === 'steps' && parts[k + 1] !== undefined) {
@@ -137,14 +153,14 @@ export function qualityTips(doc: Record<string, unknown>, modules: ModuleDoc[]):
       const sel: Selection = { kind: 'item', m, i };
       const p = item.payload as Record<string, unknown>;
       if (item.type === 'lesson') {
-        const steps = (Array.isArray(p.steps) ? p.steps : []) as { blocks?: BlockDoc[] }[];
-        const blocks = steps.flatMap((s) => (Array.isArray(s.blocks) ? s.blocks : []));
+        const steps = records<{ blocks?: unknown }>(p.steps).map((s) => records<BlockDoc>(s.blocks));
+        const blocks = steps.flat();
         if (item.minutes > 30) tips.push({ sel, where, message: `${item.minutes} minutes is long for one lesson: consider splitting it.` });
         if (blocks.length > 2 && !blocks.some((b) => ['choice', 'order', 'match', 'poll', 'scale', 'reflection', 'scenario'].includes(b.type))) {
           tips.push({ sel, where, message: 'Add a question or reflection so learners practise what they read.' });
         }
         if (blocks.some((b) => b.type === 'video' && !b.caption)) tips.push({ sel, where, message: 'Tell learners what to watch for in each video (“What to watch for”).' });
-        if (steps.some((s) => (s.blocks?.length ?? 0) > 8)) tips.push({ sel, where, message: 'A step with more than 8 blocks is a lot on one screen: split it into steps.' });
+        if (steps.some((s) => s.length > 8)) tips.push({ sel, where, message: 'A step with more than 8 blocks is a lot on one screen: split it into steps.' });
       }
       if (item.type === 'quiz' && Array.isArray(p.questions) && p.questions.length < 3) tips.push({ sel, where, message: 'Quizzes work best with at least three questions.' });
       if (item.type === 'assignment' && Array.isArray(p.rubric) && p.rubric.length < 2) tips.push({ sel, where, message: 'Give the rubric at least two criteria so feedback is specific.' });

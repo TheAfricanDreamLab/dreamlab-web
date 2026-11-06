@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { type ReactNode, useId } from 'react';
 import { ItemIcon } from '@/components/learning/course-ui';
 import { cx } from '@/components/ui/primitives';
-import { type ItemDoc, type ModuleDoc, slugify, uniqueKey } from '@/lib/authoring';
+import { type ItemDoc, type ModuleDoc, records, slugify, uniqueKey } from '@/lib/authoring';
 import { type BlockDoc, LIMITS, QUESTION_TYPES } from '@/lib/blocks';
 import { ITEM_NAMES } from '@/lib/course-outline';
 import { BlockList } from './blocks/block-list';
@@ -104,7 +104,7 @@ export function ItemEditor({ moduleIndex, item, onChange }: { moduleIndex: numbe
         </Advanced>
       </header>
 
-      {item.type === 'lesson' && <LessonEditor steps={Array.isArray(p.steps) ? (p.steps as Step[]) : []} onChange={(steps) => setPayload({ steps })} />}
+      {item.type === 'lesson' && <LessonEditor steps={records<Step>(p.steps)} onChange={(steps) => setPayload({ steps })} />}
 
       {item.type === 'quiz' && (
         <div className="space-y-4">
@@ -121,7 +121,7 @@ export function ItemEditor({ moduleIndex, item, onChange }: { moduleIndex: numbe
             <h3 className="text-[15px] font-bold text-ink">Questions</h3>
             <p className="text-[13px] text-muted">Multiple choice, put in order or match pairs. The answers stay on the server.</p>
             <BlockList
-              blocks={Array.isArray(p.questions) ? (p.questions as BlockDoc[]) : []}
+              blocks={records<BlockDoc>(p.questions)}
               onChange={(questions) => setPayload({ questions })}
               types={QUESTION_TYPES}
               max={LIMITS.quizQuestions}
@@ -139,8 +139,8 @@ export function ItemEditor({ moduleIndex, item, onChange }: { moduleIndex: numbe
             <TextField label="Practical Output" value={s(p.practicalOutput)} maxLength={160} onChange={(v) => setPayload({ practicalOutput: v || null })} hint="e.g. Problem Definition Canvas" />
             <NumberField label="Minimum words" min={0} max={5000} value={n(p.minWords, 150)} onChange={(v) => setPayload({ minWords: v ?? 0 })} />
           </div>
-          <LinesField label="Steps" value={(p.steps as string[] | undefined) ?? []} onChange={(v) => setPayload({ steps: v })} hint="One per line, 1 to 12" />
-          <RubricEditor rubric={(p.rubric as Criterion[] | undefined) ?? []} onChange={(rubric) => setPayload({ rubric })} />
+          <LinesField label="Steps" value={Array.isArray(p.steps) ? p.steps.filter((x): x is string => typeof x === 'string') : []} onChange={(v) => setPayload({ steps: v })} hint="One per line, 1 to 12" />
+          <RubricEditor rubric={records<Criterion>(p.rubric)} onChange={(rubric) => setPayload({ rubric })} />
           <AreaField label="Starting template (optional)" rows={4} value={s(p.template)} onChange={(v) => setPayload({ template: v || undefined })} />
         </div>
       )}
@@ -186,7 +186,7 @@ function SortableStep({ id, children }: { id: string; children: (grip: ReactNode
 /** Steps of a lesson, each a list of blocks. Drag steps by their handle to reorder them. */
 function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) => void }) {
   const setStep = (i: number, step: Step) => onChange(steps.map((x, j) => (j === i ? step : x)));
-  const ids = steps.map((x) => x.id);
+  const ids = steps.map((x) => String(x.id ?? ''));
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const onDragEnd = (e: DragEndEvent) => {
     if (!e.over || e.active.id === e.over.id) return;
@@ -195,7 +195,7 @@ function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]
   const duplicate = (i: number) => {
     const step = steps[i]!;
     const next = [...steps];
-    next.splice(i + 1, 0, { ...structuredClone(step), id: uniqueKey(`${step.id.slice(0, 38)}-copy`, ids), title: step.title ? `${step.title} (copy)` : undefined });
+    next.splice(i + 1, 0, { ...structuredClone(step), id: uniqueKey(`${String(step.id ?? 'step').slice(0, 38)}-copy`, ids), title: step.title ? `${step.title} (copy)` : undefined });
     onChange(next);
   };
   return (
@@ -207,14 +207,14 @@ function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={steps.map((_, i) => `step-${i}`)} strategy={verticalListSortingStrategy}>
           {steps.map((step, i) => (
-            <SortableStep key={`${i}-${step.id}`} id={`step-${i}`}>
+            <SortableStep key={`${i}-${String(step.id)}`} id={`step-${i}`}>
               {(grip) => (
                 <section className="space-y-3 rounded-[var(--radius-card)] bg-surface p-3 ring-1 ring-line sm:p-4" aria-label={`Step ${i + 1}`}>
                   <div className="flex items-center gap-2">
                     {grip}
                     <span className="grid h-7 min-w-7 place-items-center rounded-full bg-forest px-2 font-mono text-[11px] font-bold text-white">{i + 1}</span>
                     <input
-                      value={step.title ?? ''}
+                      value={typeof step.title === 'string' ? step.title : ''}
                       maxLength={120}
                       placeholder={`Step ${i + 1} title (optional)`}
                       aria-label="Step title"
@@ -237,11 +237,11 @@ function LessonEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]
                       ]}
                     />
                   </div>
-                  <BlockList blocks={Array.isArray(step.blocks) ? step.blocks : []} onChange={(blocks) => setStep(i, { ...step, blocks })} max={LIMITS.blocksPerStep} context={`step ${i + 1}`} />
+                  <BlockList blocks={records<BlockDoc>(step.blocks)} onChange={(blocks) => setStep(i, { ...step, blocks })} max={LIMITS.blocksPerStep} context={`step ${i + 1}`} />
                   <details className="text-[12px] text-muted">
                     <summary className="cursor-pointer">Step key</summary>
                     <div className="mt-2 max-w-60">
-                      <TextField label="Step key" value={step.id} maxLength={48} onChange={(v) => setStep(i, { ...step, id: v })} />
+                      <TextField label="Step key" value={typeof step.id === 'string' ? step.id : ''} maxLength={48} onChange={(v) => setStep(i, { ...step, id: v })} />
                     </div>
                   </details>
                 </section>
@@ -273,13 +273,13 @@ function RubricEditor({ rubric, onChange }: { rubric: Criterion[]; onChange: (r:
         <div key={i} className="grid gap-2 rounded-[var(--radius-field)] bg-surface p-3 ring-1 ring-line md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
           <TextField
             label="Criterion"
-            value={c.criterion}
+            value={typeof c.criterion === 'string' ? c.criterion : ''}
             maxLength={120}
-            onChange={(v) => set(i, { ...c, criterion: v, id: c.id && c.id !== slugify(c.criterion, 'criterion') ? c.id : uniqueKey(slugify(v, 'criterion'), rubric.filter((_, j) => j !== i).map((x) => x.id)) })}
+            onChange={(v) => set(i, { ...c, criterion: v, id: c.id && c.id !== slugify(String(c.criterion ?? ''), 'criterion') ? c.id : uniqueKey(slugify(v, 'criterion'), rubric.filter((_, j) => j !== i).map((x) => x.id)) })}
           />
-          <TextField label="What meeting the standard looks like" value={c.description} maxLength={600} onChange={(v) => set(i, { ...c, description: v })} />
+          <TextField label="What meeting the standard looks like" value={typeof c.description === 'string' ? c.description : ''} maxLength={600} onChange={(v) => set(i, { ...c, description: v })} />
           <div className="flex items-end">
-            <SmallButton tone="danger" label={`Remove criterion ${c.criterion}`} disabled={rubric.length === 1} onClick={() => onChange(rubric.filter((_, j) => j !== i))}>
+            <SmallButton tone="danger" label={`Remove criterion ${i + 1}`} disabled={rubric.length === 1} onClick={() => onChange(rubric.filter((_, j) => j !== i))}>
               Remove
             </SmallButton>
           </div>
