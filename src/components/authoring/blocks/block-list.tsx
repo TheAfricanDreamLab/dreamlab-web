@@ -1,10 +1,15 @@
 'use client';
 
+import { closestCenter, DndContext, type DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { type Block, BlockAuthoringSchema, toDeliveryBlock } from '@dreamlab/contracts';
 import { useState } from 'react';
 import { BLOCK_GROUPS, BLOCK_INFO, type BlockDoc, type BlockType, blockSummary, freshId, newBlock } from '@/lib/blocks';
+import { plainMessage } from '@/lib/course-outline';
 import { Badge, cx } from '@/components/ui/primitives';
 import { JsonField, SmallButton } from '../fields';
+import { RowMenu } from '../outline-tree';
 import { PreviewBlocks } from '../preview-blocks';
 import { BlockForm } from './block-forms';
 import { move } from './controls';
@@ -52,7 +57,7 @@ export function blockProblems(block: BlockDoc, types?: BlockType[]): string[] {
         .map((p) => (typeof p === 'number' ? `#${p + 1}` : (FIELD_NAMES[p] ?? p)))
         .join(' ')
         .trim();
-      const message = issue.code === 'too_small' && issue.type === 'string' ? 'needs filling in' : issue.message;
+      const message = plainMessage(issue.message);
       out.push(where ? `${where}: ${message}` : message);
     }
   }
@@ -62,6 +67,14 @@ export function blockProblems(block: BlockDoc, types?: BlockType[]): string[] {
   if (block.type === 'video' && !block.videoId) out.push('Video: paste a YouTube link or upload a file');
   if (block.type === 'image' && !block.url) out.push('Image: upload one or give an address');
   return [...new Set(out)].slice(0, 6);
+}
+
+/** Where block `n` ends up after the block at `from` moves to `to`. */
+export function movedIndex(n: number, from: number, to: number): number {
+  if (n === from) return to;
+  if (from < to && n > from && n <= to) return n - 1;
+  if (from > to && n >= to && n < from) return n + 1;
+  return n;
 }
 
 export function BlockList({
@@ -97,7 +110,7 @@ export function BlockList({
   const duplicate = (i: number) => {
     setPicker(null);
     if (blocks.length >= max) return;
-    const copy = { ...structuredClone(blocks[i]!), id: freshId(blocks[i]!.type.replace('_', '-'), taken) };
+    const copy = { ...structuredClone(blocks[i]!), id: freshId(String(blocks[i]!.type ?? 'block').replace('_', '-'), taken) };
     const next = [...blocks];
     next.splice(i + 1, 0, copy);
     onChange(next);
@@ -124,13 +137,26 @@ export function BlockList({
       </div>
     );
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const onDragEnd = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return;
+    const from = Number(String(e.active.id).slice(4));
+    const to = Number(String(e.over.id).slice(4));
+    onChange(move(blocks, from, to));
+    // The open block stays open wherever it ends up.
+    setOpen(open === null ? null : movedIndex(open, from, to));
+  };
+
   return (
     <div className="space-y-2">
-      {blocks.length === 0 && <p className="text-[13.5px] text-muted">Nothing here yet.</p>}
+      {blocks.length === 0 && <p className="rounded-[var(--radius-field)] bg-card px-3 py-4 text-center text-[13.5px] text-muted ring-1 ring-line">Nothing here yet. Add a {noun} below.</p>}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={blocks.map((_, i) => `blk-${i}`)} strategy={verticalListSortingStrategy}>
       {blocks.map((b, i) => (
         <div key={`${i}-${b.id}`} className="space-y-2">
           {picker === i && adder(i)}
           <BlockCard
+            onInsertAfter={() => setPicker(i + 1)}
             block={b}
             types={types}
             index={i}
@@ -141,7 +167,7 @@ export function BlockList({
             onChange={(next) => onChange(blocks.map((x, j) => (j === i ? next : x)))}
             onMove={(to) => {
               onChange(move(blocks, i, to));
-              setOpen(open === i ? to : open);
+              setOpen(open === null ? null : movedIndex(open, i, to));
             }}
             onDuplicate={() => duplicate(i)}
             onInsertBefore={() => setPicker(i)}
@@ -154,7 +180,9 @@ export function BlockList({
           />
         </div>
       ))}
-      {adder(blocks.length)}
+        </SortableContext>
+      </DndContext>
+      {picker !== blocks.length && picker !== null && picker > blocks.length ? null : adder(blocks.length)}
     </div>
   );
 }
@@ -194,6 +222,7 @@ function BlockPicker({ types, onPick, onClose }: { types?: BlockType[]; onPick: 
 type Mode = 'form' | 'preview' | 'json';
 
 function BlockCard({
+  onInsertAfter,
   block,
   types,
   index,
@@ -208,6 +237,7 @@ function BlockCard({
   canInsert,
   onRemove,
 }: {
+  onInsertAfter: () => void;
   block: BlockDoc;
   types?: BlockType[];
   index: number;
@@ -227,6 +257,7 @@ function BlockCard({
   const info = BLOCK_INFO[block.type] ?? { label: String(block.type), icon: '?', help: '' };
   const problems = blockProblems(block, types);
   const name = `${info.label} ${noun} ${index + 1}`;
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: `blk-${index}` });
   let preview: Block | null = null;
   if (problems.length === 0) {
     try {
@@ -237,8 +268,30 @@ function BlockCard({
   }
 
   return (
-    <section className={cx('overflow-hidden rounded-[var(--radius-field)] bg-card ring-1', problems.length ? 'ring-danger-line' : 'ring-line')} aria-label={name}>
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+    <section
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cx(
+        'group overflow-visible rounded-[var(--radius-field)] bg-card ring-1 transition-shadow',
+        problems.length ? 'ring-danger-line' : 'ring-line',
+        open && 'shadow-[var(--shadow-soft)]',
+        isDragging && 'relative z-10 shadow-[var(--shadow-panel)] ring-2 ring-primary',
+      )}
+      aria-label={name}
+    >
+      <div className="flex items-center gap-1.5 py-2 pl-1 pr-2">
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          aria-label={`Drag to move ${name}`}
+          className="grid h-8 w-6 shrink-0 cursor-grab touch-none place-items-center rounded text-faint opacity-50 hover:bg-surface hover:text-muted hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
+        >
+          <svg viewBox="0 0 8 14" className="h-3.5 w-2" aria-hidden fill="currentColor">
+            {[2, 7, 12].flatMap((y) => [<circle key={`a${y}`} cx="2" cy={y} r="1.2" />, <circle key={`b${y}`} cx="6" cy={y} r="1.2" />])}
+          </svg>
+        </button>
         <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
           <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-[15px] text-link">
             {info.icon}
@@ -251,23 +304,19 @@ function BlockCard({
             <span className="block truncate text-[12.5px] text-muted">{blockSummary(block) || 'Empty'}</span>
           </span>
         </button>
-        <span className="flex flex-wrap items-center gap-0.5">
-          <SmallButton onClick={() => onMove(index - 1)} disabled={index === 0} label={`Move ${name} up`}>
-            ↑
-          </SmallButton>
-          <SmallButton onClick={() => onMove(index + 1)} disabled={index === count - 1} label={`Move ${name} down`}>
-            ↓
-          </SmallButton>
-          <SmallButton onClick={onInsertBefore} disabled={!canInsert} label={`Insert a ${noun} above ${name}`}>
-            + Above
-          </SmallButton>
-          <SmallButton onClick={onDuplicate} disabled={!canInsert} label={`Duplicate ${name}`}>
-            Duplicate
-          </SmallButton>
-          <SmallButton tone="danger" onClick={onRemove} label={`Remove ${name}`}>
-            Remove
-          </SmallButton>
-        </span>
+        <RowMenu
+          label={`${name} actions`}
+          items={[
+            { label: 'Move up', onSelect: () => onMove(index - 1), disabled: index === 0 },
+            { label: 'Move down', onSelect: () => onMove(index + 1), disabled: index === count - 1 },
+            'divider',
+            { label: `Insert a ${noun} above`, onSelect: onInsertBefore, disabled: !canInsert },
+            { label: `Insert a ${noun} below`, onSelect: onInsertAfter, disabled: !canInsert },
+            { label: 'Duplicate', onSelect: onDuplicate, disabled: !canInsert },
+            'divider',
+            { label: 'Remove…', onSelect: onRemove, danger: true },
+          ]}
+        />
       </div>
       {open && (
         <div className="space-y-3 border-t border-line p-3">
@@ -301,7 +350,7 @@ function BlockCard({
               ))}
             </ul>
           )}
-          {mode === 'form' && <BlockForm block={block} set={onChange} />}
+          {mode === 'form' && <BlockForm block={block} set={onChange} onInsertBlock={canInsert ? onInsertAfter : undefined} />}
           {mode === 'preview' &&
             (preview ? (
               <div className="rounded-[var(--radius-card)] bg-surface p-4 ring-1 ring-line">

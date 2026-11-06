@@ -1,6 +1,6 @@
 'use server';
 
-import type { CourseMediaUpload, Draft } from '@dreamlab/contracts';
+import type { CourseMediaUpload, Draft, DraftSave } from '@dreamlab/contracts';
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
@@ -37,10 +37,10 @@ export async function editCourse(fd: FormData): Promise<void> {
 }
 
 /** Save the whole document; the revision guards against overwriting someone else's save. */
-export async function saveDraft(draftId: string, revision: number, doc: Record<string, unknown>): Promise<Outcome<Draft>> {
+export async function saveDraft(draftId: string, revision: number, doc: Record<string, unknown>, checkpoint = false): Promise<Outcome<Draft>> {
   // Server Actions are public endpoints: check what TypeScript can't.
   if (!isUuid(draftId) || !Number.isInteger(revision) || revision < 0 || !doc || typeof doc !== 'object' || Array.isArray(doc)) return BAD_LINK;
-  const res = await api<Draft>('PUT', `/v1/catalog/authoring/drafts/${draftId}`, { revision, doc });
+  const res = await api<Draft>('PUT', `/v1/catalog/authoring/drafts/${draftId}`, { revision, doc, ...(checkpoint === true && { checkpoint: true }) });
   return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error), code: res.error.code };
 }
 
@@ -72,4 +72,24 @@ export async function startCourseMediaUpload(
   if (!isUuid(draftId) || (file.kind !== 'image' && file.kind !== 'video')) return BAD_LINK;
   const res = await api<CourseMediaUpload>('POST', `/v1/catalog/authoring/drafts/${draftId}/media`, file);
   return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error) };
+}
+
+// ---------- save history (CAT-5) ----------
+
+export async function loadDraftHistory(draftId: string): Promise<Outcome<DraftSave[]>> {
+  if (!isUuid(draftId)) return BAD_LINK;
+  const res = await api<{ items: DraftSave[] }>('GET', `/v1/catalog/authoring/drafts/${draftId}/history`);
+  return res.ok ? { ok: true, data: res.data.items } : { ok: false, error: friendlyError(res.error) };
+}
+
+export async function loadDraftSave(draftId: string, revision: number): Promise<Outcome<Record<string, unknown>>> {
+  if (!isUuid(draftId) || !Number.isInteger(revision) || revision < 1) return BAD_LINK;
+  const res = await api<{ doc: Record<string, unknown> }>('GET', `/v1/catalog/authoring/drafts/${draftId}/history/${revision}`);
+  return res.ok ? { ok: true, data: res.data.doc } : { ok: false, error: friendlyError(res.error) };
+}
+
+export async function restoreDraftSave(draftId: string, revision: number, restore: number): Promise<Outcome<Draft>> {
+  if (!isUuid(draftId) || !Number.isInteger(revision) || !Number.isInteger(restore) || restore < 1) return BAD_LINK;
+  const res = await api<Draft>('POST', `/v1/catalog/authoring/drafts/${draftId}/restore`, { revision, restore });
+  return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error), code: res.error.code };
 }

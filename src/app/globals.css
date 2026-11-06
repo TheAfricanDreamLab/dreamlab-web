@@ -327,3 +327,92 @@
     animation: none;
   }
 }
+
+/* The course text editor (CAT-5): content looks as learners will see it. */
+.dl-rich > * + * {
+  margin-top: 0.75rem;
+}
+.dl-rich h2 {
+  font-family: var(--font-display);
+  font-size: 1.3em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.dl-rich h3 {
+  font-family: var(--font-display);
+  font-size: 1.12em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.dl-rich ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.dl-rich ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.dl-rich li + li {
+  margin-top: 0.3rem;
+}
+.dl-rich blockquote {
+  border-left: 4px solid var(--color-gold-line);
+  padding-left: 1rem;
+  font-style: italic;
+}
+.dl-rich pre {
+  background: var(--color-forest);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.dl-rich :not(pre) > code {
+  background: var(--color-surface);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+.dl-rich a {
+  color: var(--color-link);
+  font-weight: 600;
+  text-decoration: underline;
+}
+/* Wide tables scroll sideways instead of widening the page. */
+.dl-rich .tableWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.dl-rich table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.dl-rich td,
+.dl-rich th {
+  min-width: 6rem;
+}
+.dl-rich th,
+.dl-rich td {
+  border: 1px solid var(--color-line);
+  padding: 0.4rem 0.6rem;
+  vertical-align: top;
+  text-align: left;
+}
+.dl-rich th {
+  background: var(--color-surface);
+  font-weight: 600;
+}
+.dl-rich .selectedCell {
+  background: var(--color-success-tint);
+}
+.dl-rich p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-faint);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
