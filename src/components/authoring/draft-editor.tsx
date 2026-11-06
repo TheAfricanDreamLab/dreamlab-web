@@ -379,13 +379,13 @@ export function DraftEditor({ initial }: { initial: Draft }) {
             <div className="flex flex-wrap items-center gap-1.5">
               {editable && (
                 <>
-                  <button type="button" onClick={undo} disabled={hist.past === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className={cx(pill, 'hidden sm:inline-flex')}>
+                  <button type="button" onClick={undo} disabled={hist.past === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className={cx(pill, 'max-sm:hidden')}>
                     ↶
                   </button>
-                  <button type="button" onClick={redo} disabled={hist.future === 0} title="Redo (Ctrl+Shift+Z)" aria-label="Redo" className={cx(pill, 'hidden sm:inline-flex')}>
+                  <button type="button" onClick={redo} disabled={hist.future === 0} title="Redo (Ctrl+Shift+Z)" aria-label="Redo" className={cx(pill, 'max-sm:hidden')}>
                     ↷
                   </button>
-                  <button type="button" onClick={() => void save(true)} disabled={busy !== null || (!dirty && saveState.kind !== 'error')} title="Save now (Ctrl+S)" className={cx(pill, 'hidden sm:inline-flex')}>
+                  <button type="button" onClick={() => void save(true)} disabled={busy !== null || (!dirty && saveState.kind !== 'error')} title="Save now (Ctrl+S)" className={cx(pill, 'max-sm:hidden')}>
                     {busy === 'save' ? 'Saving…' : 'Save'}
                   </button>
                 </>
