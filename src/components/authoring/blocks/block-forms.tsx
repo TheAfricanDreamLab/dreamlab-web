@@ -12,7 +12,7 @@ import { ListEditor, RichTextField, RowInput } from './controls';
  * anything the form doesn't show (fields added by hand in JSON) is kept as it is.
  */
 
-type Props = { block: BlockDoc; set: (b: BlockDoc) => void };
+type Props = { block: BlockDoc; set: (b: BlockDoc) => void; onInsertBlock?: () => void };
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
@@ -22,13 +22,13 @@ const ids = (v: unknown) => rows<{ id?: string }>(v).map((o) => o.id ?? '');
 /** Optional text: empty means "not set", so the schema's optional fields stay absent. */
 const opt = (v: string) => (v.trim() ? v : undefined);
 
-export function BlockForm({ block, set }: Props) {
+export function BlockForm({ block, set, onInsertBlock }: Props) {
   // Radio groups need a name unique on the page; block ids repeat across steps.
   const group = useId();
   const patch = (p: Record<string, unknown>) => set({ ...block, ...p });
   switch (block.type) {
     case 'text':
-      return <RichTextField label="Text" rows={6} value={str(block.body)} onChange={(v) => patch({ body: v })} />;
+      return <RichTextField label="Text" rows={6} value={str(block.body)} onChange={(v) => patch({ body: v })} onInsertBlock={onInsertBlock} />;
 
     case 'callout':
       return (

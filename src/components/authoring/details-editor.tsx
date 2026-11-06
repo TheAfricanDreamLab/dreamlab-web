@@ -3,6 +3,7 @@
 import type { Doc } from '@/lib/authoring';
 import { safeImageUrl } from '@/lib/media';
 import { MediaUploadButton } from './media-upload';
+import { RichTextField } from './blocks/controls';
 import { AreaField, LinesField, NumberField, SelectField, TextField } from './fields';
 
 type Cover = { from?: string; to?: string; symbol?: string; imageUrl?: string; imageAlt?: string; imageCredit?: string };
@@ -30,7 +31,7 @@ export function DetailsEditor({ draftId, doc, set }: { draftId: string; doc: Doc
         <TextField label="Practical Output" value={str(doc.practicalOutput)} maxLength={160} onChange={(v) => set('practicalOutput', v || null)} hint="What learners make (optional)" />
       </section>
 
-      <AreaField label="Description" rows={6} value={str(doc.description)} onChange={(v) => set('description', v)} hint="Paragraphs, **bold**, lists with “- ”" />
+      <RichTextField label="Description" rows={6} value={str(doc.description)} onChange={(v) => set('description', v)} />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SelectField

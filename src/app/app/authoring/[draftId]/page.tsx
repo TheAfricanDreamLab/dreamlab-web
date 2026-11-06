@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { DraftEditor } from '@/components/authoring/draft-editor';
-import { BackLink } from '@/components/ui/nav';
 import { Notice } from '@/components/ui/primitives';
 import type { Draft } from '@/lib/authoring';
 import { friendlyError } from '@/lib/errors';
@@ -19,9 +18,6 @@ export default async function DraftPage({ params }: Props) {
   if (!res.ok && res.status === 404) notFound();
 
   return (
-    <div className="space-y-4">
-      <BackLink href="/app/authoring" label="Authoring" />
-      {res.ok ? <DraftEditor key={res.data.id} initial={res.data} /> : <Notice tone="error">{friendlyError(res.error)}</Notice>}
-    </div>
+    <div className="space-y-4">{res.ok ? <DraftEditor key={res.data.id} initial={res.data} /> : <Notice tone="error">{friendlyError(res.error)}</Notice>}</div>
   );
 }

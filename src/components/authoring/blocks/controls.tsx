@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useId, useRef } from 'react';
+import { RichEditor } from '../rich-editor';
 import { cx } from '@/components/ui/primitives';
 import { SmallButton } from '../fields';
 
@@ -12,24 +13,9 @@ import { SmallButton } from '../fields';
 const box =
   'w-full rounded-[var(--radius-field)] bg-card px-3 py-2.5 text-[15px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-surface disabled:text-muted';
 
-const TOOLS: { label: string; title: string; apply: (sel: string) => { text: string; caret?: [number, number] } }[] = [
-  { label: 'B', title: 'Bold', apply: (s) => ({ text: `**${s || 'bold text'}**`, caret: [2, 2 + (s || 'bold text').length] }) },
-  { label: 'I', title: 'Italic', apply: (s) => ({ text: `*${s || 'italic text'}*`, caret: [1, 1 + (s || 'italic text').length] }) },
-  {
-    label: '•',
-    title: 'Bulleted list',
-    apply: (s) => ({ text: (s || 'First point\nSecond point').split('\n').map((l) => `- ${l.replace(/^\s*([-•]|\d+[.)])\s+/, '')}`).join('\n') }),
-  },
-  {
-    label: '1.',
-    title: 'Numbered list',
-    apply: (s) => ({ text: (s || 'First step\nSecond step').split('\n').map((l, i) => `${i + 1}. ${l.replace(/^\s*([-•]|\d+[.)])\s+/, '')}`).join('\n') }),
-  },
-];
-
 /**
- * Course text with formatting buttons. The text is stored as it is written (**bold**, *italic*,
- * "- " bullets, "1. " steps), which is what learners' pages render.
+ * Course text, edited as it will look (headings, lists, links, tables…). Kept as the name the block
+ * forms use; the editor itself is RichEditor.
  */
 export function RichTextField({
   label,
@@ -38,7 +24,7 @@ export function RichTextField({
   rows = 4,
   maxLength = 12_000,
   hint,
-  error,
+  onInsertBlock,
 }: {
   label: string;
   value: string;
@@ -47,64 +33,9 @@ export function RichTextField({
   maxLength?: number;
   hint?: ReactNode;
   error?: string;
+  onInsertBlock?: () => void;
 }) {
-  const id = useId();
-  const area = useRef<HTMLTextAreaElement>(null);
-  const format = (tool: (typeof TOOLS)[number]) => {
-    const el = area.current;
-    if (!el) return;
-    const [start, end] = [el.selectionStart, el.selectionEnd];
-    const { text, caret } = tool.apply(value.slice(start, end));
-    // Lists start on their own line.
-    const isList = tool.label === '•' || tool.label === '1.';
-    const needsBreak = isList && start > 0 && value[start - 1] !== '\n' ? '\n' : '';
-    const inserted = needsBreak + text;
-    // Formatting that would not fit is skipped rather than cutting the end of the text.
-    if (value.length - (end - start) + inserted.length > maxLength) return;
-    el.focus();
-    el.setSelectionRange(start, end);
-    // Inserted as typing, so the field's own undo (Ctrl+Z) reverses it; React sees the input event.
-    const typed = typeof document.execCommand === 'function' && document.execCommand('insertText', false, inserted);
-    if (!typed) onChange(value.slice(0, start) + inserted + value.slice(end));
-    requestAnimationFrame(() => {
-      const at = start + needsBreak.length;
-      el.setSelectionRange(caret ? at + caret[0] : at + text.length, caret ? at + caret[1] : at + text.length);
-    });
-  };
-  return (
-    <div className="space-y-1.5">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <label htmlFor={id} className="text-[13px] font-semibold text-ink">
-          {label}
-        </label>
-        <span className="flex items-center gap-1" role="toolbar" aria-label="Formatting">
-          {TOOLS.map((t) => (
-            <button
-              key={t.title}
-              type="button"
-              title={t.title}
-              aria-label={t.title}
-              onClick={() => format(t)}
-              className={cx('grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-[13px] text-body ring-1 ring-line hover:bg-surface', t.label === 'B' && 'font-bold', t.label === 'I' && 'italic')}
-            >
-              {t.label}
-            </button>
-          ))}
-        </span>
-      </div>
-      <textarea
-        ref={area}
-        id={id}
-        rows={rows}
-        value={value}
-        maxLength={maxLength}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={Boolean(error)}
-        className={cx(box, 'leading-relaxed', error && 'ring-danger-line')}
-      />
-      <p className="text-[12px] text-muted">{hint ?? 'Blank line = new paragraph. Use the buttons for bold, italic and lists.'}</p>
-    </div>
-  );
+  return <RichEditor label={label} value={value} onChange={onChange} rows={rows} maxLength={maxLength} hint={hint} onInsertBlock={onInsertBlock} />;
 }
 
 export const move = <T,>(list: T[], from: number, to: number): T[] => {
