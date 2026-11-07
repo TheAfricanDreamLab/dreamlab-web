@@ -6,6 +6,11 @@ const MESSAGES: Record<string, string> = {
   account_unverified: 'Please confirm your email or phone first. We’ve sent you a new code.',
   account_locked: 'Too many tries. For your safety, sign-in is paused for a few minutes.',
   account_disabled: 'This account is switched off. Contact support if you think that’s a mistake.',
+  cannot_suspend_admin: 'Remove their platform admin role before suspending or banning them.',
+  cannot_suspend_self: 'You can’t change your own account status.',
+  // Organisation sign-on redirects carry only the code; the details come with password and code sign-in.
+  account_suspended: 'This account is suspended. Your work and progress are kept. Check your email for when it ends.',
+  account_banned: 'This account has been closed for breaking the platform’s rules. If you think this is a mistake, contact support.',
   account_exists: 'You already have an account with that email or phone. Sign in instead.',
   otp_invalid: 'That code isn’t right, or it has expired. Check the latest message we sent.',
   otp_exhausted: 'Too many wrong codes. Ask for a new one and try again.',
@@ -30,7 +35,6 @@ const MESSAGES: Record<string, string> = {
   invitation_expired: 'This invitation has expired. Ask the person who invited you for a new one.',
   invitation_identity_mismatch: 'This invitation was sent to a different email or phone. Sign in with that one.',
   last_admin: 'Every organisation needs at least one admin. Make someone else an admin first.',
-  cannot_suspend_self: 'You can’t suspend yourself.',
   validation_failed: 'Some details need another look.',
   // Two-step sign-in
   mfa_required: 'This needs your authenticator app. Confirm a code in Account → Two-step sign-in, then try again.',
@@ -120,8 +124,28 @@ export function messageForCode(code: string | undefined): string | null {
   return MESSAGES[code] ?? 'Something went wrong. Please try again.';
 }
 
+/** "14 November 2026", in Lagos time (where most people are); null for a date that doesn't parse. */
+export function longDate(iso: string | null | undefined): string | null {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Lagos' }).format(d);
+}
+
+/** Why someone can't sign in (suspended or banned), with the end date and the platform's message. */
+function blockedMessage(error: ErrorResponse): string | null {
+  if (error.code !== 'account_suspended' && error.code !== 'account_banned') return null;
+  const d = (error.details ?? {}) as { until?: string | null; message?: string | null };
+  const said = d.message ? ` Message from the platform team: “${d.message}”` : '';
+  if (error.code === 'account_banned') return `This account has been closed for breaking the platform’s rules.${said} If you think this is a mistake, contact support.`;
+  const end = longDate(d.until);
+  const when = end ? `until ${end}` : d.until ? 'for now' : 'until the platform team lifts it';
+  return `This account is suspended ${when}.${said} Your work and progress are kept.`;
+}
+
 export function friendlyError(error: ErrorResponse | undefined): string {
   if (!error) return 'Something went wrong. Please try again.';
+  const blocked = blockedMessage(error);
+  if (blocked) return blocked;
   return (error.code && MESSAGES[error.code]) || error.message || 'Something went wrong. Please try again.';
 }
 

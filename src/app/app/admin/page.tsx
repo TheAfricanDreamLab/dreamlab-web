@@ -132,9 +132,10 @@ export default async function PlatformOverviewPage({ searchParams }: { searchPar
         <Notice tone="error">{friendlyError(overview.error)}</Notice>
       ) : (
         <>
-          <section className="grid grid-cols-2 gap-3" aria-label="Account safety">
+          <section className="grid grid-cols-2 gap-3 md:grid-cols-3" aria-label="Account safety">
             <Stat label="Two-step sign-in" value={overview.data.users.withMfa} hint={overview.data.users.total ? `${Math.round((overview.data.users.withMfa / overview.data.users.total) * 100)}% of people` : undefined} />
-            <Stat label="Suspended" value={overview.data.users.suspended} hint="Can’t sign in until reactivated" href="/app/admin/users?status=suspended" />
+            <Stat label="Suspended" value={overview.data.users.suspended} hint="Kept out for now" href="/app/admin/users?status=suspended" />
+            <Stat label="Banned" value={overview.data.users.banned} hint="Accounts closed" href="/app/admin/users?status=banned" />
           </section>
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] [&>*]:min-w-0">
