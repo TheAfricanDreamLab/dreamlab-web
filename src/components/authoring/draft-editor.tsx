@@ -2,13 +2,16 @@
 
 import Link from 'next/link';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { discardDraft, draftStep, restoreDraftSave, saveDraft } from '@/app/actions/authoring';
+import type { CommentAnchor, DraftComment, Presence } from '@dreamlab/contracts';
+import { discardDraft, draftStep, heartbeat, loadComments, restoreDraftSave, saveDraft } from '@/app/actions/authoring';
 import { Icon } from '@/components/ui/icons';
 import { Badge, Button, Card, cx, Notice } from '@/components/ui/primitives';
 import { toastSuccess } from '@/components/ui/toast';
 import { type Doc, type Draft, DRAFT_STATUS_LABELS, DRAFT_STATUS_TONES, type ItemDoc, type ItemType, type ModuleDoc, newItem, normaliseModules, slugify, uniqueKey, VISIBILITY_LABELS } from '@/lib/authoring';
 import { describeIssue, ITEM_NAMES, qualityTips, type Selection, selKey } from '@/lib/course-outline';
 import { move } from './blocks/controls';
+import { CourseProviderContext } from './blocks/video-form';
+import { anchorFor, CommentsContext, CommentsPanel, selectionOf } from './comments-panel';
 import { DetailsEditor } from './details-editor';
 import { JsonField } from './fields';
 import { HistoryPanel } from './history-panel';
@@ -16,14 +19,17 @@ import { ItemEditor, ModuleEditor } from './item-editors';
 import { ItemPreview } from './item-preview';
 import { EditableContext } from './rich-editor';
 import { DraftIdContext } from './media-upload';
-import { type OutlineActions, OutlineTree, RowMenu } from './outline-tree';
+import { initials, type OutlineActions, OutlineTree, RowMenu } from './outline-tree';
 import { SetupWizard } from './setup-wizard';
+import { titleFromFile, videoType } from '@/lib/video-upload';
+import { useVideoUploads, VideoUploads } from './video-uploads';
 
 /*
  * The course workspace (CAT-5). The outline on the left, the selected part in the middle, a live
  * preview on the right. Changes save themselves a moment after you stop (Ctrl+S saves straight
  * away and keeps a checkpoint); undo and redo cover the whole course; the version history restores
  * earlier checkpoints. The API refuses a save made over someone else's newer one.
+ * CAT-6: review comments, who else has the draft open, and videos uploaded while you work.
  */
 
 /*
@@ -61,7 +67,21 @@ const pillBase = 'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[1
 const pill = `${pillBase} text-body ring-line hover:bg-surface hover:text-ink`;
 const pillOn = `${pillBase} bg-forest text-white ring-forest`;
 
-export function DraftEditor({ initial }: { initial: Draft }) {
+/** Seconds between "I'm here" heartbeats, and between checks for new comments. */
+const HEARTBEAT_MS = 20_000;
+const COMMENTS_MS = 30_000;
+
+export function DraftEditor({ initial, openComment = null }: { initial: Draft; openComment?: string | null }) {
+  // Uploads keep going while the author works anywhere in the workspace.
+  return (
+    <VideoUploads>
+      <Workspace initial={initial} openComment={openComment} />
+    </VideoUploads>
+  );
+}
+
+function Workspace({ initial, openComment }: { initial: Draft; openComment: string | null }) {
+  const { start: startUpload } = useVideoUploads();
   const [draft, setDraft] = useState(initial);
   const [doc, setDocState] = useState<Doc>(initial.doc as Doc);
   const [dirty, setDirty] = useState(false);
@@ -73,6 +93,12 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   const [preview, setPreview] = useState(false);
   const [device, setDevice] = useState<'phone' | 'laptop'>('laptop');
   const [history, setHistoryOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(openComment !== null);
+  const [comments, setComments] = useState<DraftComment[]>([]);
+  const [newAnchor, setNewAnchor] = useState<CommentAnchor>({ moduleKey: null, itemKey: null, blockId: null, label: 'Course details' });
+  const highlight = openComment;
+  const [people, setPeople] = useState<Presence[]>([]);
+  const editedSince = useRef(false);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [jsonVersion, setJsonVersion] = useState(0);
   const isNew = initial.baseVersionNo === null && normaliseModules(initial.doc.modules).length === 0 && !String(initial.doc.description ?? '').trim();
@@ -104,6 +130,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
         future.current = [];
       }
       lastEdit.current = typing ? now : 0;
+      editedSince.current = true;
+      latest.current = next;
       setDocState(next);
       setDirty(true);
       // Editing again retries a failed save, unless someone else saved first (that needs a reload).
@@ -333,6 +361,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
       setModules(next);
       setSel({ kind: 'item', m: to.m, i: at });
     },
+    addLessonsFromVideos: (m) => chooseVideoLessons(m),
     moveModule: (from, to) => {
       if (to < 0 || to >= modules.length) return;
       setModules(move(modules, from, to));
@@ -352,7 +381,117 @@ export function DraftEditor({ initial }: { initial: Draft }) {
   const selectedItem = sel.kind === 'item' ? modules[sel.m]?.items[sel.i] : undefined;
   const selectedModule = sel.kind === 'module' || sel.kind === 'item' ? modules[sel.m] : undefined;
   // A selection that no longer exists (after undo or a removal) shows the course details instead.
-  const view: Selection = (sel.kind === 'item' && !selectedItem) || (sel.kind === 'module' && !selectedModule) ? { kind: 'details' } : sel;
+  const view: Selection = useMemo(() => ((sel.kind === 'item' && !selectedItem) || (sel.kind === 'module' && !selectedModule) ? { kind: 'details' } : sel), [sel, selectedItem, selectedModule]);
+
+  // ---------- comments (CAT-6) ----------
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const res = await loadComments(draft.id);
+      if (live && res.ok) setComments(res.data);
+    };
+    void load();
+    const t = setInterval(() => void load(), COMMENTS_MS);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, [draft.id]);
+  const openThreads = comments.filter((c) => !c.parentId && !c.resolvedAt).length;
+  const threadsBySel = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of comments) {
+      if (c.parentId || c.resolvedAt) continue;
+      const at = selectionOf(c.anchor, modules);
+      if (at) map.set(selKey(at), (map.get(selKey(at)) ?? 0) + 1);
+    }
+    return map;
+  }, [comments, modules]);
+  const commentsApi = useMemo(
+    () => ({
+      count: (itemKey: string | null, blockId: string | null) => {
+        const key = itemKey ?? (view.kind === 'item' ? modules[view.m]?.items[view.i]?.key : undefined) ?? null;
+        return comments.filter((c) => !c.parentId && !c.resolvedAt && c.anchor.itemKey === key && (blockId === null || c.anchor.blockId === blockId)).length;
+      },
+      start: (a: Partial<CommentAnchor>) => {
+        const base = anchorFor(view, modules);
+        setNewAnchor({ ...base, ...a, label: a.blockId ? `${base.label} › ${a.label ?? 'Block'}` : (a.label ?? base.label) });
+        setCommentsOpen(true);
+        setPreview(false);
+        setHistoryOpen(false);
+      },
+    }),
+    [comments, modules, view],
+  );
+
+  // ---------- who else is here (CAT-6) ----------
+  const where = useMemo(() => {
+    const a = anchorFor(view, modules);
+    return a.moduleKey ? { moduleKey: a.moduleKey, itemKey: a.itemKey, label: a.label } : null;
+  }, [view, modules]);
+  const whereRef = useRef(where);
+  useEffect(() => {
+    whereRef.current = where;
+  }, [where]);
+  useEffect(() => {
+    let live = true;
+    const beat = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const editing = editedSince.current;
+      editedSince.current = false;
+      const res = await heartbeat(draft.id, whereRef.current, editing);
+      if (live && res.ok) setPeople(res.data);
+    };
+    void beat();
+    const t = setInterval(() => void beat(), HEARTBEAT_MS);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, [draft.id]);
+  const peopleBySel = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const x of people) {
+      if (!x.where) continue;
+      const at = selectionOf({ moduleKey: x.where.moduleKey, itemKey: x.where.itemKey, blockId: null, label: '' }, modules);
+      if (at) map.set(selKey(at), [...(map.get(selKey(at)) ?? []), x.name]);
+    }
+    return map;
+  }, [people, modules]);
+
+  // ---------- lessons from videos (CAT-6) ----------
+  const bulkInput = useRef<HTMLInputElement>(null);
+  const bulkModule = useRef(0);
+  const addVideoLessons = (files: FileList | null) => {
+    const list = [...(files ?? [])].filter((f) => videoType(f));
+    if (!list.length) return;
+    const m = bulkModule.current;
+    const channel = String(latest.current.provider ?? '').trim() || 'Course team';
+    for (const file of list) {
+      const title = titleFromFile(file.name);
+      startUpload(file, {
+        title,
+        // Each lesson appears as soon as its video is in the library; processing carries on.
+        onCreated: (v) => {
+          const mods = normaliseModules(latest.current.modules);
+          const mod = mods[m];
+          if (!mod) return;
+          const key = uniqueKey(slugify(title), mod.items.map((x) => x.key));
+          const lesson: ItemDoc = {
+            ...newItem('lesson', title, key),
+            payload: { steps: [{ id: 'step-1', title: undefined, blocks: [{ id: 'video-1', type: 'video', provider: 'library', videoId: v.id, title, channel }] }] },
+          };
+          setDoc({ ...latest.current, modules: mods.map((x, j) => (j === m ? { ...x, items: [...x.items, lesson] } : x)) });
+        },
+      });
+    }
+    toastSuccess(`Adding ${list.length} ${list.length === 1 ? 'lesson' : 'lessons'} to module ${m + 1}. Each appears as its upload starts.`);
+  };
+  function chooseVideoLessons(m: number) {
+    bulkModule.current = m;
+    bulkInput.current?.click();
+  }
 
   const pick = (s: Selection) => {
     setSel(s);
@@ -377,11 +516,18 @@ export function DraftEditor({ initial }: { initial: Draft }) {
     );
   }
 
-  const outline = <OutlineTree modules={modules} sel={view} setSel={pick} problems={problems} tipCount={tips.length} actions={actions} editable={canChange} />;
-  const side = preview || history;
+  const outline = (
+    <OutlineTree modules={modules} sel={view} setSel={pick} problems={problems} tipCount={tips.length} actions={actions} editable={canChange} comments={threadsBySel} people={peopleBySel} />
+  );
+  const side = preview || history || commentsOpen;
+  // Someone else changing the same item: say so before both sets of changes collide.
+  const sameItem = view.kind === 'item' && selectedItem ? people.filter((x) => x.editing && x.where?.itemKey === selectedItem.key && x.where?.moduleKey === selectedModule?.key) : [];
 
   return (
     <DraftIdContext.Provider value={draft.id}>
+      <CourseProviderContext.Provider value={String(doc.provider ?? '')}>
+      <CommentsContext.Provider value={commentsApi}>
+      <input ref={bulkInput} type="file" multiple accept="video/*,.mkv,.mov" className="sr-only" aria-hidden tabIndex={-1} onChange={(e) => (addVideoLessons(e.target.files), (e.target.value = ''))} />
       <div className="space-y-4">
         {/* The top bar stays in view while you scroll. */}
         <div className="sticky top-[4.25rem] z-10 rounded-[var(--radius-card)] bg-card/95 px-3 py-2.5 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur lg:top-[4.75rem]">
@@ -401,6 +547,21 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                 <span>{draft.baseVersionNo ? `from version ${draft.baseVersionNo}` : 'new course'}</span>
                 <span aria-hidden>·</span>
                 <SaveIndicator state={saveState} dirty={dirty} />
+                {people.length > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="inline-flex items-center gap-1.5" title={people.map((x) => `${x.name}${x.where ? ` (${x.where.label})` : ''}`).join(', ')}>
+                      <span className="flex -space-x-1.5">
+                        {people.slice(0, 4).map((x) => (
+                          <span key={x.userId} aria-hidden className={cx('grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold text-white ring-2 ring-card', x.editing ? 'bg-[#2f6fb3]' : 'bg-faint')}>
+                            {initials(x.name)}
+                          </span>
+                        ))}
+                      </span>
+                      <span>{people.length === 1 ? `${people[0]!.name} is here` : `${people.length} others here`}</span>
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -422,6 +583,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                 onClick={() => {
                   setHistoryOpen((h) => !h);
                   setPreview(false);
+                  setCommentsOpen(false);
                 }}
                 aria-pressed={history}
                 className={history ? pillOn : pill}
@@ -433,11 +595,26 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                 onClick={() => {
                   setPreview((p) => !p);
                   setHistoryOpen(false);
+                  setCommentsOpen(false);
                 }}
                 aria-pressed={preview}
                 className={preview ? pillOn : pill}
               >
                 Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!commentsOpen) setNewAnchor(anchorFor(view, modules));
+                  setCommentsOpen((c) => !c);
+                  setPreview(false);
+                  setHistoryOpen(false);
+                }}
+                aria-pressed={commentsOpen}
+                className={commentsOpen ? pillOn : pill}
+              >
+                Comments
+                {openThreads > 0 && <span className={cx('rounded-full px-1.5 text-[11px] font-bold', commentsOpen ? 'bg-white/20' : 'bg-[#eef4fb] text-[#1c4673]')}>{openThreads}</span>}
               </button>
               {draft.can.submit && (
                 <button
@@ -458,6 +635,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                 label="More actions"
                 items={[
                   { label: 'Open the full preview', onSelect: () => window.open(`/app/authoring/${draft.id}/preview`, '_blank', 'noopener') },
+                  { label: 'Video library', onSelect: () => window.open('/app/authoring/videos', '_blank', 'noopener') },
                   { label: 'Download as JSON', onSelect: download },
                   { label: 'Advanced: JSON', onSelect: () => pick({ kind: 'json' }) },
                   ...(draft.can.delete
@@ -555,6 +733,13 @@ export function DraftEditor({ initial }: { initial: Draft }) {
           {outlineOpen && <OutlineDrawer onClose={() => setOutlineOpen(false)}>{outline}</OutlineDrawer>}
 
           <section id="workspace-main" aria-label="Editor" className="min-w-0 scroll-mt-40">
+            {sameItem.length > 0 && (
+              <div className="mb-3">
+                <Notice tone="info">
+                  <strong>{sameItem.map((x) => x.name).join(' and ')}</strong> {sameItem.length === 1 ? 'is' : 'are'} changing this {ITEM_NAMES[selectedItem!.type].toLowerCase()} right now. If you both change it, whoever saves second will be asked to reload.
+                </Notice>
+              </div>
+            )}
             {/* The checklist only navigates, so it works on a read-only draft too. */}
             {view.kind === 'checklist' ? (
               <Card className="p-5 sm:p-7">
@@ -629,7 +814,19 @@ export function DraftEditor({ initial }: { initial: Draft }) {
 
           {side && (
             <aside className="fixed inset-0 z-40 bg-card xl:sticky xl:inset-auto xl:top-[9.5rem] xl:z-auto xl:h-[calc(100dvh-11rem)] xl:overflow-hidden xl:rounded-[var(--radius-card)] xl:shadow-[var(--shadow-soft)] xl:ring-1 xl:ring-line">
-              {history ? (
+              {commentsOpen ? (
+                <CommentsPanel
+                  draftId={draft.id}
+                  comments={comments}
+                  setComments={setComments}
+                  modules={modules}
+                  draftAnchor={newAnchor}
+                  onDraftAnchor={setNewAnchor}
+                  onGo={pick}
+                  onClose={() => setCommentsOpen(false)}
+                  highlight={highlight}
+                />
+              ) : history ? (
                 <HistoryPanel draftId={draft.id} slug={draft.slug} currentRevision={draft.revision} editable={editable} onRestore={restore} onClose={() => setHistoryOpen(false)} />
               ) : (
                 <div className="flex h-full min-h-0 flex-col" aria-label="Live preview">
@@ -654,7 +851,7 @@ export function DraftEditor({ initial }: { initial: Draft }) {
                   </div>
                   <div className="min-h-0 flex-1 overflow-y-auto bg-page p-4">
                     {view.kind === 'item' && selectedItem && selectedModule ? (
-                      <ItemPreview module={selectedModule} moduleIndex={view.m} item={selectedItem} device={device} />
+                      <ItemPreview module={selectedModule} moduleIndex={view.m} item={selectedItem} device={device} onComment={(blockId, label) => commentsApi.start({ blockId, label })} commentCount={(blockId) => commentsApi.count(null, blockId)} />
                     ) : (
                       <p className="p-4 text-center text-[13.5px] text-muted">Pick a lesson, quiz, assignment or discussion in the outline to preview it here.</p>
                     )}
@@ -665,6 +862,8 @@ export function DraftEditor({ initial }: { initial: Draft }) {
           )}
         </div>
       </div>
+      </CommentsContext.Provider>
+      </CourseProviderContext.Provider>
     </DraftIdContext.Provider>
   );
 }

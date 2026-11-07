@@ -18,7 +18,8 @@ export const BLOCK_INFO: Record<BlockType, { label: string; help: string; icon: 
   reveal: { label: 'Think, then reveal', help: 'A question learners think about before tapping to see the answer.', icon: '?' },
   framework: { label: 'Framework', help: 'Named steps, e.g. Define → Diagnose → Decide.', icon: '→' },
   image: { label: 'Image', help: 'An uploaded picture with a description and credit.', icon: '▣' },
-  video: { label: 'Video', help: 'An uploaded video or a YouTube link.', icon: '▶' },
+  video: { label: 'Video', help: 'From your video library, YouTube or Vimeo, with chapters and questions.', icon: '▶' },
+  download: { label: 'Download', help: 'A worksheet, slides or a reading learners can download.', icon: '⇩' },
   choice: { label: 'Multiple choice', help: 'One or more right answers, with feedback on each option.', icon: '◉' },
   order: { label: 'Put in order', help: 'Learners arrange steps in the right order.', icon: '⇅' },
   match: { label: 'Match pairs', help: 'Learners match each item on the left with one on the right.', icon: '⇄' },
@@ -31,7 +32,7 @@ export const BLOCK_INFO: Record<BlockType, { label: string; help: string; icon: 
 /** The picker's groups, in order. */
 export const BLOCK_GROUPS: { title: string; types: BlockType[] }[] = [
   { title: 'Teach', types: ['text', 'callout', 'example', 'quote', 'key_terms', 'reveal', 'framework'] },
-  { title: 'Media', types: ['image', 'video'] },
+  { title: 'Media', types: ['image', 'video', 'download'] },
   { title: 'Check understanding', types: ['choice', 'order', 'match'] },
   { title: 'Engage and reflect', types: ['poll', 'scale', 'reflection', 'scenario'] },
 ];
@@ -95,7 +96,9 @@ export function newBlock(type: BlockType, taken: string[]): BlockDoc {
     case 'image':
       return { id, type, url: '', alt: '', caption: '', credit: '' };
     case 'video':
-      return { id, type, provider: 'youtube', videoId: '', title: '', channel: '', caption: '' };
+      return { id, type, provider: 'library', videoId: '', title: '', channel: '', caption: '' };
+    case 'download':
+      return { id, type, title: '', path: '', fileName: '', size: 0, contentType: '' };
     case 'choice':
       return {
         id,
@@ -152,6 +155,28 @@ export function newBlock(type: BlockType, taken: string[]): BlockDoc {
 }
 
 /** The YouTube video id in a link or bare id (watch, youtu.be, shorts, embed), or null. */
+/** A Vimeo video number from a link (vimeo.com/76979871, player.vimeo.com/video/76979871) or the number itself. */
+export function vimeoId(input: string): string | null {
+  const s = input.trim();
+  if (/^\d{6,12}$/.test(s)) return s;
+  try {
+    const url = new URL(s);
+    const host = url.hostname.replace(/^www\./, '');
+    if (host !== 'vimeo.com' && host !== 'player.vimeo.com') return null;
+    return /\/(\d{6,12})(?:\/|$)/.exec(url.pathname)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Which service a pasted link is from, and the video's id there. */
+export function videoLink(input: string): { provider: 'youtube' | 'vimeo'; id: string } | null {
+  const yt = youtubeId(input);
+  if (yt && !/^\d+$/.test(yt)) return { provider: 'youtube', id: yt };
+  const vm = vimeoId(input);
+  return vm ? { provider: 'vimeo', id: vm } : yt ? { provider: 'youtube', id: yt } : null;
+}
+
 export function youtubeId(input: string): string | null {
   const s = input.trim();
   if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;

@@ -9,6 +9,14 @@ import type { MEDIA_IMAGE_HOSTS as CONTRACT_HOSTS, VideoRef } from '@dreamlab/co
 export const MEDIA_IMAGE_HOSTS = ['images.unsplash.com', 'upload.wikimedia.org', 'i.ytimg.com'] as const satisfies typeof CONTRACT_HOSTS;
 
 export const VIDEO_EMBED_ORIGIN = 'https://www.youtube-nocookie.com';
+export const VIMEO_EMBED_ORIGIN = 'https://player.vimeo.com';
+const VIMEO_ID = /^\d{6,12}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A library video's public folder on this site (CAT-6): manifest.json, the stream, poster and captions. */
+export function libraryVideoBase(videoId: string): string | null {
+  return UUID.test(videoId) ? `/media/videos/${videoId.toLowerCase()}/` : null;
+}
 
 /** Same as the contracts' MEDIA_PATH_PATTERN: courses/<org>/<upload>/<file name>. */
 const MEDIA_PATH = /^courses\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
@@ -36,12 +44,36 @@ export function videoThumbnail(videoId: string): string | null {
   return YOUTUBE_ID.test(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 }
 
-export function videoEmbedUrl(video: Pick<VideoRef, 'provider' | 'videoId' | 'startS' | 'endS'>): string | null {
+/** The embed address for a YouTube or Vimeo video, starting at `at` seconds (a chapter) or the clip's start. */
+export function videoEmbedUrl(video: Pick<VideoRef, 'provider' | 'videoId' | 'startS' | 'endS'>, at?: number): string | null {
+  const start = at ?? video.startS;
+  if (video.provider === 'vimeo' && VIMEO_ID.test(video.videoId)) {
+    // dnt: Vimeo doesn't track learners; the start time goes in the fragment.
+    return `${VIMEO_EMBED_ORIGIN}/video/${video.videoId}?autoplay=1&dnt=1&title=0&byline=0${start ? `#t=${start}s` : ''}`;
+  }
   if (video.provider !== 'youtube' || !YOUTUBE_ID.test(video.videoId)) return null;
   const q = new URLSearchParams({ autoplay: '1', rel: '0' });
-  if (video.startS) q.set('start', String(video.startS));
+  if (start) q.set('start', String(start));
   if (video.endS) q.set('end', String(video.endS));
   return `${VIDEO_EMBED_ORIGIN}/embed/${video.videoId}?${q}`;
+}
+
+/** "1:23" or "1:02:03" or "83" → seconds; null when it isn't a time. */
+export function parseClock(text: string): number | null {
+  const t = text.trim();
+  if (/^\d+$/.test(t)) return Number(t);
+  const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/.exec(t);
+  if (!m || Number(m[3]) > 59 || (m[1] !== undefined && Number(m[2]) > 59)) return null;
+  return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
+
+/** 83 → "1:23", 3723 → "1:02:03" (0 → "0:00"). */
+export function formatClock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
 
 /** 95 → "1:35", 3725 → "1:02:05". */
