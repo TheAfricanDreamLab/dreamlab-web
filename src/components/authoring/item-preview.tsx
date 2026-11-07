@@ -1,12 +1,15 @@
 'use client';
 
 import { type Block, BlockAuthoringSchema, toDeliveryBlock } from '@dreamlab/contracts';
+import type { ReactNode } from 'react';
 import { ItemIcon } from '@/components/learning/course-ui';
 import { RichText } from '@/components/learning/rich-text';
 import { cx } from '@/components/ui/primitives';
 import { type ItemDoc, type ModuleDoc, records } from '@/lib/authoring';
-import type { BlockDoc } from '@/lib/blocks';
+import { BLOCK_INFO, type BlockDoc } from '@/lib/blocks';
 import { ITEM_NAMES } from '@/lib/course-outline';
+import { InteractiveBlock } from '@/components/learning/interactive-blocks';
+import { StepBlocks } from '@/components/learning/step-blocks';
 import { PreviewBlocks } from './preview-blocks';
 
 /*
@@ -21,27 +24,70 @@ function delivered(blocks: unknown): (Block | { unfinished: true; id: string })[
   });
 }
 
-function Blocks({ blocks }: { blocks: unknown }) {
+type Commenting = { onComment?: (blockId: string, label: string) => void; commentCount?: (blockId: string) => number };
+
+const previewCheck = async () => 'Answers are checked once the course is published. In a preview, nothing is saved.';
+
+function Blocks({ blocks, onComment, commentCount }: { blocks: unknown } & Commenting) {
   const list = delivered(blocks);
   if (list.length === 0) return <p className="text-[14px] text-muted">Nothing here yet.</p>;
+  // Reviewers comment on what learners will see (CAT-6).
+  const withComments = (b: Block, body: ReactNode) => {
+    if (!onComment) return body;
+    const count = commentCount?.(b.id) ?? 0;
+    const label = BLOCK_INFO[b.type as keyof typeof BLOCK_INFO]?.label ?? 'Block';
+    return (
+      <div className="group/blk relative rounded-lg focus-within:ring-2 focus-within:ring-primary/30 hover:ring-1 hover:ring-[#cfe0f2]">
+        {body}
+        <button
+          type="button"
+          onClick={() => onComment(b.id, label)}
+          className={cx(
+            'absolute -top-3 right-1 inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-[11.5px] font-semibold text-[#1c4673] shadow-sm ring-1 ring-[#cfe0f2] transition-opacity focus:opacity-100',
+            count ? 'opacity-100' : 'opacity-0 group-hover/blk:opacity-100',
+          )}
+        >
+          Comment{count ? ` · ${count}` : ''}
+          <span className="sr-only"> on this {label.toLowerCase()}</span>
+        </button>
+      </div>
+    );
+  };
+  // A finished step plays as learners get it, videos asking their questions included.
+  const finished = list.filter((b): b is Block => !('unfinished' in b));
+  if (finished.length === list.length) {
+    return (
+      <div className="space-y-6">
+        <StepBlocks blocks={finished} settled={() => false} render={(b) => <InteractiveBlock block={b} onCheck={previewCheck} />} wrap={withComments} />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
-      {list.map((b) =>
-        'unfinished' in b ? (
-          <p key={b.id} className="rounded-lg border border-dashed border-line-strong px-3 py-3 text-center text-[13px] text-muted">
-            A block still being written
-          </p>
-        ) : (
-          <PreviewBlocks key={b.id} blocks={[b]} />
-        ),
-      )}
+      {list.map((b) => {
+        if ('unfinished' in b) {
+          return (
+            <p key={b.id} className="rounded-lg border border-dashed border-line-strong px-3 py-3 text-center text-[13px] text-muted">
+              A block still being written
+            </p>
+          );
+        }
+        return <div key={b.id}>{withComments(b, <PreviewBlocks blocks={[b]} />)}</div>;
+      })}
     </div>
   );
 }
 
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 
-export function ItemPreview({ module: mod, moduleIndex, item, device }: { module: ModuleDoc; moduleIndex: number; item: ItemDoc; device: 'phone' | 'laptop' }) {
+export function ItemPreview({
+  module: mod,
+  moduleIndex,
+  item,
+  device,
+  onComment,
+  commentCount,
+}: { module: ModuleDoc; moduleIndex: number; item: ItemDoc; device: 'phone' | 'laptop' } & Commenting) {
   const p = item.payload as Record<string, unknown>;
   const steps = records<{ id?: unknown; title?: unknown; blocks?: unknown }>(p.steps);
   return (
@@ -62,7 +108,7 @@ export function ItemPreview({ module: mod, moduleIndex, item, device }: { module
               Step {i + 1} of {steps.length}
               {typeof s.title === 'string' && s.title ? ` · ${s.title}` : ''}
             </p>
-            <Blocks blocks={s.blocks} />
+            <Blocks blocks={s.blocks} onComment={onComment} commentCount={commentCount} />
           </section>
         ))}
 
@@ -72,7 +118,7 @@ export function ItemPreview({ module: mod, moduleIndex, item, device }: { module
           <p className="text-[13px] text-muted">
             Pass mark {typeof p.passPct === 'number' ? p.passPct : 70}% · {typeof p.maxAttempts === 'number' ? `${p.maxAttempts} attempts` : 'unlimited attempts'}
           </p>
-          <Blocks blocks={p.questions} />
+          <Blocks blocks={p.questions} onComment={onComment} commentCount={commentCount} />
         </section>
       )}
 

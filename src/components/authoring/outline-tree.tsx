@@ -142,7 +142,18 @@ export type OutlineActions = {
   removeItem: (m: number, i: number) => void;
   moveItem: (from: { m: number; i: number }, to: { m: number; i: number }) => void;
   moveModule: (from: number, to: number) => void;
+  /** Choose several video files: each becomes a lesson in the module (CAT-6). */
+  addLessonsFromVideos?: (m: number) => void;
 };
+
+/** Initials for a small avatar: "Ada Obi" → "AO". */
+export const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('') || '?';
 
 export function OutlineTree({
   modules,
@@ -152,6 +163,8 @@ export function OutlineTree({
   tipCount,
   actions,
   editable,
+  comments = new Map(),
+  people = new Map(),
 }: {
   modules: ModuleDoc[];
   sel: Selection;
@@ -161,6 +174,10 @@ export function OutlineTree({
   tipCount: number;
   actions: OutlineActions;
   editable: boolean;
+  /** Open comment threads, by selection key. */
+  comments?: Map<string, number>;
+  /** Who else is on each part, by selection key. */
+  people?: Map<string, string[]>;
 }) {
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -277,6 +294,7 @@ export function OutlineTree({
                               { label: 'Add a quiz', onSelect: () => actions.addItem(m, 'quiz') },
                               { label: 'Add an assignment', onSelect: () => actions.addItem(m, 'assignment') },
                               { label: 'Add a discussion', onSelect: () => actions.addItem(m, 'discussion') },
+                              ...(actions.addLessonsFromVideos ? [{ label: 'Add lessons from videos…', onSelect: () => actions.addLessonsFromVideos!(m) }] : []),
                               'divider',
                               { label: 'Move up', onSelect: () => actions.moveModule(m, m - 1), disabled: m === 0 },
                               { label: 'Move down', onSelect: () => actions.moveModule(m, m + 1), disabled: m === modules.length - 1 },
@@ -297,6 +315,8 @@ export function OutlineTree({
                                     grip={igrip}
                                     active={sameSel(sel, { kind: 'item', m, i })}
                                     problems={problems.get(selKey({ kind: 'item', m, i })) ?? 0}
+                                    comments={comments.get(selKey({ kind: 'item', m, i })) ?? 0}
+                                    people={people.get(selKey({ kind: 'item', m, i })) ?? []}
                                     onOpen={() => setSel({ kind: 'item', m, i })}
                                     menu={
                                       editable ? (
@@ -387,13 +407,54 @@ export function OutlineTree({
   );
 }
 
-function ItemRow({ item, grip, active, problems, onOpen, menu }: { item: ItemDoc; grip: ReactNode; active: boolean; problems: number; onOpen: () => void; menu: ReactNode }) {
+function ItemRow({
+  item,
+  grip,
+  active,
+  problems,
+  onOpen,
+  menu,
+  comments = 0,
+  people = [],
+}: {
+  item: ItemDoc;
+  grip: ReactNode;
+  active: boolean;
+  problems: number;
+  onOpen: () => void;
+  menu: ReactNode;
+  comments?: number;
+  people?: string[];
+}) {
   return (
     <div className={cx('group flex items-center gap-0.5 rounded-lg pr-1', active ? 'bg-forest text-white' : 'hover:bg-surface')}>
       {grip}
       <button type="button" onClick={onOpen} aria-current={active ? 'true' : undefined} className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left">
         <ItemIcon type={item.type} className={cx('h-4 w-4', active ? 'text-white' : 'text-link')} />
         <span className={cx('truncate text-[13.5px]', active ? 'font-semibold' : 'text-ink')}>{item.title || 'Untitled'}</span>
+        {item.preview === true && (
+          <span className={cx('shrink-0 rounded px-1 text-[10px] font-bold uppercase tracking-wide', active ? 'bg-white/15 text-white' : 'bg-gold-tint text-gold-ink')} title="Free preview">
+            Free
+          </span>
+        )}
+        {people.length > 0 && (
+          <span className="flex shrink-0 -space-x-1" title={`Here now: ${people.join(', ')}`}>
+            {people.slice(0, 2).map((n) => (
+              <span key={n} aria-hidden className="grid h-5 w-5 place-items-center rounded-full bg-[#2f6fb3] text-[9px] font-bold text-white ring-2 ring-card">
+                {initials(n)}
+              </span>
+            ))}
+            <span className="sr-only">Here now: {people.join(', ')}</span>
+          </span>
+        )}
+        {comments > 0 && (
+          <span className={cx('shrink-0 rounded-full px-1.5 text-[10.5px] font-bold', active ? 'bg-white/20 text-white' : 'bg-[#eef4fb] text-[#1c4673]')} title={`${comments} open comment${comments === 1 ? '' : 's'}`}>
+            <svg viewBox="0 0 16 16" aria-hidden className="mr-0.5 inline h-3 w-3 align-[-2px]" fill="currentColor">
+              <path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 13 11.5H7l-3.5 3v-3H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5Z" />
+            </svg>
+            {comments}
+          </span>
+        )}
         <span className={cx('ml-auto shrink-0 text-[11.5px]', active ? 'text-white/70' : 'text-faint')}>{item.minutes}m</span>
       </button>
       <Dot count={problems} />

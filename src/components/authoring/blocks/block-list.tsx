@@ -4,14 +4,16 @@ import { closestCenter, DndContext, type DragEndEvent, KeyboardSensor, PointerSe
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { type Block, BlockAuthoringSchema, toDeliveryBlock } from '@dreamlab/contracts';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { BLOCK_GROUPS, BLOCK_INFO, type BlockDoc, type BlockType, blockSummary, freshId, newBlock } from '@/lib/blocks';
 import { plainMessage } from '@/lib/course-outline';
 import { Badge, cx } from '@/components/ui/primitives';
 import { JsonField, SmallButton } from '../fields';
+import { CommentsContext } from '../comments-panel';
 import { RowMenu } from '../outline-tree';
 import { PreviewBlocks } from '../preview-blocks';
 import { BlockForm } from './block-forms';
+import { StepBlocksContext } from './video-form';
 import { move } from './controls';
 
 /*
@@ -64,7 +66,8 @@ export function blockProblems(block: BlockDoc, types?: BlockType[]): string[] {
   if (block.type === 'choice' && Array.isArray(block.options) && !(block.options as unknown[]).some((o) => !!o && typeof o === 'object' && (o as { correct?: unknown }).correct === true)) {
     out.push('Tick at least one right answer');
   }
-  if (block.type === 'video' && !block.videoId) out.push('Video: paste a YouTube link or upload a file');
+  if (block.type === 'video' && !block.videoId) out.push(block.provider === 'library' ? 'Video: upload one or choose it from the library' : 'Video: paste the link');
+  if (block.type === 'download' && !block.path) out.push('Download: upload the file');
   if (block.type === 'image' && !block.url) out.push('Image: upload one or give an address');
   return [...new Set(out)].slice(0, 6);
 }
@@ -150,6 +153,7 @@ export function BlockList({
   return (
     <div className="space-y-2">
       {blocks.length === 0 && <p className="rounded-[var(--radius-field)] bg-card px-3 py-4 text-center text-[13.5px] text-muted ring-1 ring-line">Nothing here yet. Add a {noun} below.</p>}
+      <StepBlocksContext.Provider value={blocks}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={blocks.map((_, i) => `blk-${i}`)} strategy={verticalListSortingStrategy}>
       {blocks.map((b, i) => (
@@ -182,6 +186,7 @@ export function BlockList({
       ))}
         </SortableContext>
       </DndContext>
+      </StepBlocksContext.Provider>
       {picker !== blocks.length && picker !== null && picker > blocks.length ? null : adder(blocks.length)}
     </div>
   );
@@ -257,6 +262,8 @@ function BlockCard({
   const info = BLOCK_INFO[block.type] ?? { label: String(block.type), icon: '?', help: '' };
   const problems = blockProblems(block, types);
   const name = `${info.label} ${noun} ${index + 1}`;
+  const comments = useContext(CommentsContext);
+  const commentCount = comments?.count(null, block.id) ?? 0;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: `blk-${index}` });
   let preview: Block | null = null;
   if (problems.length === 0) {
@@ -300,6 +307,11 @@ function BlockCard({
             <span className="flex items-center gap-2">
               <span className="text-[14px] font-semibold text-ink">{info.label}</span>
               {problems.length > 0 && <Badge tone="danger">{problems.length === 1 ? '1 thing to fix' : `${problems.length} things to fix`}</Badge>}
+              {commentCount > 0 && (
+                <span className="rounded-full bg-[#eef4fb] px-2 py-0.5 text-[11px] font-semibold text-[#1c4673]">
+                  {commentCount} comment{commentCount === 1 ? '' : 's'}
+                </span>
+              )}
             </span>
             <span className="block truncate text-[12.5px] text-muted">{blockSummary(block) || 'Empty'}</span>
           </span>
@@ -313,6 +325,7 @@ function BlockCard({
             { label: `Insert a ${noun} above`, onSelect: onInsertBefore, disabled: !canInsert },
             { label: `Insert a ${noun} below`, onSelect: onInsertAfter, disabled: !canInsert },
             { label: 'Duplicate', onSelect: onDuplicate, disabled: !canInsert },
+            ...(comments ? [{ label: 'Comment…', onSelect: () => comments.start({ blockId: block.id, label: info.label }) }] : []),
             'divider',
             { label: 'Remove…', onSelect: onRemove, danger: true },
           ]}

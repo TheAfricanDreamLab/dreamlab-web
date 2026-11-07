@@ -1,11 +1,13 @@
 'use client';
 
 import { useContext, useId } from 'react';
-import { type BlockDoc, CALLOUT_TONE_LABELS, optionId, youtubeId } from '@/lib/blocks';
+import { type BlockDoc, CALLOUT_TONE_LABELS, optionId } from '@/lib/blocks';
+import { fileSize } from '@/lib/upload';
 import { cx } from '@/components/ui/primitives';
 import { AreaField, NumberField, SelectField, TextField } from '../fields';
 import { DraftIdContext, MediaUploadButton } from '../media-upload';
 import { ListEditor, RichTextField, RowInput } from './controls';
+import { VideoForm } from './video-form';
 
 /*
  * One form per block type (CAT-4). Each edits a copy of the block and hands back the whole block;
@@ -117,6 +119,9 @@ export function BlockForm({ block, set, onInsertBlock }: Props) {
 
     case 'video':
       return <VideoForm block={block} set={set} />;
+
+    case 'download':
+      return <DownloadForm block={block} set={set} />;
 
     case 'choice': {
       const options = rows<{ id: string; text: string; correct: boolean; feedback?: string }>(block.options);
@@ -332,53 +337,39 @@ function ImageForm({ block, set }: Props) {
   );
 }
 
-function VideoForm({ block, set }: Props) {
+function DownloadForm({ block, set }: Props) {
   const draftId = useContext(DraftIdContext);
-  const name = useId();
   const patch = (p: Record<string, unknown>) => set({ ...block, ...p });
-  const provider = block.provider === 'file' ? 'file' : 'youtube';
-  const videoId = str(block.videoId);
-  const seconds = (v: number | null) => (v === null ? undefined : v);
+  const path = str(block.path);
   return (
     <div className="space-y-3">
-      <fieldset className="flex flex-wrap gap-2">
-        <legend className="mb-1.5 text-[13px] font-semibold text-ink">Where the video is</legend>
-        {(
-          [
-            ['youtube', 'YouTube'],
-            ['file', 'Uploaded file'],
-          ] as const
-        ).map(([value, label]) => (
-          <label key={value} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-3 text-[14px] ring-1 ring-line has-[:checked]:ring-2 has-[:checked]:ring-primary">
-            <input type="radio" name={name} checked={provider === value} onChange={() => patch({ provider: value, videoId: '' })} className="accent-[var(--color-primary)]" />
-            {label}
-          </label>
-        ))}
-      </fieldset>
-      {provider === 'youtube' ? (
-        <TextField
-          label="YouTube link"
-          value={videoId}
-          onChange={(v) => patch({ videoId: youtubeId(v) ?? v.trim() })}
-          placeholder="https://www.youtube.com/watch?v=…"
-          hint={videoId && youtubeId(videoId) ? `Video id ${videoId}` : 'Paste the link; the id is taken from it'}
-        />
-      ) : (
-        <div className="space-y-1">
-          {draftId && <MediaUploadButton draftId={draftId} kind="video" label={videoId ? 'Replace the video' : 'Upload a video'} onUploaded={(path) => patch({ videoId: path })} />}
-          {videoId && <p className="break-all text-[12.5px] text-muted">Uploaded: {videoId.split('/').pop()}</p>}
-        </div>
-      )}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TextField label="Title" value={str(block.title)} maxLength={200} onChange={(v) => patch({ title: v })} />
-        <TextField label="Made by" value={str(block.channel)} maxLength={120} onChange={(v) => patch({ channel: v })} hint="Shown as the credit" />
+      <div className="flex flex-wrap items-center gap-3">
+        {draftId && (
+          <MediaUploadButton
+            draftId={draftId}
+            kind="file"
+            label={path ? 'Replace the file' : 'Upload a file'}
+            onUploaded={(p, file, contentType) =>
+              set({
+                ...block,
+                path: p,
+                fileName: file.name.slice(-160),
+                size: file.size,
+                contentType,
+                title: str(block.title) || file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').slice(0, 160),
+              })
+            }
+          />
+        )}
+        {path && (
+          <p className="text-[13px] text-muted">
+            {str(block.fileName)} · {fileSize(num(block.size) ?? 0)}
+          </p>
+        )}
       </div>
-      <TextField label="What to watch for (optional)" value={str(block.caption)} maxLength={600} onChange={(v) => patch({ caption: opt(v) })} />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <NumberField label="Start at (seconds)" allowEmpty min={0} value={num(block.startS)} onChange={(v) => patch({ startS: seconds(v) })} />
-        <NumberField label="Stop at (seconds)" allowEmpty min={1} value={num(block.endS)} onChange={(v) => patch({ endS: seconds(v) })} />
-        <NumberField label="Length (seconds)" allowEmpty min={1} max={36000} value={num(block.durationS)} onChange={(v) => patch({ durationS: seconds(v) })} hint="Optional" />
-      </div>
+      <TextField label="Title" value={str(block.title)} maxLength={160} onChange={(v) => patch({ title: v })} placeholder="e.g. Problem definition worksheet" />
+      <TextField label="What it is for (optional)" value={str(block.description)} maxLength={400} onChange={(v) => patch({ description: opt(v) })} />
+      <p className="text-[12px] text-muted">PDF, Word, PowerPoint, Excel, ZIP, text, CSV, pictures or MP3, up to 50 MB. Anyone who can open the lesson can download it.</p>
     </div>
   );
 }

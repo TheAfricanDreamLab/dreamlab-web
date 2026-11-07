@@ -1,11 +1,13 @@
 import type { Block } from '@dreamlab/contracts';
 import { cx } from '@/components/ui/primitives';
-import { ImageFigure, VideoFacade } from './media';
+import { LibraryVideo } from './library-video';
+import { DownloadCard, ImageFigure, VideoFacade } from './media';
 import { RichText } from './rich-text';
+import type { VideoQuestion } from './library-video';
 
 /* Blocks that teach (no answer needed). Plain components: usable from the client lesson player. */
 
-type Teaching = Extract<Block, { type: 'text' | 'callout' | 'quote' | 'example' | 'key_terms' | 'reveal' | 'framework' | 'video' | 'image' }>;
+type Teaching = Extract<Block, { type: 'text' | 'callout' | 'quote' | 'example' | 'key_terms' | 'reveal' | 'framework' | 'video' | 'image' | 'download' }>;
 
 const CALLOUTS = {
   insight: { label: 'Key idea', icon: '◆', box: 'bg-success-tint ring-success-line', badge: 'bg-primary text-white', title: 'text-forest' },
@@ -15,9 +17,13 @@ const CALLOUTS = {
   context: { label: 'In context', icon: '◎', box: 'bg-[#f3eefa] ring-[#e0d3f0]', badge: 'bg-[#6b4aa0] text-white', title: 'text-[#46306b]' },
 } as const;
 
-export const isTeachingBlock = (b: Block): b is Teaching => ['text', 'callout', 'quote', 'example', 'key_terms', 'reveal', 'framework', 'video', 'image'].includes(b.type);
+export const isTeachingBlock = (b: Block): b is Teaching => ['text', 'callout', 'quote', 'example', 'key_terms', 'reveal', 'framework', 'video', 'image', 'download'].includes(b.type);
 
-export function TeachingBlock({ block }: { block: Teaching }) {
+/**
+ * A teaching block. `questions` are the step's interactive blocks asked during a library video
+ * (CAT-6), rendered by the caller so their answers are checked as usual.
+ */
+export function TeachingBlock({ block, questions }: { block: Teaching; questions?: VideoQuestion[] }) {
   switch (block.type) {
     case 'text':
       return <RichText text={block.body} size="lg" />;
@@ -84,7 +90,13 @@ export function TeachingBlock({ block }: { block: Teaching }) {
         </details>
       );
     case 'video':
-      return <VideoFacade video={block} caption={block.caption} />;
+      return block.provider === 'library' ? (
+        <LibraryVideo key={block.videoId} videoId={block.videoId} title={block.title} channel={block.channel} caption={block.caption} chapters={block.chapters} questions={questions} startS={block.startS} endS={block.endS} />
+      ) : (
+        <VideoFacade video={block} caption={block.caption} chapters={block.chapters} />
+      );
+    case 'download':
+      return <DownloadCard {...block} />;
     case 'image':
       return <ImageFigure url={block.url} alt={block.alt} caption={block.caption} credit={block.credit} />;
     case 'framework':

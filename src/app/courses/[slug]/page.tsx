@@ -257,6 +257,12 @@ export default async function CoursePage({ params, searchParams }: Params) {
                                   <Link href={`/learn/${enrollment.id}/${i.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface sm:px-5">
                                     {row}
                                   </Link>
+                                ) : i.preview ? (
+                                  // Free preview (CAT-6): open it before enrolling.
+                                  <Link href={`/courses/${course.slug}/preview/${i.key}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface sm:px-5">
+                                    {row}
+                                    <span className="shrink-0 rounded-full bg-gold-tint px-2.5 py-1 text-[12px] font-semibold text-gold-ink ring-1 ring-gold-line">Preview</span>
+                                  </Link>
                                 ) : (
                                   <div className="flex items-center gap-3 px-4 py-3 sm:px-5">{row}</div>
                                 )}
