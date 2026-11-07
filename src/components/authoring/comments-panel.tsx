@@ -105,9 +105,13 @@ export function CommentsPanel({
     const sent = text;
     setBusy(true);
     setError(null);
-    const res = await addComment(draftId, draftAnchor, sent);
-    sending.current = false;
-    setBusy(false);
+    // A dropped connection rejects: the box must work again either way.
+    const res = await addComment(draftId, draftAnchor, sent)
+      .catch(() => ({ ok: false as const, error: 'The comment couldn’t be sent. Check your connection and try again.' }))
+      .finally(() => {
+        sending.current = false;
+        setBusy(false);
+      });
     if (!res.ok) return setError(res.error);
     setComments((list) => [...list, res.data]);
     setText((t) => (t === sent ? '' : t));
@@ -217,10 +221,16 @@ function Thread({
   const act = async (fn: () => Promise<{ ok: true; data: unknown } | { ok: false; error: string }>) => {
     setBusy(true);
     setError(null);
-    const res = await fn();
-    setBusy(false);
-    if (!res.ok) setError(res.error);
-    return res.ok;
+    try {
+      const res = await fn();
+      if (!res.ok) setError(res.error);
+      return res.ok;
+    } catch {
+      setError('That didn’t go through. Check your connection and try again.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -259,14 +269,15 @@ function Thread({
                   const sent = reply;
                   void act(async () =>
                     addComment(draftId, root.anchor, sent, root.id).then((r) => {
-                      sendingReply.current = false;
                       if (r.ok) {
                         setComments((list) => [...list, r.data]);
                         setReply((t) => (t === sent ? '' : t));
                       }
                       return r;
                     }),
-                  );
+                  ).finally(() => {
+                    sendingReply.current = false;
+                  });
                 }
               }}
               placeholder="Reply… (Enter to send)"

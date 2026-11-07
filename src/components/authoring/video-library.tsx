@@ -596,7 +596,12 @@ function CaptionEditor({
                   <button type="button" onClick={() => play(c.startS)} className="ml-auto rounded-full px-3 py-1 text-[12.5px] font-semibold text-link ring-1 ring-line hover:bg-surface">
                     ▶ Play
                   </button>
-                  <button type="button" hidden={readOnly} onClick={() => setCues((list) => list.filter((x) => x.key !== c.key))} aria-label="Remove this line" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink">
+                  <button type="button" hidden={readOnly} onClick={() => {
+                      setCues((list) => list.filter((x) => x.key !== c.key));
+                      // Its time fields go with it.
+                      markTime(`${c.key}-start`, false);
+                      markTime(`${c.key}-end`, false);
+                    }} aria-label="Remove this line" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink">
                     <Icon name="close" className="h-3.5 w-3.5" />
                   </button>
                 </div>
