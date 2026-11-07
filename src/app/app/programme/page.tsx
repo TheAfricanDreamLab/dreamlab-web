@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ElectiveForm } from '@/components/cohorts/cohort-forms';
 import { LocalTime } from '@/components/community/community-forms';
+import { GoalCard } from '@/components/engagement/goal-form';
+import { CertificatePath, FirstWeekChecklist, OnTrackCard } from '@/components/engagement/on-track';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate, classTime, type MyProgram } from '@/lib/cohorts';
+import type { ProgramOnTrack } from '@/lib/engagement';
 import { inJoinWindow, meetingRoomHref, MEETING_STATUS_LABELS, type MyCommunity, sessionRoomHref } from '@/lib/community';
 import { friendlyError } from '@/lib/errors';
 import { outcomeHref } from '@/lib/outcomes';
@@ -18,6 +21,17 @@ type Search = { searchParams: Promise<{ joined?: string }> };
 export default async function MyProgrammePage({ searchParams }: Search) {
   const { joined } = await searchParams;
   const [res, community] = await Promise.all([api<{ items: MyProgram[] }>('GET', '/v1/learning/me/programs'), api<MyCommunity>('GET', '/v1/learning/me/community')]);
+  // Pace, catch-up and the way to the certificate (LRN-9). An API without them (or any failure here)
+  // leaves those cards out: the rest of the page doesn't depend on them.
+  const tracks = res.ok
+    ? await Promise.all(
+        res.data.items.map(async (p) => {
+          const t = await api<ProgramOnTrack>('GET', `/v1/learning/me/programs/${p.enrollment.id}/on-track`);
+          return t.ok ? t.data : null;
+        }),
+      )
+    : [];
+  const circles = community.ok ? community.data.circles : [];
 
   return (
     <div className="space-y-8">
@@ -38,7 +52,10 @@ export default async function MyProgrammePage({ searchParams }: Search) {
           </ButtonLink>
         </Card>
       ) : (
-        res.data.items.map((p) => <Programme key={p.enrollment.id} p={p} justJoined={joined === p.enrollment.id} />)
+        res.data.items.map((p, i) => {
+          const circle = circles.find((c) => c.cohortId === p.cohort.id);
+          return <Programme key={p.enrollment.id} p={p} justJoined={joined === p.enrollment.id} track={tracks[i] ?? null} circleHref={circle ? `/app/circles/${circle.id}` : null} />;
+        })
       )}
 
       {community.ok ? <Community c={community.data} /> : <Notice tone="error">{friendlyError(community.error)}</Notice>}
@@ -54,7 +71,7 @@ const OUTCOME_LINKS = [
   { page: 'graduation', label: 'Graduation' },
 ] as const;
 
-function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
+function Programme({ p, justJoined, track, circleHref }: { p: MyProgram; justJoined: boolean; track: ProgramOnTrack | null; circleHref: string | null }) {
   const tz = p.cohort.timeZone;
   const attendancePct = p.attendance.held > 0 ? Math.round((p.attendance.attended / p.attendance.held) * 100) : null;
   const open = p.electives.filter((e) => !e.locked && e.chosen.length === 0);
@@ -78,7 +95,7 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
           </Badge>
         </div>
         <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat label="This week" value={p.thisWeek?.focus ?? (p.cohort.currentWeek ? '—' : 'Not started')} />
+          <Stat label="This week" value={p.thisWeek?.kind === 'catch_up' ? `Catch-up week · ${p.thisWeek.focus}` : (p.thisWeek?.focus ?? (p.cohort.currentWeek ? '—' : 'Not started'))} />
           <Stat label="Major output" value={p.thisWeek?.majorOutput ?? '—'} />
           <Stat label="Attendance" value={attendancePct === null ? 'No classes yet' : `${attendancePct}% (${p.attendance.attended} of ${p.attendance.held})`} />
           <Stat
@@ -94,6 +111,30 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
           ))}
         </nav>
       </Card>
+
+      {/* One place for the goal, set or not, so saving it doesn't move it. */}
+      {track && (
+        <GoalCard
+          scope="program"
+          enrollmentId={p.enrollment.id}
+          goal={track.goal}
+          welcome={justJoined}
+          title={p.cohort.programTitle}
+          behind={track.pace === 'behind' || track.pace === 'far_behind'}
+        />
+      )}
+
+      {track && (
+        <div className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
+          <div className="space-y-6">
+            <OnTrackCard data={track} name={p.cohort.name} showGoal={false} />
+          </div>
+          <div className="space-y-6">
+            <FirstWeekChecklist data={track} enrollmentId={p.enrollment.id} goalHref={`#goal-${p.enrollment.id}`} circleHref={circleHref} />
+            <CertificatePath certificate={track.certificate} name={p.cohort.programTitle} />
+          </div>
+        </div>
+      )}
 
       {open.length > 0 && <Notice tone="info">Choose your {open.map((e) => e.phase).join(' and ')} elective{open.length > 1 ? 's' : ''} below{open[0]!.deadline ? ` by ${calendarDate(open[0]!.deadline)}` : ''}.</Notice>}
 
@@ -191,10 +232,22 @@ function Programme({ p, justJoined }: { p: MyProgram; justJoined: boolean }) {
             </thead>
             <tbody className="divide-y divide-line">
               {p.calendar.map((w) => (
-                <tr key={w.weekNo} aria-current={w.weekNo === p.cohort.currentWeek ? 'date' : undefined} className={cx(w.weekNo === p.cohort.currentWeek && 'bg-gold-tint')}>
+                <tr
+                  key={w.weekNo}
+                  aria-current={w.weekNo === p.cohort.currentWeek ? 'date' : undefined}
+                  data-week-kind={w.kind ?? 'learning'}
+                  className={cx(w.weekNo === p.cohort.currentWeek ? 'bg-gold-tint' : w.kind === 'catch_up' && 'bg-sky-tint')}
+                >
                   <td data-label="Week" className="px-4 py-3 font-mono text-ink">{w.weekNo}</td>
                   <td data-label="Dates" className="px-4 py-3 text-muted">{calendarDate(w.startsOn)} – {calendarDate(w.endsOn)}</td>
-                  <td className="px-4 py-3 font-medium text-ink">{w.focus}</td>
+                  <td className="px-4 py-3 font-medium text-ink">
+                    {w.kind === 'catch_up' && (
+                      <span className="mb-1 mr-2 inline-flex items-center rounded-full bg-sky-tint px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-sky-ink ring-1 ring-sky-line">
+                        Catch-up week
+                      </span>
+                    )}
+                    {w.focus}
+                  </td>
                   <td className="px-4 py-3 text-body">{w.majorOutput}</td>
                 </tr>
               ))}

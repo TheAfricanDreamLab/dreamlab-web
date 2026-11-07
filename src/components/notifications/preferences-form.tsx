@@ -15,6 +15,7 @@ export function NotificationPreferencesForm({ categories, email }: { categories:
         <legend className="mb-2 text-[14px] text-muted">Email me about:</legend>
         {categories.map(([key, label]) => (
           <label key={key} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 text-[14.5px] text-body hover:bg-surface">
+            <input type="hidden" name="category" value={key} />
             <input type="checkbox" name={`email:${key}`} defaultChecked={email[key] !== false} className="h-5 w-5 accent-[var(--color-forest)]" />
             {label}
           </label>

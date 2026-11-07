@@ -3,14 +3,17 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CircleBoard } from '@/components/circles/circle-board';
+import { CircleProgressPanel } from '@/components/circles/circle-progress';
 import { ContactForm, MemberCards } from '@/components/circles/circle-people';
 import { MeetupForm, MeetupList } from '@/components/circles/meetups';
 import { Icon } from '@/components/ui/icons';
 import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
+import type { CircleProgress } from '@/lib/engagement';
 import { api } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
+import { getClaims } from '@/lib/session';
 
 export const metadata: Metadata = { title: 'Dream Circle' };
 
@@ -24,9 +27,12 @@ type Props = { params: Promise<{ circleId: string }> };
 export default async function CirclePage({ params }: Props) {
   const { circleId } = await params;
   if (!isUuid(circleId)) notFound();
-  const [space, posts] = await Promise.all([
+  const [space, posts, progress, claims] = await Promise.all([
     api<CircleSpace>('GET', `/v1/learning/circles/${circleId}/space`),
     api<CirclePostPage>('GET', `/v1/learning/circles/${circleId}/posts?limit=20`),
+    // This week's shared progress (LRN-9); left out when the API doesn't offer it yet, or fails.
+    api<CircleProgress>('GET', `/v1/learning/circles/${circleId}/progress`),
+    getClaims(),
   ]);
   if (!space.ok && space.status === 404) notFound();
   if (!space.ok) return <Notice tone="error">{friendlyError(space.error)}</Notice>;
@@ -68,6 +74,8 @@ export default async function CirclePage({ params }: Props) {
           </Link>
         </span>
       </Card>
+
+      {progress.ok && <CircleProgressPanel circleId={s.id} initial={progress.data} canShare={s.you.role === 'member'} meId={claims?.sub ?? null} />}
 
       <Card className="space-y-3 p-4">
         <h2 className="text-[17px] font-bold text-ink">Meetups</h2>

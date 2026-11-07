@@ -4,13 +4,19 @@ import type { VideoChapter, VideoManifest } from '@dreamlab/contracts';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cx } from '@/components/ui/primitives';
 import { type Cue, parseCaptions } from '@/lib/captions';
+import { formatBytes } from '@/lib/engagement';
 import { formatClock, formatDuration, libraryVideoBase } from '@/lib/media';
+import { useSaveData } from '@/lib/save-data';
 
 /*
  * A video from the organisation's library (CAT-6), streamed from Dream Lab's own servers. Until the
  * learner presses play only the poster loads; then the stream starts at the quality their connection
  * allows (hls.js, or the browser's own HLS on Safari and iPhone). Captions, chapters and a transcript
  * that follows along; questions set during the video pause it and appear right below.
+ *
+ * Save data (LRN-9, a per-device choice): the stream starts at the lowest quality, the poster isn't
+ * loaded, the transcript opens first, and the sound alone can be played instead ("Listen instead").
+ * Listening keeps the chapters and the questions: they follow whichever is playing.
  */
 
 type HlsLike = {
@@ -54,11 +60,16 @@ export function LibraryVideo({
   const [levels, setLevels] = useState<number[]>([]);
   const [level, setLevel] = useState(-1);
   const [speed, setSpeed] = useState(1);
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  // Null until the learner opens or closes it: then save data decides (open first when it's on).
+  const [transcriptToggled, setTranscriptToggled] = useState<boolean | null>(null);
+  const [saveData] = useSaveData();
+  const saveDataNow = useRef(saveData);
+  const [mode, setMode] = useState<'video' | 'audio'>('video');
   // Questions due, in order: the first is shown; continuing shows the next before playing on.
   const [queue, setQueue] = useState<string[]>([]);
   const asking = queue[0] ?? null;
   const video = useRef<HTMLVideoElement>(null);
+  const audio = useRef<HTMLAudioElement>(null);
   const hls = useRef<HlsLike | null>(null);
   const lastTime = useRef(0);
   const asked = useRef(new Set<string>());
@@ -67,6 +78,11 @@ export function LibraryVideo({
   // The learner moved the playhead: the next time update is a jump, not playback.
   const seeking = useRef(false);
   const questionPanel = useRef<HTMLDivElement>(null);
+
+  // Read when the stream starts, so switching save data mid-video doesn't restart it.
+  useEffect(() => {
+    saveDataNow.current = saveData;
+  }, [saveData]);
 
   useEffect(() => {
     if (!base) return;
@@ -83,17 +99,23 @@ export function LibraryVideo({
   // Start the stream once the <video> exists.
   useEffect(() => {
     const el = video.current;
-    if (!playing || !el || !base || !manifest || manifest === 'error') return;
+    if (mode !== 'video' || !playing || !el || !base || !manifest || manifest === 'error') return;
+    const lowest = saveDataNow.current;
     const src = `${base}${manifest.hls}`;
     let cancelled = false;
     void (async () => {
       const { default: Hls } = await import('hls.js');
       if (cancelled) return;
       if (Hls.isSupported()) {
-        const h = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 30, startPosition: pendingStart.current ?? startS ?? -1 }) as unknown as HlsLike;
+        const h = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 30, startPosition: pendingStart.current ?? startS ?? -1, ...(lowest ? { startLevel: 0 } : {}) }) as unknown as HlsLike;
         hls.current = h;
         h.on(Hls.Events.MANIFEST_PARSED, () => {
           setLevels(h.levels.map((l) => l.height));
+          // Saving data: stay on the lowest quality (hls.js lists levels from the lightest) until the learner picks another.
+          if (lowest && h.levels.length > 1) {
+            h.currentLevel = 0;
+            setLevel(0);
+          }
           void el.play().catch(() => undefined);
         });
         h.loadSource(src);
@@ -110,10 +132,33 @@ export function LibraryVideo({
       hls.current?.destroy();
       hls.current = null;
     };
-  }, [playing, base, manifest, startS]);
+  }, [mode, playing, base, manifest, startS]);
+
+  // Listening: the sound alone starts where the video was (or the chosen chapter), once the player is there.
+  useEffect(() => {
+    const el = audio.current;
+    if (mode !== 'audio' || !el) return;
+    const at = pendingStart.current ?? startS;
+    if (at) el.currentTime = at;
+    lastTime.current = at ?? 0;
+    void el.play().catch(() => undefined);
+  }, [mode, startS]);
+
+  /** Swap between watching and listening, carrying on from the same moment. */
+  const switchTo = (next: 'video' | 'audio') => {
+    const el = video.current ?? audio.current;
+    if (el && el.currentTime > 0) pendingStart.current = el.currentTime;
+    el?.pause();
+    setLevels([]);
+    setLevel(-1);
+    // A new player starts at normal speed.
+    setSpeed(1);
+    setMode(next);
+    setPlaying(next === 'video');
+  };
 
   const seek = useCallback((s: number) => {
-    const el = video.current;
+    const el = video.current ?? audio.current;
     if (!el) {
       pendingStart.current = s;
       lastTime.current = s;
@@ -126,7 +171,7 @@ export function LibraryVideo({
   }, []);
 
   const onTime = () => {
-    const el = video.current;
+    const el = video.current ?? audio.current;
     if (!el) return;
     const now = el.currentTime;
     setTime(now);
@@ -164,11 +209,15 @@ export function LibraryVideo({
   };
   const chooseSpeed = (s: number) => {
     setSpeed(s);
-    if (video.current) video.current.playbackRate = s;
+    const el = video.current ?? audio.current;
+    if (el) el.playbackRate = s;
   };
 
   const current = useMemo(() => [...chapters].reverse().find((c) => time >= c.atS) ?? null, [chapters, time]);
   const asking_ = questions.find((q) => q.blockId === asking);
+
+  const hasCaptions = manifest !== null && manifest !== 'error' && manifest.captions.length > 0;
+  const transcriptOpen = transcriptToggled ?? (saveData && hasCaptions);
 
   if (!base) return null;
   if (manifest === 'error') {
@@ -183,9 +232,34 @@ export function LibraryVideo({
   }
   const ready = manifest !== null;
   const duration = ready ? formatDuration((endS ?? manifest.durationS) - (startS ?? 0)) : null;
+  const estimate = ready ? dataEstimate(manifest, saveData, startS, endS) : null;
+  const audioSrc = mode === 'audio' && ready && manifest.audio ? `${base}${manifest.audio.src}` : null;
+  const transcript = transcriptOpen && ready && <Transcript base={base} tracks={manifest.captions} time={time} onSeek={seek} />;
 
   return (
-    <figure className="space-y-3" data-media="video">
+    <figure className="space-y-3" data-media="video" data-save-data={saveData ? 'on' : 'off'}>
+      {saveData && transcript}
+      {audioSrc ? (
+        <div className="space-y-3 rounded-[var(--radius-card)] bg-forest p-4 text-white ring-1 ring-line sm:p-5">
+          <p className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-gold">
+            <span aria-hidden>♪</span> Listening · sound only
+          </p>
+          <p className="font-display text-[16px] font-bold leading-snug">{title}</p>
+          <audio
+            ref={audio}
+            controls
+            preload="none"
+            src={audioSrc}
+            aria-label={`Listen: ${title}`}
+            onTimeUpdate={onTime}
+            onSeeking={() => {
+              seeking.current = true;
+            }}
+            onRateChange={(e) => setSpeed(e.currentTarget.playbackRate)}
+            className="w-full"
+          />
+        </div>
+      ) : (
       <div className="relative aspect-video w-full overflow-hidden rounded-[var(--radius-card)] bg-forest ring-1 ring-line">
         {playing && ready ? (
           <video
@@ -193,7 +267,7 @@ export function LibraryVideo({
             controls
             playsInline
             preload="none"
-            poster={`${base}${manifest.poster}`}
+            poster={saveData ? undefined : `${base}${manifest.poster}`}
             aria-label={title}
             onTimeUpdate={onTime}
             onSeeking={() => {
@@ -208,7 +282,7 @@ export function LibraryVideo({
           </video>
         ) : (
           <button type="button" onClick={() => setPlaying(true)} disabled={!ready} aria-label={`Play video: ${title}`} className="group absolute inset-0 block h-full w-full text-left disabled:cursor-wait">
-            {ready && (
+            {ready && !saveData && (
               // eslint-disable-next-line @next/next/no-img-element -- the poster, served from /media as it is
               <img src={`${base}${manifest.poster}`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
             )}
@@ -230,6 +304,25 @@ export function LibraryVideo({
           </button>
         )}
       </div>
+      )}
+
+      {ready && (estimate || manifest.audio) && (
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-[13px]">
+          {estimate && <p className="text-muted">{estimate}</p>}
+          {manifest.audio && (
+            <button
+              type="button"
+              onClick={() => switchTo(mode === 'audio' ? 'video' : 'audio')}
+              className={cx(
+                'inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 font-semibold ring-1',
+                saveData && mode === 'video' ? 'bg-forest text-white ring-forest hover:bg-forest-soft' : 'bg-surface text-ink ring-line hover:bg-card',
+              )}
+            >
+              {mode === 'audio' ? 'Watch the video instead' : 'Listen instead'}
+            </button>
+          )}
+        </div>
+      )}
 
       {asking_ && (
         <div ref={questionPanel} tabIndex={-1} className="scroll-mt-24 space-y-3 rounded-[var(--radius-card)] bg-gold-tint p-4 ring-1 ring-gold-line focus:outline-none sm:p-5" aria-live="polite">
@@ -240,7 +333,7 @@ export function LibraryVideo({
             onClick={() => {
               const rest = queue.slice(1);
               setQueue(rest);
-              if (!rest.length) void video.current?.play().catch(() => undefined);
+              if (!rest.length) void (video.current ?? audio.current)?.play().catch(() => undefined);
             }}
             className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[14px] font-semibold text-white hover:bg-forest"
           >
@@ -249,9 +342,9 @@ export function LibraryVideo({
         </div>
       )}
 
-      {(chapters.length > 0 || (playing && ready)) && (
+      {(chapters.length > 0 || hasCaptions || (playing && ready) || audioSrc) && (
         <div className="flex flex-wrap items-center gap-2 text-[13px]">
-          {playing && levels.length > 1 && (
+          {playing && mode === 'video' && levels.length > 1 && (
             <label className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 ring-1 ring-line">
               <span className="text-muted">Quality</span>
               <select value={level} onChange={(e) => chooseLevel(Number(e.target.value))} className="bg-transparent font-semibold text-ink focus:outline-none">
@@ -264,7 +357,7 @@ export function LibraryVideo({
               </select>
             </label>
           )}
-          {playing && (
+          {(playing || audioSrc) && (
             <label className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 ring-1 ring-line">
               <span className="text-muted">Speed</span>
               <select value={speed} onChange={(e) => chooseSpeed(Number(e.target.value))} className="bg-transparent font-semibold text-ink focus:outline-none">
@@ -277,7 +370,7 @@ export function LibraryVideo({
             </label>
           )}
           {ready && manifest.captions.length > 0 && (
-            <button type="button" aria-expanded={transcriptOpen} onClick={() => setTranscriptOpen((o) => !o)} className={cx('rounded-full px-3 py-1.5 font-semibold ring-1', transcriptOpen ? 'bg-forest text-white ring-forest' : 'bg-surface text-ink ring-line hover:bg-card')}>
+            <button type="button" aria-expanded={transcriptOpen} onClick={() => setTranscriptToggled(!transcriptOpen)} className={cx('rounded-full px-3 py-1.5 font-semibold ring-1', transcriptOpen ? 'bg-forest text-white ring-forest' : 'bg-surface text-ink ring-line hover:bg-card')}>
               Transcript
             </button>
           )}
@@ -304,17 +397,33 @@ export function LibraryVideo({
         </nav>
       )}
 
-      {transcriptOpen && ready && <Transcript base={base} tracks={manifest.captions} time={time} onSeek={seek} />}
+      {!saveData && transcript}
 
       <figcaption className="space-y-1">
         {caption && <p className="text-[14px] leading-relaxed text-body">{caption}</p>}
         <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
           Video: {channel}
-          {duration ? ` · ${duration}` : ''} · adjusts to your connection
+          {duration ? ` · ${duration}` : ''} · {saveData ? 'starts at the lowest quality to save data' : 'adjusts to your connection'}
         </p>
       </figcaption>
     </figure>
   );
+}
+
+/**
+ * What a video costs in data: "About 12 MB to watch at 360p · 3 MB to listen". The lowest quality when
+ * saving data, otherwise 360p (or the nearest above it); a clip counts only its part. Null when the
+ * video was processed before sizes were recorded.
+ */
+function dataEstimate(m: VideoManifest, saveData: boolean, startS?: number, endS?: number): string | null {
+  const share = m.durationS > 0 ? Math.min(1, Math.max(0, ((endS ?? m.durationS) - (startS ?? 0)) / m.durationS)) : 1;
+  const sorted = [...(m.renditions ?? [])].filter((r) => r.bytes > 0).sort((a, b) => a.height - b.height);
+  const watch = saveData ? sorted[0] : (sorted.find((r) => r.height >= 360) ?? sorted.at(-1));
+  const parts = [
+    watch ? `${formatBytes(watch.bytes * share)} to watch at ${watch.height}p` : null,
+    m.audio && m.audio.bytes > 0 ? `${formatBytes(m.audio.bytes * share)} to listen` : null,
+  ].filter(Boolean);
+  return parts.length ? `About ${parts.join(' · ')}` : null;
 }
 
 /** The captions as text that follows the video; tap a line to go there. */

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { revokeSession, signOutEverywhere } from '@/app/actions/account';
 import { ChangePasswordForm } from '@/components/app/change-password-form';
 import { TwoStepCard } from '@/components/app/two-step-card';
+import { SaveDataToggle } from '@/components/engagement/save-data-toggle';
 import { NotificationPreferencesForm } from '@/components/notifications/preferences-form';
 import { Badge, Button, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { api } from '@/lib/gateway';
@@ -120,6 +121,12 @@ export default async function AccountPage() {
             <ChangePasswordForm avoid={[...me.user.fullName.split(' '), (me.user.email ?? '').split('@')[0] ?? '']} />
           </Card>
           <Card className="scroll-mt-24 space-y-4 p-5 sm:p-6">
+            <h2 id="data" className="text-[17px] font-bold">
+              Mobile data
+            </h2>
+            <SaveDataToggle />
+          </Card>
+          <Card className="scroll-mt-24 space-y-4 p-5 sm:p-6">
             <h2 id="notifications" className="text-[17px] font-bold">
               Notification emails
             </h2>
@@ -129,7 +136,8 @@ export default async function AccountPage() {
                 : 'Everything appears under Notifications in the app. Verify an email address to get them by email too.'}
             </p>
             {prefs.ok ? (
-              <NotificationPreferencesForm categories={CATEGORY_LABELS} email={prefs.data.email} />
+              // Only the categories the API knows: an older one refuses a choice it has no category for.
+              <NotificationPreferencesForm categories={CATEGORY_LABELS.filter(([c]) => c in prefs.data.email)} email={prefs.data.email} />
             ) : (
               <Notice tone="error">We couldn’t load your email choices just now. Reload the page to try again.</Notice>
             )}
