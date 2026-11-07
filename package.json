@@ -8,7 +8,11 @@
     "start": "next start -p 3100",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "guide:lines": "node --experimental-strip-types scripts/guide/dump.ts",
+    "guide:voice": "python scripts/guide/narrate.py",
+    "guide:record": "playwright test --config scripts/guide/playwright.config.ts",
+    "guide:assemble": "python scripts/guide/assemble.py"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

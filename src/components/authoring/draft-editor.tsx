@@ -651,6 +651,7 @@ function Workspace({ initial, openComment }: { initial: Draft; openComment: stri
                 items={[
                   { label: 'Open the full preview', onSelect: () => window.open(`/app/authoring/${draft.id}/preview`, '_blank', 'noopener') },
                   { label: 'Video library', onSelect: () => window.open('/app/authoring/videos', '_blank', 'noopener') },
+                  { label: 'How-to guide', onSelect: () => window.open('/guide/course-authoring', '_blank', 'noopener') },
                   { label: 'Download as JSON', onSelect: download },
                   { label: 'Advanced: JSON', onSelect: () => pick({ kind: 'json' }) },
                   ...(draft.can.delete
