@@ -115,7 +115,13 @@ export default async function PlatformUserPage({ params }: { params: Promise<{ u
               ) : res.data.platformAdmin && res.data.status === 'active' ? (
                 <p className="text-[14px] text-muted">Platform admins can’t be suspended or banned. Remove their platform admin role first.</p>
               ) : (
-                <UserStatusForm userId={res.data.id} status={res.data.status} name={res.data.fullName.split(' ')[0] ?? res.data.fullName} />
+                <UserStatusForm
+                  userId={res.data.id}
+                  status={res.data.status}
+                  until={res.data.suspendedUntil}
+                  platformAdmin={res.data.platformAdmin}
+                  name={res.data.fullName.split(' ')[0] ?? res.data.fullName}
+                />
               )}
             </Card>
           </div>

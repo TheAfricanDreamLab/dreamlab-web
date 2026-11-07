@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { importContent, setUserStatus } from '@/app/actions/platform';
 import { SubmitButton } from '@/components/auth/forms';
 import { Notice } from '@/components/ui/primitives';
+import { longDate } from '@/lib/errors';
 import type { FormState } from '@/lib/forms';
 import { NoticeToast } from '@/components/ui/toast';
 
@@ -80,9 +81,23 @@ const DURATIONS = [
 const FIELD = 'w-full rounded-[var(--radius-field)] bg-card p-3 text-[14px] text-ink ring-1 ring-line-strong placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary';
 
 /** Suspend (for a while or until lifted), ban, or reinstate someone, with a reason and an optional message. */
-export function UserStatusForm({ userId, status, name }: { userId: string; status: UserStatus; name: string }) {
+export function UserStatusForm({
+  userId,
+  status,
+  name,
+  until = null,
+  platformAdmin = false,
+}: {
+  userId: string;
+  status: UserStatus;
+  name: string;
+  /** A suspension's current end, kept unless the admin picks a new one. */
+  until?: string | null;
+  /** Platform admins can't be suspended or banned: only letting them back in is offered. */
+  platformAdmin?: boolean;
+}) {
   const [state, action] = useActionState(setUserStatus, {} as FormState);
-  const choices = CHOICES[status];
+  const choices = platformAdmin ? CHOICES[status].filter((c) => c.value === 'active') : CHOICES[status];
   const [picked, setChoice] = useState<UserStatus | null>(null);
   // After a save the standing changes: fall back to the first thing the new standing allows.
   const choice = picked && choices.some((c) => c.value === picked) ? picked : choices[0]!.value;
@@ -116,7 +131,14 @@ export function UserStatusForm({ userId, status, name }: { userId: string; statu
           <label htmlFor="status-days" className="text-[13px] font-semibold text-ink">
             For how long
           </label>
-          <select id="status-days" name="days" defaultValue={state.values?.days ?? '7'} className="h-11 w-full rounded-[var(--radius-field)] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong">
+          <input type="hidden" name="currentUntil" value={until ?? ''} />
+          <select
+            id="status-days"
+            name="days"
+            defaultValue={state.values?.days ?? (status === 'suspended' ? 'keep' : '7')}
+            className="h-11 w-full rounded-[var(--radius-field)] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong"
+          >
+            {status === 'suspended' && <option value="keep">{until && longDate(until) ? `Keep the end (${longDate(until)})` : 'Keep it until I lift it'}</option>}
             {DURATIONS.map((d) => (
               <option key={d.label} value={d.days}>
                 {d.label}
@@ -162,7 +184,7 @@ export function UserStatusForm({ userId, status, name }: { userId: string; statu
       </div>
 
       <label className="flex items-center gap-2 text-[13.5px] text-body">
-        <input type="checkbox" name="notify" defaultChecked className="h-4 w-4 accent-[var(--color-primary)]" />
+        <input type="checkbox" name="notify" defaultChecked={state.values?.notify !== 'off'} className="h-4 w-4 accent-[var(--color-primary)]" />
         Email {name} about it
       </label>
 

@@ -80,32 +80,37 @@ export async function setUserStatus(_: FormState, fd: FormData): Promise<FormSta
   const reason = str(fd, 'reason');
   const message = str(fd, 'message');
   const days = str(fd, 'days');
-  const values = { status, reason, message, days };
+  const notify = fd.get('notify') === 'on';
+  const values = { status, reason, message, days, notify: notify ? 'on' : 'off' };
+  // "Keep it as it is" while changing a suspension: the end it already has (none for an open one).
+  const kept = days === 'keep' ? str(fd, 'currentUntil') : '';
   if (!isUuid(userId) || !(USER_STATUSES as readonly string[]).includes(status)) return { error: 'Something went wrong. Reload the page and try again.' };
   if (reason.length < 3) return { error: 'Give a short reason. It goes in the audit trail.', values };
   if (message.length > 500) return { error: 'Keep the message to 500 characters.', values };
   const n = Number(days);
-  if (status === 'suspended' && days && !(Number.isInteger(n) && n >= 1 && n <= MAX_SUSPENSION_DAYS)) return { error: 'Choose how long the suspension lasts.', values };
+  if (status === 'suspended' && days && days !== 'keep' && !(Number.isInteger(n) && n >= 1 && n <= MAX_SUSPENSION_DAYS)) return { error: 'Choose how long the suspension lasts.', values };
   const body: SetUserStatus = {
     status: status as UserStatus,
     reason,
-    notify: fd.get('notify') === 'on',
+    notify,
     ...(message ? { message } : {}),
-    ...(status === 'suspended' && days ? { until: new Date(Date.now() + n * 86_400_000).toISOString() } : {}),
+    ...(status === 'suspended' && days === 'keep' && kept && Date.parse(kept) > Date.now() ? { until: kept } : {}),
+    ...(status === 'suspended' && days && days !== 'keep' ? { until: new Date(Date.now() + n * 86_400_000).toISOString() } : {}),
   };
   const res = await api<PlatformUserDetail>('POST', `/v1/platform/users/${userId}/status`, body);
   if (!res.ok) return { error: friendlyError(res.error), values };
   revalidatePath(`/app/admin/users/${userId}`);
   revalidatePath('/app/admin/users');
   revalidatePath('/app/admin');
-  const told = body.notify ? ' We’ve emailed them.' : '';
+  // The API emails a confirmed address only, and never undoes a change over a failed email.
+  const told = !notify ? '' : res.data.email && res.data.verified ? ` We’ve sent an email to ${res.data.email}.` : ' They have no confirmed email address, so no email was sent.';
   const name = res.data.fullName;
   return {
     notice:
       status === 'banned'
         ? `${name} is banned and signed out everywhere.${told}`
         : status === 'suspended'
-          ? `${name} is suspended${res.data.suspendedUntil ? ` until ${longDate(res.data.suspendedUntil)}` : ''} and signed out everywhere.${told}`
+          ? `${name} is suspended${longDate(res.data.suspendedUntil) ? ` until ${longDate(res.data.suspendedUntil)}` : ''} and signed out everywhere.${told}`
           : `${name} can sign in again.${told}`,
   };
 }

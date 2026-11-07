@@ -6,7 +6,8 @@ import { dateTime } from '@/lib/learning';
 /** Active, suspended (until when) or banned (PLT-2). */
 export function StandingBadge({ status, until }: { status: UserStatus; until?: string | null }) {
   if (status === 'banned') return <Badge tone="danger">Banned</Badge>;
-  if (status === 'suspended') return <Badge tone="gold">{until ? `Suspended to ${longDate(until)}` : 'Suspended'}</Badge>;
+  const end = longDate(until);
+  if (status === 'suspended') return <Badge tone="gold">{end ? `Suspended to ${end}` : 'Suspended'}</Badge>;
   return <Badge tone="green">Active</Badge>;
 }
 
@@ -22,7 +23,7 @@ export function StandingSummary({ change }: { change: StatusChange }) {
     <div className="space-y-2 rounded-[var(--radius-field)] bg-surface p-4 text-[13.5px] ring-1 ring-line">
       <p className="font-semibold text-ink">
         {VERB[change.status]}
-        {change.status === 'suspended' && (change.until ? ` until ${longDate(change.until)}` : ' until lifted')}
+        {change.status === 'suspended' && (change.until ? (longDate(change.until) ? ` until ${longDate(change.until)}` : '') : ' until lifted')}
         <span className="font-normal text-muted">
           {' '}
           · {dateTime(change.at)}

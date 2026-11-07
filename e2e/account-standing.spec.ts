@@ -31,7 +31,7 @@ test('suspend for a week, ban, then reinstate: the person is told why at sign-in
   await admin.getByLabel('Reason (for the audit trail)').fill('Spam in three discussions');
   await admin.getByLabel(/Message to Tunde/).fill('Please read the community guidelines.');
   await admin.getByRole('button', { name: 'Suspend Tunde' }).click();
-  await expect(admin.getByText(/Tunde Bakare is suspended until .+ and signed out everywhere\. We’ve emailed them\./)).toBeVisible();
+  await expect(admin.getByText(/Tunde Bakare is suspended until .+ and signed out everywhere\. We’ve sent an email to /)).toBeVisible();
   await expect(admin.getByText(/^Suspended to /).first()).toBeVisible();
   await expect(admin.getByText('Spam in three discussions')).toBeVisible();
 
@@ -40,6 +40,18 @@ test('suspend for a week, ban, then reinstate: the person is told why at sign-in
   await expect(learner).toHaveURL(/\/login/);
   await signIn(learner, email);
   await expect(learner.getByText(/This account is suspended until \d{1,2} \w+ \d{4}\. Message from the platform team: “Please read the community guidelines\.”/)).toBeVisible();
+
+  // Changing only the message keeps the end date.
+  await admin.reload();
+  const badge = (await admin.getByText(/^Suspended to /).first().textContent())!;
+  await admin.getByLabel('Change the suspension').check();
+  await expect(admin.getByLabel('For how long')).toHaveValue('keep');
+  await admin.getByLabel('Reason (for the audit trail)').fill('Clearer guidance');
+  await admin.getByLabel(/Message to Tunde/).fill('Please read the guidelines, section 2.');
+  await admin.getByLabel('Email Tunde about it').uncheck();
+  await admin.getByRole('button', { name: 'Update the suspension' }).click();
+  await expect(admin.getByText(/Tunde Bakare is suspended until .+ and signed out everywhere\.$/)).toBeVisible();
+  await expect(admin.getByText(badge, { exact: true }).first()).toBeVisible();
 
   // Ban: the standing changes and the people list can filter for it.
   await admin.reload();
@@ -57,7 +69,7 @@ test('suspend for a week, ban, then reinstate: the person is told why at sign-in
   await openPerson(admin, email);
   await admin.getByLabel('Reason (for the audit trail)').fill('Appeal accepted');
   await admin.getByRole('button', { name: 'Reinstate Tunde' }).click();
-  await expect(admin.getByText('Tunde Bakare can sign in again. We’ve emailed them.')).toBeVisible();
+  await expect(admin.getByText(`Tunde Bakare can sign in again. We’ve sent an email to ${email}.`)).toBeVisible();
   await signedIn(learner, email);
 
   await learnerCtx.close();
