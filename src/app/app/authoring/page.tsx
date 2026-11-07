@@ -24,7 +24,10 @@ export default async function AuthoringPage({ searchParams }: Props) {
         <h1 className="text-[30px] font-extrabold">Authoring</h1>
         <p className="text-[14.5px] text-muted">Write courses in drafts, send them for review, and publish them as new versions. Learners already enrolled stay on their version.</p>
         {res.ok && res.data.can.author && (
-          <p className="pt-1 text-[14px]">
+          <p className="flex flex-wrap gap-x-5 gap-y-1 pt-1 text-[14px]">
+            <Link href="/app/authoring/videos" className="font-semibold text-link hover:underline">
+              Video library
+            </Link>
             <Link href="/app/authoring/instructors" className="font-semibold text-link hover:underline">
               Instructors and course staff
             </Link>

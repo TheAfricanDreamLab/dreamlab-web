@@ -18,8 +18,8 @@ importers:
         specifier: 3.2.2
         version: 3.2.2(react@19.3.0)
       '@dreamlab/contracts':
-        specifier: github:TheAfricanDreamLab/dreamlab-contracts#v0.20.0
-        version: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/fde218e0a9fff337f553c73bc2d436f6b33cf32a(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)
+        specifier: github:TheAfricanDreamLab/dreamlab-contracts#v0.21.0
+        version: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/44a181716b3569840b47448ad46c6051e8a37247(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)
       '@livekit/components-react':
         specifier: 2.9.24
         version: 2.9.24(livekit-client@2.22.4(@types/dom-mediacapture-record@1.0.22))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tslib@2.8.1)
@@ -56,6 +56,9 @@ importers:
       gsap:
         specifier: 3.15.0
         version: 3.15.0
+      hls.js:
+        specifier: 1.7.4
+        version: 1.7.4
       livekit-client:
         specifier: 2.22.4
         version: 2.22.4(@types/dom-mediacapture-record@1.0.22)
@@ -207,9 +210,9 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
 
-  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/fde218e0a9fff337f553c73bc2d436f6b33cf32a':
-    resolution: {tarball: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/fde218e0a9fff337f553c73bc2d436f6b33cf32a}
-    version: 0.20.0
+  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/44a181716b3569840b47448ad46c6051e8a37247':
+    resolution: {tarball: https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/44a181716b3569840b47448ad46c6051e8a37247}
+    version: 0.21.0
     engines: {node: '>=22.23.4'}
     peerDependencies:
       '@ts-rest/core': ^3.52.1
@@ -1644,6 +1647,9 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
+  hls.js@1.7.4:
+    resolution: {integrity: sha512-3GlxGdPvT2YHvQYOt+yOzT/DEior/qJVNIylHA77kgeoBTdQQqi70GwefNEUmHQeNGyjC8U62+bruqW/Tpm+tg==}
+
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
@@ -2688,7 +2694,7 @@ snapshots:
       react: 19.3.0
       tslib: 2.8.1
 
-  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/fde218e0a9fff337f553c73bc2d436f6b33cf32a(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)':
+  '@dreamlab/contracts@https://codeload.github.com/TheAfricanDreamLab/dreamlab-contracts/tar.gz/44a181716b3569840b47448ad46c6051e8a37247(@ts-rest/core@3.52.1(@types/node@20.19.43)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@ts-rest/core': 3.52.1(@types/node@20.19.43)(zod@3.25.76)
       zod: 3.25.76
@@ -4191,6 +4197,8 @@ snapshots:
   hermes-parser@0.25.1:
     dependencies:
       hermes-estree: 0.25.1
+
+  hls.js@1.7.4: {}
 
   ignore@5.3.2: {}
 

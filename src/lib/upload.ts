@@ -45,5 +45,21 @@ export const SUBMISSION_FILE_TYPES = [
 ];
 export const COURSE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const COURSE_VIDEO_TYPES = ['video/mp4', 'video/webm'];
+/** Files learners download from a lesson. */
+export const COURSE_FILE_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.ms-excel',
+  'application/zip',
+  'text/plain',
+  'text/csv',
+  'image/jpeg',
+  'image/png',
+  'audio/mpeg',
+];
 export const MAX_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024;
 export const MAX_SUBMISSION_FILES = 5;

@@ -98,6 +98,16 @@ export function ItemEditor({ moduleIndex, item, onChange }: { moduleIndex: numbe
             <input id={reqId} type="checkbox" checked={item.required !== false} onChange={(e) => onChange({ ...item, required: e.target.checked })} className="h-4 w-4 accent-[var(--color-primary)]" />
             Required to complete the course
           </label>
+          <label htmlFor={`${reqId}-preview`} className="flex h-11 items-center gap-2 rounded-[var(--radius-field)] px-3 text-[14px] text-ink ring-1 ring-line" title="Anyone who can see the course page can open it before enrolling">
+            <input
+              id={`${reqId}-preview`}
+              type="checkbox"
+              checked={item.preview === true}
+              onChange={(e) => onChange({ ...item, preview: e.target.checked || undefined })}
+              className="h-4 w-4 accent-[var(--color-primary)]"
+            />
+            Free preview
+          </label>
         </div>
         <Advanced>
           <TextField label="Key" value={item.key} maxLength={48} onChange={(v) => onChange({ ...item, key: v })} hint="Keep it stable: learners’ progress is tied to it" />

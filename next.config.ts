@@ -48,7 +48,7 @@ const contentSecurityPolicy = [
   // Dream Circle pictures, voice messages and videos load straight from storage with signed links (COMM-2).
   `img-src 'self' data: blob: https://images.unsplash.com https://upload.wikimedia.org https://i.ytimg.com https://*.googleusercontent.com https://*.blob.core.windows.net${localStorageOrigin()}`,
   "font-src 'self' data:",
-  'frame-src https://www.youtube-nocookie.com https://accounts.google.com',
+  'frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://accounts.google.com',
   // Uploads go from the browser straight to Azure Blob Storage with a short-lived link (MEDIA-1),
   // and live classes connect to the LiveKit server (LIVE-1).
   `connect-src 'self' https://accounts.google.com https://*.blob.core.windows.net${localStorageOrigin()}${liveKitOrigins()}`,

@@ -7,7 +7,7 @@ import { checkBlock, saveProgress } from '@/app/actions/learning';
 import { cx, Notice } from '@/components/ui/primitives';
 import { isSettled, type LessonStep } from '@/lib/learning';
 import { InteractiveBlock, isInteractive } from './interactive-blocks';
-import { isTeachingBlock, TeachingBlock } from './teaching-blocks';
+import { StepBlocks } from './step-blocks';
 
 type Nav = { id: string; title: string } | null;
 
@@ -131,13 +131,11 @@ export function LessonPlayer({
 
       <div key={step.id} className="animate-rise space-y-6">
         {step.title && <h2 className="text-[24px] font-extrabold leading-tight">{step.title}</h2>}
-        {step.blocks.map((b) =>
-          isInteractive(b) ? (
-            <InteractiveBlock key={b.id} block={b} result={results[b.id]} response={responses[b.id]} onCheck={check(b.id)} />
-          ) : isTeachingBlock(b) ? (
-            <TeachingBlock key={b.id} block={b} />
-          ) : null,
-        )}
+        <StepBlocks
+          blocks={step.blocks}
+          settled={(id) => isSettled(results[id])}
+          render={(b) => <InteractiveBlock block={b} result={results[b.id]} response={responses[b.id]} onCheck={check(b.id)} />}
+        />
       </div>
 
       {error && <Notice tone="error">{error}</Notice>}

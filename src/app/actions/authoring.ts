@@ -1,6 +1,6 @@
 'use server';
 
-import type { CourseMediaUpload, Draft, DraftSave } from '@dreamlab/contracts';
+import type { CommentAnchor, CourseMediaUpload, Draft, DraftComment, DraftSave, Presence } from '@dreamlab/contracts';
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { friendlyError } from '@/lib/errors';
@@ -67,9 +67,9 @@ export async function discardDraft(draftId: string): Promise<Outcome<null>> {
 /** An upload link for a cover photo or video in a draft (the browser then sends the file there). */
 export async function startCourseMediaUpload(
   draftId: string,
-  file: { kind: 'image' | 'video'; fileName: string; contentType: string; size: number },
+  file: { kind: 'image' | 'video' | 'file'; fileName: string; contentType: string; size: number },
 ): Promise<Outcome<CourseMediaUpload>> {
-  if (!isUuid(draftId) || (file.kind !== 'image' && file.kind !== 'video')) return BAD_LINK;
+  if (!isUuid(draftId) || !['image', 'video', 'file'].includes(file.kind)) return BAD_LINK;
   const res = await api<CourseMediaUpload>('POST', `/v1/catalog/authoring/drafts/${draftId}/media`, file);
   return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error) };
 }
@@ -92,4 +92,44 @@ export async function restoreDraftSave(draftId: string, revision: number, restor
   if (!isUuid(draftId) || !Number.isInteger(revision) || !Number.isInteger(restore) || restore < 1) return BAD_LINK;
   const res = await api<Draft>('POST', `/v1/catalog/authoring/drafts/${draftId}/restore`, { revision, restore });
   return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error), code: res.error.code };
+}
+
+// ---------- review comments and presence (CAT-6) ----------
+
+const KEY = /^[a-z0-9][a-z0-9-]{0,47}$/;
+const key = (v: unknown) => (typeof v === 'string' && KEY.test(v) ? v : null);
+
+export async function loadComments(draftId: string): Promise<Outcome<DraftComment[]>> {
+  if (!isUuid(draftId)) return BAD_LINK;
+  const res = await api<{ items: DraftComment[] }>('GET', `/v1/catalog/authoring/drafts/${draftId}/comments`);
+  return res.ok ? { ok: true, data: res.data.items } : { ok: false, error: friendlyError(res.error) };
+}
+
+export async function addComment(draftId: string, anchor: CommentAnchor, body: string, parentId?: string): Promise<Outcome<DraftComment>> {
+  if (!isUuid(draftId) || typeof body !== 'string' || !body.trim() || (parentId !== undefined && !isUuid(parentId))) return BAD_LINK;
+  const clean = { moduleKey: key(anchor?.moduleKey), itemKey: key(anchor?.itemKey), blockId: key(anchor?.blockId), label: String(anchor?.label ?? '').slice(0, 200) };
+  const res = await api<DraftComment>('POST', `/v1/catalog/authoring/drafts/${draftId}/comments`, { anchor: clean, body: body.trim().slice(0, 2000), ...(parentId && { parentId }) });
+  return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error) };
+}
+
+export async function updateComment(draftId: string, commentId: string, change: { body?: string; resolved?: boolean }): Promise<Outcome<DraftComment>> {
+  if (!isUuid(draftId) || !isUuid(commentId)) return BAD_LINK;
+  const body = typeof change?.body === 'string' ? { body: change.body.trim().slice(0, 2000) } : {};
+  const resolved = typeof change?.resolved === 'boolean' ? { resolved: change.resolved } : {};
+  const res = await api<DraftComment>('PATCH', `/v1/catalog/authoring/drafts/${draftId}/comments/${commentId}`, { ...body, ...resolved });
+  return res.ok ? { ok: true, data: res.data } : { ok: false, error: friendlyError(res.error) };
+}
+
+export async function deleteComment(draftId: string, commentId: string): Promise<Outcome<null>> {
+  if (!isUuid(draftId) || !isUuid(commentId)) return BAD_LINK;
+  const res = await api('DELETE', `/v1/catalog/authoring/drafts/${draftId}/comments/${commentId}`);
+  return res.ok ? { ok: true, data: null } : { ok: false, error: friendlyError(res.error) };
+}
+
+/** I have the draft open (here); returns who else has. */
+export async function heartbeat(draftId: string, where: { moduleKey: string | null; itemKey: string | null; label: string } | null, editing: boolean): Promise<Outcome<Presence[]>> {
+  if (!isUuid(draftId)) return BAD_LINK;
+  const place = where ? { moduleKey: key(where.moduleKey), itemKey: key(where.itemKey), label: String(where.label ?? '').slice(0, 200) } : null;
+  const res = await api<{ people: Presence[] }>('POST', `/v1/catalog/authoring/drafts/${draftId}/presence`, { where: place, editing: editing === true });
+  return res.ok ? { ok: true, data: res.data.people } : { ok: false, error: friendlyError(res.error) };
 }
