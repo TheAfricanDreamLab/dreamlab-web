@@ -2,6 +2,7 @@ import type { PlatformUserDetail } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { UserStatusForm } from '@/components/admin/admin-forms';
+import { StandingBadge, StandingSummary } from '@/components/admin/standing';
 import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
@@ -34,7 +35,7 @@ export default async function PlatformUserPage({ params }: { params: Promise<{ u
               <Eyebrow tone="gold">Person</Eyebrow>
               <h1 className="text-[28px] font-extrabold leading-tight">{res.data.fullName}</h1>
               <div className="flex flex-wrap gap-1.5">
-                {res.data.status === 'suspended' ? <Badge tone="danger">Suspended</Badge> : <Badge tone="green">Active</Badge>}
+                <StandingBadge status={res.data.status} until={res.data.suspendedUntil} />
                 {res.data.verified ? <Badge>Verified</Badge> : <Badge tone="gold">Unverified</Badge>}
                 {res.data.mfaEnabled && <Badge>Two-step sign-in</Badge>}
                 {res.data.platformAdmin && <Badge tone="gold">Platform admin</Badge>}
@@ -107,9 +108,12 @@ export default async function PlatformUserPage({ params }: { params: Promise<{ u
             </div>
 
             <Card className="h-fit space-y-3 p-6">
-              <h2 className="text-[17px] font-bold">{res.data.status === 'active' ? 'Suspend this person' : 'Let them back in'}</h2>
+              <h2 className="text-[17px] font-bold">Account standing</h2>
+              {res.data.statusChange && <StandingSummary change={res.data.statusChange} />}
               {res.data.id === me.user.id ? (
-                <p className="text-[14px] text-muted">You can’t suspend yourself.</p>
+                <p className="text-[14px] text-muted">You can’t suspend or ban yourself.</p>
+              ) : res.data.platformAdmin && res.data.status === 'active' ? (
+                <p className="text-[14px] text-muted">Platform admins can’t be suspended or banned. Remove their platform admin role first.</p>
               ) : (
                 <UserStatusForm userId={res.data.id} status={res.data.status} name={res.data.fullName.split(' ')[0] ?? res.data.fullName} />
               )}

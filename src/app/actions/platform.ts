@@ -1,9 +1,9 @@
 'use server';
 
-import type { PlatformUserDetail, ProgramAuthoring } from '@dreamlab/contracts';
+import { MAX_SUSPENSION_DAYS, type PlatformUserDetail, type ProgramAuthoring, type SetUserStatus, USER_STATUSES, type UserStatus } from '@dreamlab/contracts';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { friendlyError } from '@/lib/errors';
+import { friendlyError, longDate } from '@/lib/errors';
 import { type FormState, str } from '@/lib/forms';
 import { api } from '@/lib/gateway';
 import { type AdminCourse, type ImportResult, isUuid } from '@/lib/learning';
@@ -78,11 +78,34 @@ export async function setUserStatus(_: FormState, fd: FormData): Promise<FormSta
   const userId = str(fd, 'userId');
   const status = str(fd, 'status');
   const reason = str(fd, 'reason');
-  if (!isUuid(userId) || (status !== 'active' && status !== 'suspended')) return { error: 'Something went wrong. Reload the page and try again.' };
-  if (reason.length < 3) return { error: 'Give a short reason. It goes in the audit trail.', values: { reason } };
-  const res = await api<PlatformUserDetail>('POST', `/v1/platform/users/${userId}/status`, { status, reason });
-  if (!res.ok) return { error: friendlyError(res.error), values: { reason } };
+  const message = str(fd, 'message');
+  const days = str(fd, 'days');
+  const values = { status, reason, message, days };
+  if (!isUuid(userId) || !(USER_STATUSES as readonly string[]).includes(status)) return { error: 'Something went wrong. Reload the page and try again.' };
+  if (reason.length < 3) return { error: 'Give a short reason. It goes in the audit trail.', values };
+  if (message.length > 500) return { error: 'Keep the message to 500 characters.', values };
+  const n = Number(days);
+  if (status === 'suspended' && days && !(Number.isInteger(n) && n >= 1 && n <= MAX_SUSPENSION_DAYS)) return { error: 'Choose how long the suspension lasts.', values };
+  const body: SetUserStatus = {
+    status: status as UserStatus,
+    reason,
+    notify: fd.get('notify') === 'on',
+    ...(message ? { message } : {}),
+    ...(status === 'suspended' && days ? { until: new Date(Date.now() + n * 86_400_000).toISOString() } : {}),
+  };
+  const res = await api<PlatformUserDetail>('POST', `/v1/platform/users/${userId}/status`, body);
+  if (!res.ok) return { error: friendlyError(res.error), values };
   revalidatePath(`/app/admin/users/${userId}`);
   revalidatePath('/app/admin/users');
-  return { notice: status === 'suspended' ? `${res.data.fullName} is suspended and signed out everywhere.` : `${res.data.fullName} can sign in again.` };
+  revalidatePath('/app/admin');
+  const told = body.notify ? ' We’ve emailed them.' : '';
+  const name = res.data.fullName;
+  return {
+    notice:
+      status === 'banned'
+        ? `${name} is banned and signed out everywhere.${told}`
+        : status === 'suspended'
+          ? `${name} is suspended${res.data.suspendedUntil ? ` until ${longDate(res.data.suspendedUntil)}` : ''} and signed out everywhere.${told}`
+          : `${name} can sign in again.${told}`,
+  };
 }

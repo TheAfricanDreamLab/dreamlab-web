@@ -199,7 +199,7 @@ test.describe('platform admin console', () => {
     await expect(row).toBeVisible();
     await row.getByRole('link').first().click();
     await expect(page.getByRole('heading', { name: 'Ways to sign in' })).toBeVisible();
-    await expect(page.getByText('You can’t suspend yourself.')).toBeVisible();
+    await expect(page.getByText('You can’t suspend or ban yourself.')).toBeVisible();
     await page.getByRole('link', { name: 'Back to People' }).click();
     await expect(page).toHaveURL(/\/app\/admin\/users$/);
   });

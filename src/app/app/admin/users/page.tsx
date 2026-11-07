@@ -1,6 +1,7 @@
 import type { PlatformUser } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StandingBadge } from '@/components/admin/standing';
 import { Badge, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: 'People' };
 export default async function PlatformUsersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().slice(0, 120);
-  const status = sp.status === 'active' || sp.status === 'suspended' ? sp.status : undefined;
+  const status = sp.status === 'active' || sp.status === 'suspended' || sp.status === 'banned' ? sp.status : undefined;
   const cursor = sp.cursor && sp.cursor.length < 500 ? sp.cursor : undefined;
   const query = new URLSearchParams({ limit: '50' });
   if (q) query.set('q', q);
@@ -51,10 +52,11 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
         <label htmlFor="user-status" className="sr-only">
           Status
         </label>
-        <select id="user-status" name="status" defaultValue={status ?? ''} className="h-11 flex-1 rounded sm:flex-none-[var(--radius-field)] bg-card px-3 text-[14px] text-ink ring-1 ring-line-strong">
+        <select id="user-status" name="status" defaultValue={status ?? ''} className="h-11 flex-1 rounded-[var(--radius-field)] bg-card sm:flex-none px-3 text-[14px] text-ink ring-1 ring-line-strong">
           <option value="">Everyone</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
+          <option value="banned">Banned</option>
         </select>
         <button type="submit" className="h-11 rounded-[var(--radius-field)] bg-primary px-5 text-[14.5px] font-semibold text-white hover:bg-primary-hover">
           Search
@@ -98,7 +100,7 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
                   </td>
                   <td data-label="Status" className="px-5 py-3">
                     <span className="flex flex-wrap gap-1">
-                      {u.status === 'suspended' ? <Badge tone="danger">Suspended</Badge> : <Badge tone="green">Active</Badge>}
+                      <StandingBadge status={u.status} until={u.suspendedUntil} />
                       {!u.verified && <Badge tone="gold">Unverified</Badge>}
                       {u.mfaEnabled && <Badge>2-step</Badge>}
                       {u.platformAdmin && <Badge tone="gold">Admin</Badge>}
