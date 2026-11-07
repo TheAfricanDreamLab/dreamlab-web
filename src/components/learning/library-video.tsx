@@ -55,11 +55,17 @@ export function LibraryVideo({
   const [level, setLevel] = useState(-1);
   const [speed, setSpeed] = useState(1);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
-  const [asking, setAsking] = useState<string | null>(null);
+  // Questions due, in order: the first is shown; continuing shows the next before playing on.
+  const [queue, setQueue] = useState<string[]>([]);
+  const asking = queue[0] ?? null;
   const video = useRef<HTMLVideoElement>(null);
   const hls = useRef<HlsLike | null>(null);
   const lastTime = useRef(0);
   const asked = useRef(new Set<string>());
+  // A chapter or transcript line chosen before Play: where the stream starts.
+  const pendingStart = useRef<number | null>(null);
+  // The learner moved the playhead: the next time update is a jump, not playback.
+  const seeking = useRef(false);
   const questionPanel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,7 +90,7 @@ export function LibraryVideo({
       const { default: Hls } = await import('hls.js');
       if (cancelled) return;
       if (Hls.isSupported()) {
-        const h = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 30, startPosition: startS ?? -1 }) as unknown as HlsLike;
+        const h = new Hls({ capLevelToPlayerSize: true, maxBufferLength: 30, startPosition: pendingStart.current ?? startS ?? -1 }) as unknown as HlsLike;
         hls.current = h;
         h.on(Hls.Events.MANIFEST_PARSED, () => {
           setLevels(h.levels.map((l) => l.height));
@@ -94,7 +100,8 @@ export function LibraryVideo({
         h.attachMedia(el);
       } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
         el.src = src;
-        if (startS) el.currentTime = startS;
+        const at = pendingStart.current ?? startS;
+        if (at) el.currentTime = at;
         void el.play().catch(() => undefined);
       }
     })();
@@ -108,6 +115,8 @@ export function LibraryVideo({
   const seek = useCallback((s: number) => {
     const el = video.current;
     if (!el) {
+      pendingStart.current = s;
+      lastTime.current = s;
       setPlaying(true);
       return;
     }
@@ -121,22 +130,31 @@ export function LibraryVideo({
     if (!el) return;
     const now = el.currentTime;
     setTime(now);
+    // Only the part that plays: before the start goes to the start; the stop time pauses.
+    if (startS && now < startS - 0.25) {
+      el.currentTime = startS;
+      lastTime.current = startS;
+      return;
+    }
     if (endS && now >= endS) el.pause();
-    // A question comes up when playback runs past its time (not when the learner jumps over it).
     const prev = lastTime.current;
     lastTime.current = now;
-    if (now - prev > 0 && now - prev < 1.5) {
-      const due = questions.find((q) => !q.settled && !asked.current.has(q.blockId) && prev < q.atS && now >= q.atS);
-      if (due) {
-        asked.current.add(due.blockId);
-        el.pause();
-        if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-        setAsking(due.blockId);
-        requestAnimationFrame(() => {
-          questionPanel.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          questionPanel.current?.focus({ preventScroll: true });
-        });
-      }
+    // A question comes up when playback runs past its time, not when the learner jumps over it.
+    if (seeking.current) {
+      seeking.current = false;
+      return;
+    }
+    if (now <= prev) return;
+    const due = questions.filter((q) => !q.settled && !asked.current.has(q.blockId) && prev < q.atS && now >= q.atS).sort((a, b) => a.atS - b.atS);
+    if (due.length) {
+      due.forEach((q) => asked.current.add(q.blockId));
+      el.pause();
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+      setQueue((q) => [...q, ...due.map((d) => d.blockId)]);
+      requestAnimationFrame(() => {
+        questionPanel.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        questionPanel.current?.focus({ preventScroll: true });
+      });
     }
   };
 
@@ -164,7 +182,7 @@ export function LibraryVideo({
     );
   }
   const ready = manifest !== null;
-  const duration = ready ? formatDuration(endS ? endS - (startS ?? 0) : manifest.durationS) : null;
+  const duration = ready ? formatDuration((endS ?? manifest.durationS) - (startS ?? 0)) : null;
 
   return (
     <figure className="space-y-3" data-media="video">
@@ -178,6 +196,9 @@ export function LibraryVideo({
             poster={`${base}${manifest.poster}`}
             aria-label={title}
             onTimeUpdate={onTime}
+            onSeeking={() => {
+              seeking.current = true;
+            }}
             onRateChange={(e) => setSpeed(e.currentTarget.playbackRate)}
             className="absolute inset-0 h-full w-full bg-black"
           >
@@ -217,12 +238,13 @@ export function LibraryVideo({
           <button
             type="button"
             onClick={() => {
-              setAsking(null);
-              void video.current?.play().catch(() => undefined);
+              const rest = queue.slice(1);
+              setQueue(rest);
+              if (!rest.length) void video.current?.play().catch(() => undefined);
             }}
             className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-[14px] font-semibold text-white hover:bg-forest"
           >
-            {asking_.settled ? 'Continue watching' : 'Answer later and keep watching'} <span aria-hidden>▶</span>
+            {queue.length > 1 ? 'Next question' : asking_.settled ? 'Continue watching' : 'Answer later and keep watching'} <span aria-hidden>▶</span>
           </button>
         </div>
       )}

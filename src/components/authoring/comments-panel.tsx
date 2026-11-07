@@ -36,10 +36,15 @@ export function anchorFor(sel: Selection, modules: ModuleDoc[]): CommentAnchor {
 export function selectionOf(anchor: CommentAnchor, modules: ModuleDoc[]): Selection | null {
   if (!anchor.moduleKey) return { kind: 'details' };
   const m = modules.findIndex((x) => x.key === anchor.moduleKey);
-  if (m < 0) return null;
-  if (!anchor.itemKey) return { kind: 'module', m };
-  const i = modules[m]!.items.findIndex((x) => x.key === anchor.itemKey);
-  return i < 0 ? null : { kind: 'item', m, i };
+  if (!anchor.itemKey) return m < 0 ? null : { kind: 'module', m };
+  const i = m < 0 ? -1 : modules[m]!.items.findIndex((x) => x.key === anchor.itemKey);
+  if (i >= 0) return { kind: 'item', m, i };
+  // The item moved to another module: follow its key.
+  for (const [mm, mod] of modules.entries()) {
+    const ii = mod.items.findIndex((x) => x.key === anchor.itemKey);
+    if (ii >= 0) return { kind: 'item', m: mm, i: ii };
+  }
+  return null;
 }
 
 const ago = (iso: string) => {
@@ -77,30 +82,35 @@ export function CommentsPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  const sending = useRef(false);
 
   // A comment started from a block focuses the box.
   useEffect(() => {
     box.current?.focus();
   }, [draftAnchor]);
 
+  const linked = highlight ? (comments.find((c) => c.id === highlight)?.parentId ?? highlight) : null;
   const threads = useMemo(() => {
     const roots = comments.filter((c) => !c.parentId);
     return roots
       .map((root) => ({ root, replies: comments.filter((c) => c.parentId === root.id) }))
-      .filter(({ root }) => (filter === 'all' ? true : filter === 'open' ? !root.resolvedAt : !!root.resolvedAt))
+      .filter(({ root }) => root.id === linked || (filter === 'all' ? true : filter === 'open' ? !root.resolvedAt : !!root.resolvedAt))
       .reverse();
-  }, [comments, filter]);
+  }, [comments, filter, linked]);
   const openCount = comments.filter((c) => !c.parentId && !c.resolvedAt).length;
 
   const post = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || sending.current) return;
+    sending.current = true;
+    const sent = text;
     setBusy(true);
     setError(null);
-    const res = await addComment(draftId, draftAnchor, text);
+    const res = await addComment(draftId, draftAnchor, sent);
+    sending.current = false;
     setBusy(false);
     if (!res.ok) return setError(res.error);
     setComments((list) => [...list, res.data]);
-    setText('');
+    setText((t) => (t === sent ? '' : t));
     setFilter('open');
   };
 
@@ -165,7 +175,7 @@ export function CommentsPanel({
               draftId={draftId}
               root={root}
               replies={replies}
-              highlight={highlight === root.id}
+              highlight={linked === root.id}
               target={selectionOf(root.anchor, modules)}
               onGo={onGo}
               setComments={setComments}
@@ -196,6 +206,7 @@ function Thread({
 }) {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
+  const sendingReply = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -242,13 +253,16 @@ function Thread({
               maxLength={2000}
               onChange={(e) => setReply(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && reply.trim()) {
+                if (e.key === 'Enter' && reply.trim() && !sendingReply.current) {
                   e.preventDefault();
+                  sendingReply.current = true;
+                  const sent = reply;
                   void act(async () =>
-                    addComment(draftId, root.anchor, reply, root.id).then((r) => {
+                    addComment(draftId, root.anchor, sent, root.id).then((r) => {
+                      sendingReply.current = false;
                       if (r.ok) {
                         setComments((list) => [...list, r.data]);
-                        setReply('');
+                        setReply((t) => (t === sent ? '' : t));
                       }
                       return r;
                     }),

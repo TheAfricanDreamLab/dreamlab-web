@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 const ORIGIN = (process.env.MEDIA_ORIGIN_URL ?? '').replace(/\/+$/, '');
 const COURSE_FILE = /^courses\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
 /** manifest.json · captions/<lang>.vtt · v<n>/master.m3u8 · v<n>/<h>p/index.m3u8 · v<n>/<h>p/seg_0001.ts · v<n>/poster.jpg */
-const LIBRARY_FILE = /^videos\/[0-9a-f-]{36}\/(manifest\.json|captions\/[a-z]{2,3}(-[A-Z]{2})?\.vtt|v\d{1,4}\/(master\.m3u8|poster\.jpg|thumb\.jpg|\d{3,4}p\/(index\.m3u8|seg_\d{4,6}\.ts)))$/;
+const LIBRARY_FILE = /^videos\/[0-9a-f-]{36}\/(manifest\.json|captions\/[a-z]{2,3}(-[A-Z]{2})?\.vtt|v\d{1,4}\/(master\.m3u8|poster\.jpg|thumb\.jpg|\d{1,4}p\/(index\.m3u8|seg_\d{4,6}\.ts)))$/;
 
 const INLINE: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -70,7 +70,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
     'content-security-policy': "default-src 'none'; sandbox",
     'cross-origin-resource-policy': 'same-origin',
   });
-  if (download) headers.set('content-disposition', `attachment; filename="${path.split('/').pop()}"`);
+  // Saved, never shown in the page; the link's download attribute gives the author's file name.
+  if (download) headers.set('content-disposition', 'attachment');
   for (const h of PASS_THROUGH) {
     const v = upstream.headers.get(h);
     if (v) headers.set(h, v);

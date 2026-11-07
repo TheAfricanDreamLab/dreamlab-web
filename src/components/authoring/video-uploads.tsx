@@ -38,6 +38,7 @@ export function VideoUploads({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const aborts = useRef(new Map<string, AbortController>());
   const files = useRef(new Map<string, File>());
+  const options = useRef(new Map<string, Parameters<Start>[1]>());
   const seq = useRef(0);
   const update = useCallback((key: string, patch: Partial<UploadItem>) => setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i))), []);
 
@@ -46,6 +47,7 @@ export function VideoUploads({ children }: { children: ReactNode }) {
       const abort = new AbortController();
       aborts.current.set(key, abort);
       files.current.set(key, file);
+      options.current.set(key, opts);
       uploadLibraryVideo(file, {
         title: opts.title,
         resumeVideoId: opts.resumeVideoId,
@@ -83,15 +85,30 @@ export function VideoUploads({ children }: { children: ReactNode }) {
     const file = files.current.get(item.key);
     if (!file) return;
     update(item.key, { state: 'sending', error: undefined });
-    run(item.key, file, item.videoId ? { resumeVideoId: item.videoId } : {});
+    // The same callbacks as the first try (a lesson waiting for its video, say), carrying on if the video exists.
+    const first = options.current.get(item.key) ?? {};
+    run(item.key, file, item.videoId ? { ...first, resumeVideoId: item.videoId, onCreated: undefined } : first);
   };
 
   const sending = items.some((i) => i.state === 'sending');
   useEffect(() => {
     if (!sending) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    // Links inside the app don't unload the page, so they are asked about here.
+    const leave = (e: MouseEvent) => {
+      const a = e.target instanceof Element ? e.target.closest('a[href]') : null;
+      if (!a || a.getAttribute('target') === '_blank' || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return;
+      if (!window.confirm('Videos are still uploading. Leave this page and stop them?')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
     window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
+    document.addEventListener('click', leave, true);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+      document.removeEventListener('click', leave, true);
+    };
   }, [sending]);
 
   const value = useMemo(() => ({ items, start }), [items, start]);

@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icons';
 import { cx } from '@/components/ui/primitives';
 import { BLOCK_INFO, type BlockDoc, videoLink } from '@/lib/blocks';
 import { formatClock, formatDuration, parseClock } from '@/lib/media';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 import { LIBRARY_VIDEO_TYPES, titleFromFile, videoType } from '@/lib/video-upload';
 import { NumberField, TextField } from '../fields';
 import { useVideoUploads } from '../video-uploads';
@@ -75,7 +76,7 @@ export function VideoForm({ block, set }: Props) {
       </fieldset>
 
       {provider === 'library' && <LibrarySource block={block} patch={patch} />}
-      {(provider === 'youtube' || provider === 'vimeo') && <LinkSource provider={provider} block={block} patch={patch} />}
+      {(provider === 'youtube' || provider === 'vimeo') && <LinkSource key={provider} provider={provider} block={block} patch={patch} latest={latest} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <TextField label="Title" value={str(block.title)} maxLength={200} onChange={(v) => patch({ title: v })} />
@@ -88,6 +89,7 @@ export function VideoForm({ block, set }: Props) {
 
       <details className="rounded-lg ring-1 ring-line">
         <summary className="cursor-pointer px-3 py-2 text-[12.5px] font-semibold text-muted hover:text-ink">Play only part of it</summary>
+        {provider === 'vimeo' && <p className="px-3 pt-2 text-[12px] text-muted">Vimeo videos start at the start time but can’t be made to stop: learners can watch on.</p>}
         <div className="grid gap-3 border-t border-line p-3 sm:grid-cols-2">
           <NumberField label="Start at (seconds)" allowEmpty min={0} value={num(block.startS)} onChange={(v) => patch({ startS: v ?? undefined })} />
           <NumberField label="Stop at (seconds)" allowEmpty min={1} value={num(block.endS)} onChange={(v) => patch({ endS: v ?? undefined })} />
@@ -260,13 +262,22 @@ function LibraryPicker({ onPick, onClose, onUpload }: { onPick: (v: LibraryVideo
   const [items, setItems] = useState<LibraryVideo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialog);
   useEffect(() => {
+    let current = true;
     const t = setTimeout(async () => {
       const res = await listVideos(q);
-      if (res.ok) setItems(res.data);
-      else setError(res.error);
+      // A newer search may have started meanwhile: only the newest one's answer counts.
+      if (!current) return;
+      if (res.ok) {
+        setItems(res.data);
+        setError(null);
+      } else setError(res.error);
     }, q ? 250 : 0);
-    return () => clearTimeout(t);
+    return () => {
+      current = false;
+      clearTimeout(t);
+    };
   }, [q]);
   useEffect(() => {
     dialog.current?.querySelector<HTMLInputElement>('input[type=search]')?.focus();
@@ -328,7 +339,7 @@ function LibraryPicker({ onPick, onClose, onUpload }: { onPick: (v: LibraryVideo
 
 // ---------- YouTube and Vimeo ----------
 
-function LinkSource({ provider, block, patch }: { provider: 'youtube' | 'vimeo'; block: BlockDoc; patch: (p: Record<string, unknown>) => void }) {
+function LinkSource({ provider, block, patch, latest }: { provider: 'youtube' | 'vimeo'; block: BlockDoc; patch: (p: Record<string, unknown>) => void; latest: { current: BlockDoc } }) {
   const videoId = str(block.videoId);
   const [text, setText] = useState(videoId ? (provider === 'youtube' ? `https://www.youtube.com/watch?v=${videoId}` : `https://vimeo.com/${videoId}`) : '');
   const [state, setState] = useState<{ kind: 'idle' } | { kind: 'busy' } | { kind: 'filled'; from: string } | { kind: 'error'; text: string }>({ kind: 'idle' });
@@ -336,16 +347,26 @@ function LinkSource({ provider, block, patch }: { provider: 'youtube' | 'vimeo';
   const take = async (value: string) => {
     setText(value);
     const link = videoLink(value);
-    if (!value.trim()) return setState({ kind: 'idle' });
-    if (!link) return setState({ kind: 'error', text: 'Paste a YouTube or Vimeo link.' });
-    if (link.provider !== provider) patch({ provider: link.provider });
-    patch({ videoId: link.id });
+    // The stored video always matches the field: nothing (or a bad link) means no video.
+    if (!value.trim()) {
+      patch({ videoId: '' });
+      return setState({ kind: 'idle' });
+    }
+    if (!link) {
+      patch({ videoId: '' });
+      return setState({ kind: 'error', text: 'Paste a YouTube or Vimeo link.' });
+    }
+    patch({ provider: link.provider, videoId: link.id });
     setState({ kind: 'busy' });
+    const before = { title: str(latest.current.title), channel: str(latest.current.channel) };
     const res = await lookupVideo(link.provider, link.id);
+    if (str(latest.current.videoId) !== link.id) return; // another link was pasted meanwhile
     if (!res.ok) return setState({ kind: 'error', text: res.error });
+    // Only fields the author hasn't changed while the look-up ran.
+    const now = latest.current;
     patch({
-      ...(res.data.title ? { title: res.data.title } : {}),
-      ...(res.data.channel ? { channel: res.data.channel } : {}),
+      ...(res.data.title && str(now.title) === before.title ? { title: res.data.title } : {}),
+      ...(res.data.channel && str(now.channel) === before.channel ? { channel: res.data.channel } : {}),
       ...(res.data.durationS ? { durationS: res.data.durationS } : {}),
     });
     setState({ kind: 'filled', from: link.provider === 'youtube' ? 'YouTube' : 'Vimeo' });
@@ -448,7 +469,7 @@ function Pauses({ block, patch }: { block: BlockDoc; patch: (p: Record<string, u
   const set = (next: { atS: number; blockId: string }[]) => patch({ pauses: next.length ? next : undefined });
   const uid = useId();
   const label = (b: BlockDoc) => `${BLOCK_INFO[b.type]?.label ?? b.type}: ${str(b.prompt) || str(b.situation) || b.id}`.slice(0, 90);
-  if (siblings.length === 0) {
+  if (siblings.length === 0 && items.length === 0) {
     return (
       <p className="rounded-lg bg-surface px-3 py-2.5 text-[13px] text-muted ring-1 ring-line">
         <strong className="text-ink">Questions during the video:</strong> add a question block (multiple choice, poll, reflection…) to this step, then choose it here to pause the video and ask it.
@@ -460,10 +481,10 @@ function Pauses({ block, patch }: { block: BlockDoc; patch: (p: Record<string, u
       legend="Questions during the video (optional)"
       hint="The video pauses at the time and asks one of this step’s questions. Learners can also answer it below the video."
       noun="question"
-      max={20}
       items={items}
       onChange={set}
-      create={() => ({ atS: 30, blockId: siblings.find((s) => !items.some((p) => p.blockId === s.id))?.id ?? siblings[0]!.id })}
+      max={siblings.length ? 20 : items.length}
+      create={() => ({ atS: 30, blockId: siblings.find((s) => !items.some((p) => p.blockId === s.id))?.id ?? siblings[0]?.id ?? '' })}
       render={(p, setP, i) => (
         <div className="grid gap-2 sm:grid-cols-[7rem_minmax(0,1fr)]">
           <TimeInput label={`Pause ${i + 1} at`} value={p.atS} onChange={(s) => setP({ ...p, atS: Math.max(1, s) })} />
@@ -477,6 +498,7 @@ function Pauses({ block, patch }: { block: BlockDoc; patch: (p: Record<string, u
               onChange={(e) => setP({ ...p, blockId: e.target.value })}
               className="h-10 w-full rounded-[var(--radius-field)] bg-card px-2 text-[14px] ring-1 ring-line-strong focus:outline-none focus:ring-2 focus:ring-primary"
             >
+              {!siblings.some((s) => s.id === p.blockId) && <option value={p.blockId}>A question no longer in this step: remove this pause</option>}
               {siblings.map((s) => (
                 <option key={s.id} value={s.id}>
                   {label(s)}

@@ -55,8 +55,11 @@ export function LessonPlayer({
     top.current?.focus({ preventScroll: true });
   };
 
+  const checking = useRef(new Set<string>());
   const check = (blockId: string) => async (response: BlockResponse) => {
-    const res = await checkBlock(enrollmentId, itemId, blockId, response);
+    if (checking.current.has(blockId)) return 'Already checking your answer…';
+    checking.current.add(blockId);
+    const res = await checkBlock(enrollmentId, itemId, blockId, response).finally(() => checking.current.delete(blockId));
     if (!res.ok) return res.error;
     setResults((r) => ({ ...r, [blockId]: res.data }));
     setResponses((r) => ({ ...r, [blockId]: response }));

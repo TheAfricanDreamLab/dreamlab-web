@@ -91,7 +91,7 @@ export function TeachingBlock({ block, questions }: { block: Teaching; questions
       );
     case 'video':
       return block.provider === 'library' ? (
-        <LibraryVideo videoId={block.videoId} title={block.title} channel={block.channel} caption={block.caption} chapters={block.chapters} questions={questions} startS={block.startS} endS={block.endS} />
+        <LibraryVideo key={block.videoId} videoId={block.videoId} title={block.title} channel={block.channel} caption={block.caption} chapters={block.chapters} questions={questions} startS={block.startS} endS={block.endS} />
       ) : (
         <VideoFacade video={block} caption={block.caption} chapters={block.chapters} />
       );

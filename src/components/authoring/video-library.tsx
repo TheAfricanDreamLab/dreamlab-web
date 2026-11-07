@@ -10,6 +10,7 @@ import { cx, Notice } from '@/components/ui/primitives';
 import { toastSuccess } from '@/components/ui/toast';
 import { CAPTION_LANGUAGES, formatCueTime, parseCaptions, parseCueTime } from '@/lib/captions';
 import { attachHls } from '@/lib/hls';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 import { formatDuration, libraryVideoBase } from '@/lib/media';
 import { fileSize } from '@/lib/upload';
 import { LIBRARY_VIDEO_TYPES, videoType } from '@/lib/video-upload';
@@ -188,12 +189,18 @@ function Details({ video, canChange, onClose, onChanged, onRemoved, onResume }: 
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ lang: string; label: string; cues: CaptionCue[] } | null>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const escape = useRef(() => {});
+  useEffect(() => {
+    escape.current = () => !editing && onClose();
+  });
   useEffect(() => {
     panel.current?.focus();
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && !editing && onClose();
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && escape.current();
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
-  }, [onClose, editing]);
+  }, []);
+  // The caption editor, when open, holds focus instead.
+  useFocusTrap(panel, !editing);
 
   const run = async <T,>(p: Promise<{ ok: true; data: T } | { ok: false; error: string }>, done?: (d: T) => void) => {
     setError(null);
@@ -216,7 +223,12 @@ function Details({ video, canChange, onClose, onChanged, onRemoved, onResume }: 
         </header>
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
           {video.status === 'ready' ? (
-            <LibraryVideo videoId={video.id} title={video.title} channel={`${video.width}×${video.height} · ${video.renditions.map((h) => `${h}p`).join(', ')}`} />
+            <LibraryVideo
+              key={video.captions.map((c) => `${c.lang}:${c.updatedAt}`).join('|')}
+              videoId={video.id}
+              title={video.title}
+              channel={`${video.width}×${video.height} · ${video.renditions.map((h) => `${h}p`).join(', ')}`}
+            />
           ) : (
             <div className="space-y-2 rounded-[var(--radius-card)] bg-card p-4 ring-1 ring-line">
               <p className={cx('inline-block rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold', STATUS[video.status].tone)}>{STATUS[video.status].text}</p>
@@ -320,6 +332,7 @@ function Details({ video, canChange, onClose, onChanged, onRemoved, onResume }: 
       {editing && (
         <CaptionEditor
           video={video}
+          readOnly={!canChange}
           track={editing}
           onClose={() => setEditing(null)}
           onSaved={(v) => {
@@ -464,7 +477,31 @@ function Captions({
 }
 
 /** Edit captions line by line while watching: play from a line, add a line where the video is. */
-function CaptionEditor({ video, track, onClose, onSaved }: { video: Video; track: { lang: string; label: string; cues: CaptionCue[] }; onClose: () => void; onSaved: (v: Video) => void }) {
+function CaptionEditor({
+  video,
+  track,
+  readOnly,
+  onClose,
+  onSaved,
+}: {
+  video: Video;
+  track: { lang: string; label: string; cues: CaptionCue[] };
+  readOnly: boolean;
+  onClose: () => void;
+  onSaved: (v: Video) => void;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  useFocusTrap(box);
+  // Times that don't read as times yet (they keep the cue's last good time, but block saving).
+  const [badTimes, setBadTimes] = useState<Set<string>>(new Set());
+  const markTime = (id: string, bad: boolean) =>
+    setBadTimes((s) => {
+      if (s.has(id) === bad) return s;
+      const n = new Set(s);
+      if (bad) n.add(id);
+      else n.delete(id);
+      return n;
+    });
   const [cues, setCues] = useState<(CaptionCue & { key: number })[]>(() => track.cues.map((c, i) => ({ ...c, key: i })));
   const [time, setTime] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -505,6 +542,7 @@ function CaptionEditor({ video, track, onClose, onSaved }: { video: Video; track
   const problems = cues.filter((c) => !c.text.trim() || !(c.endS > c.startS)).length;
 
   const save = async () => {
+    if (badTimes.size) return setError('Some times aren’t written as times (minutes:seconds.tenths, e.g. 1:23.4). Correct them first.');
     if (problems) return setError(`${problems} line${problems === 1 ? ' needs' : 's need'} text and an end after the start.`);
     if (!cues.length) return setError('Add at least one line.');
     setSaving(true);
@@ -516,17 +554,19 @@ function CaptionEditor({ video, track, onClose, onSaved }: { video: Video; track
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-page" role="dialog" aria-modal="true" aria-label={`Edit ${track.label} captions`}>
+    <div ref={box} className="fixed inset-0 z-[70] flex flex-col bg-page" role="dialog" aria-modal="true" aria-label={`${readOnly ? '' : 'Edit '}${track.label} captions`}>
       <header className="flex flex-wrap items-center gap-3 border-b border-line bg-card px-4 py-3">
         <h2 className="min-w-0 flex-1 truncate text-[16px] font-bold">
           {track.label} captions · {video.title}
         </h2>
         <button type="button" onClick={onClose} className="h-10 rounded-full px-4 text-[13.5px] font-semibold text-body ring-1 ring-line hover:bg-surface">
-          Cancel
+          {readOnly ? 'Close' : 'Cancel'}
         </button>
-        <button type="button" onClick={() => void save()} disabled={saving} className="h-10 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-white hover:bg-forest disabled:opacity-50">
-          {saving ? 'Saving…' : 'Save captions'}
-        </button>
+        {!readOnly && (
+          <button type="button" onClick={() => void save()} disabled={saving} className="h-10 rounded-full bg-primary px-5 text-[13.5px] font-semibold text-white hover:bg-forest disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save captions'}
+          </button>
+        )}
       </header>
       {error && (
         <div className="px-4 pt-3">
@@ -536,7 +576,7 @@ function CaptionEditor({ video, track, onClose, onSaved }: { video: Video; track
       <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="space-y-3">
           <video ref={player} controls playsInline onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)} className="aspect-video w-full rounded-[var(--radius-card)] bg-black ring-1 ring-line" />
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={cx('flex flex-wrap items-center gap-2', readOnly && 'hidden')}>
             <button type="button" onClick={add} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-forest px-4 text-[13.5px] font-semibold text-white hover:bg-primary">
               <Icon name="plus" className="h-4 w-4" /> Add a line at {formatCueTime(time)}
             </button>
@@ -551,17 +591,18 @@ function CaptionEditor({ video, track, onClose, onSaved }: { video: Video; track
             return (
               <li key={c.key} className={cx('space-y-2 rounded-[var(--radius-field)] bg-card p-3 ring-1', active ? 'ring-2 ring-primary' : bad ? 'ring-danger-line' : 'ring-line')}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <TimeBox label="From" value={c.startS} onChange={(s) => set(c.key, { startS: s })} />
-                  <TimeBox label="to" value={c.endS} onChange={(s) => set(c.key, { endS: s })} />
+                  <TimeBox label="From" value={c.startS} readOnly={readOnly} onChange={(s) => set(c.key, { startS: s })} onValidity={(bad) => markTime(`${c.key}-start`, bad)} />
+                  <TimeBox label="to" value={c.endS} readOnly={readOnly} onChange={(s) => set(c.key, { endS: s })} onValidity={(bad) => markTime(`${c.key}-end`, bad)} />
                   <button type="button" onClick={() => play(c.startS)} className="ml-auto rounded-full px-3 py-1 text-[12.5px] font-semibold text-link ring-1 ring-line hover:bg-surface">
                     ▶ Play
                   </button>
-                  <button type="button" onClick={() => setCues((list) => list.filter((x) => x.key !== c.key))} aria-label="Remove this line" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink">
+                  <button type="button" hidden={readOnly} onClick={() => setCues((list) => list.filter((x) => x.key !== c.key))} aria-label="Remove this line" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-danger-tint hover:text-danger-ink">
                     <Icon name="close" className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 <textarea
                   rows={2}
+                  readOnly={readOnly}
                   value={c.text}
                   maxLength={500}
                   onChange={(e) => set(c.key, { text: e.target.value })}
@@ -577,7 +618,7 @@ function CaptionEditor({ video, track, onClose, onSaved }: { video: Video; track
   );
 }
 
-function TimeBox({ label, value, onChange }: { label: string; value: number; onChange: (s: number) => void }) {
+function TimeBox({ label, value, onChange, onValidity, readOnly }: { label: string; value: number; onChange: (s: number) => void; onValidity: (bad: boolean) => void; readOnly: boolean }) {
   const [text, setText] = useState(formatCueTime(value));
   const [shown, setShown] = useState(value);
   if (shown !== value) {
@@ -590,9 +631,11 @@ function TimeBox({ label, value, onChange }: { label: string; value: number; onC
       {label}
       <input
         value={text}
+        readOnly={readOnly}
         onChange={(e) => {
           setText(e.target.value);
           const s = parseCueTime(e.target.value);
+          onValidity(s === null);
           if (s !== null) onChange(s);
         }}
         aria-invalid={bad || undefined}

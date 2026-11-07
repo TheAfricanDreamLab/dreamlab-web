@@ -14,7 +14,18 @@ type Interactive = Extract<Block, { type: 'choice' | 'order' | 'match' | 'poll' 
  * to come up during a library video is asked there, and also stays reachable here (in case the video
  * can't be played), so the step can always be finished.
  */
-export function StepBlocks({ blocks, render, settled }: { blocks: Block[]; render: (b: Interactive) => ReactNode; settled: (blockId: string) => boolean }) {
+export function StepBlocks({
+  blocks,
+  render,
+  settled,
+  wrap = (_b, node) => node,
+}: {
+  blocks: Block[];
+  render: (b: Interactive) => ReactNode;
+  settled: (blockId: string) => boolean;
+  /** Around each block (the authoring preview adds comment buttons). */
+  wrap?: (b: Block, node: ReactNode) => ReactNode;
+}) {
   const byId = new Map(blocks.map((b) => [b.id, b]));
   const during = new Map<string, number>();
   for (const b of blocks) {
@@ -29,7 +40,7 @@ export function StepBlocks({ blocks, render, settled }: { blocks: Block[]; rende
       {blocks.map((b) => {
         if (isInteractive(b)) {
           const at = during.get(b.id);
-          return at === undefined ? <div key={b.id}>{render(b)}</div> : <AskedInVideo key={b.id} at={at} done={settled(b.id)} node={render(b)} />;
+          return <div key={b.id}>{wrap(b, at === undefined ? render(b) : <AskedInVideo at={at} done={settled(b.id)} node={render(b)} />)}</div>;
         }
         if (!isTeachingBlock(b)) return null;
         const questions: VideoQuestion[] | undefined =
@@ -39,7 +50,7 @@ export function StepBlocks({ blocks, render, settled }: { blocks: Block[]; rende
                 return q && isInteractive(q) && during.get(q.id) === p.atS ? [{ atS: p.atS, blockId: q.id, settled: settled(q.id), node: render(q) }] : [];
               })
             : undefined;
-        return <TeachingBlock key={b.id} block={b} questions={questions} />;
+        return <div key={b.id}>{wrap(b, <TeachingBlock block={b} questions={questions} />)}</div>;
       })}
     </>
   );

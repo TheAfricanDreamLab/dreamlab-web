@@ -384,12 +384,19 @@ function Workspace({ initial, openComment }: { initial: Draft; openComment: stri
   const view: Selection = useMemo(() => ((sel.kind === 'item' && !selectedItem) || (sel.kind === 'module' && !selectedModule) ? { kind: 'details' } : sel), [sel, selectedItem, selectedModule]);
 
   // ---------- comments (CAT-6) ----------
+  // Bumped by every change made here; a poll that started before one is out of date.
+  const commentChanges = useRef(0);
+  const setCommentsLocal = useCallback((update: (list: DraftComment[]) => DraftComment[]) => {
+    commentChanges.current++;
+    setComments(update);
+  }, []);
   useEffect(() => {
     let live = true;
     const load = async () => {
       if (document.visibilityState !== 'visible') return;
+      const started = commentChanges.current;
       const res = await loadComments(draft.id);
-      if (live && res.ok) setComments(res.data);
+      if (live && res.ok && started === commentChanges.current) setComments(res.data);
     };
     void load();
     const t = setInterval(() => void load(), COMMENTS_MS);
@@ -411,8 +418,11 @@ function Workspace({ initial, openComment }: { initial: Draft; openComment: stri
   const commentsApi = useMemo(
     () => ({
       count: (itemKey: string | null, blockId: string | null) => {
-        const key = itemKey ?? (view.kind === 'item' ? modules[view.m]?.items[view.i]?.key : undefined) ?? null;
-        return comments.filter((c) => !c.parentId && !c.resolvedAt && c.anchor.itemKey === key && (blockId === null || c.anchor.blockId === blockId)).length;
+        const here = anchorFor(view, modules);
+        const key = itemKey ?? here.itemKey;
+        return comments.filter(
+          (c) => !c.parentId && !c.resolvedAt && c.anchor.itemKey === key && (itemKey !== null || c.anchor.moduleKey === here.moduleKey) && (blockId === null || c.anchor.blockId === blockId),
+        ).length;
       },
       start: (a: Partial<CommentAnchor>) => {
         const base = anchorFor(view, modules);
@@ -462,11 +472,12 @@ function Workspace({ initial, openComment }: { initial: Draft; openComment: stri
 
   // ---------- lessons from videos (CAT-6) ----------
   const bulkInput = useRef<HTMLInputElement>(null);
-  const bulkModule = useRef(0);
+  const bulkModule = useRef<string>('');
   const addVideoLessons = (files: FileList | null) => {
     const list = [...(files ?? [])].filter((f) => videoType(f));
     if (!list.length) return;
-    const m = bulkModule.current;
+    const moduleKey = bulkModule.current;
+    const m = Math.max(0, normaliseModules(latest.current.modules).findIndex((x) => x.key === moduleKey));
     const channel = String(latest.current.provider ?? '').trim() || 'Course team';
     for (const file of list) {
       const title = titleFromFile(file.name);
@@ -475,21 +486,25 @@ function Workspace({ initial, openComment }: { initial: Draft; openComment: stri
         // Each lesson appears as soon as its video is in the library; processing carries on.
         onCreated: (v) => {
           const mods = normaliseModules(latest.current.modules);
-          const mod = mods[m];
-          if (!mod) return;
+          const at = mods.findIndex((x) => x.key === moduleKey);
+          const mod = mods[at];
+          if (!mod) {
+            setFlowError(`“${title}” is in the video library, but its module was removed before the lesson could be added. Add it from the library.`);
+            return;
+          }
           const key = uniqueKey(slugify(title), mod.items.map((x) => x.key));
           const lesson: ItemDoc = {
             ...newItem('lesson', title, key),
             payload: { steps: [{ id: 'step-1', title: undefined, blocks: [{ id: 'video-1', type: 'video', provider: 'library', videoId: v.id, title, channel }] }] },
           };
-          setDoc({ ...latest.current, modules: mods.map((x, j) => (j === m ? { ...x, items: [...x.items, lesson] } : x)) });
+          setDoc({ ...latest.current, modules: mods.map((x, j) => (j === at ? { ...x, items: [...x.items, lesson] } : x)) });
         },
       });
     }
     toastSuccess(`Adding ${list.length} ${list.length === 1 ? 'lesson' : 'lessons'} to module ${m + 1}. Each appears as its upload starts.`);
   };
   function chooseVideoLessons(m: number) {
-    bulkModule.current = m;
+    bulkModule.current = modules[m]?.key ?? '';
     bulkInput.current?.click();
   }
 
@@ -818,7 +833,7 @@ function Workspace({ initial, openComment }: { initial: Draft; openComment: stri
                 <CommentsPanel
                   draftId={draft.id}
                   comments={comments}
-                  setComments={setComments}
+                  setComments={setCommentsLocal}
                   modules={modules}
                   draftAnchor={newAnchor}
                   onDraftAnchor={setNewAnchor}

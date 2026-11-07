@@ -8,7 +8,8 @@ export type Cue = { startS: number; endS: number; text: string };
 
 const seconds = (t: string): number | null => {
   const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{1,3})$/.exec(t.trim());
-  if (!m) return null;
+  // Minutes and seconds stop at 59 (an hour field, when there is one, makes minutes count too).
+  if (!m || Number(m[3]) > 59 || (m[1] !== undefined && Number(m[2]) > 59)) return null;
   return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4]!.padEnd(3, '0')) / 1000;
 };
 
@@ -16,7 +17,8 @@ const seconds = (t: string): number | null => {
 export function parseCaptions(text: string): Cue[] {
   const cues: Cue[] = [];
   const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
-  for (const block of body.replace(/\r\n?/g, '\n').split(/\n{2,}/)) {
+  // A blank line (spaces or tabs on it are blank too) ends a cue.
+  for (const block of body.replace(/\r\n?/g, '\n').split(/\n[ \t]*\n/)) {
     const lines = block.split('\n').filter((l) => l.trim() !== '');
     const at = lines.findIndex((l) => l.includes('-->'));
     if (at < 0) continue;
@@ -42,8 +44,10 @@ export function parseCaptions(text: string): Cue[] {
 
 /** 83.25 → "1:23.2" (for the caption editor, to a tenth of a second). */
 export function formatCueTime(s: number): string {
-  const whole = Math.floor(s);
-  const tenth = Math.floor((s - whole) * 10);
+  // In whole milliseconds first, so 83.3 shows as 1:23.3 (not 1:23.2 from floating point).
+  const ms = Math.round(s * 1000);
+  const whole = Math.floor(ms / 1000);
+  const tenth = Math.floor((ms % 1000) / 100);
   const h = Math.floor(whole / 3600);
   const m = Math.floor((whole % 3600) / 60);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -55,7 +59,7 @@ export function parseCueTime(text: string): number | null {
   const t = text.trim();
   if (/^\d+(\.\d+)?$/.test(t)) return Number(t);
   const m = /^(?:(\d+):)?(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?$/.exec(t);
-  if (!m) return null;
+  if (!m || Number(m[3]) > 59 || (m[1] !== undefined && Number(m[2]) > 59)) return null;
   return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]) + (m[4] ? Number(`0.${m[4]}`) : 0);
 }
 

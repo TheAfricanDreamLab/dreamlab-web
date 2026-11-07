@@ -1,9 +1,10 @@
 'use client';
 
 import type { VideoChapter, VideoRef } from '@dreamlab/contracts';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { cx } from '@/components/ui/primitives';
 import { formatClock, formatDuration, safeImageUrl, videoEmbedUrl, videoFileUrl, videoThumbnail } from '@/lib/media';
+import { LibraryVideo } from './library-video';
 
 /*
  * A YouTube or Vimeo video behind a light facade: only a thumbnail loads until the learner taps play,
@@ -14,8 +15,11 @@ import { formatClock, formatDuration, safeImageUrl, videoEmbedUrl, videoFileUrl,
 export function VideoFacade({ video, caption, className, chapters = [] }: { video: VideoRef; caption?: string; className?: string; chapters?: VideoChapter[] }) {
   const [playing, setPlaying] = useState(false);
   const [at, setAt] = useState<number | undefined>(undefined);
+  if (video.provider === 'library') {
+    return <LibraryVideo key={video.videoId} videoId={video.videoId} title={video.title} channel={video.channel} caption={caption} chapters={chapters} startS={video.startS} endS={video.endS} />;
+  }
   const file = videoFileUrl(video);
-  if (file) return <FileVideo src={file} video={video} caption={caption} className={className} />;
+  if (file) return <FileVideo src={file} video={video} caption={caption} className={className} chapters={chapters} />;
   const thumb = video.provider === 'youtube' ? videoThumbnail(video.videoId) : null;
   const src = videoEmbedUrl(video, at);
   const service = video.provider === 'vimeo' ? 'Vimeo' : 'YouTube';
@@ -91,11 +95,13 @@ export function VideoFacade({ video, caption, className, chapters = [] }: { vide
   );
 }
 
-function FileVideo({ src, video, caption, className }: { src: string; video: VideoRef; caption?: string; className?: string }) {
+function FileVideo({ src, video, caption, className, chapters = [] }: { src: string; video: VideoRef; caption?: string; className?: string; chapters?: VideoChapter[] }) {
   const duration = video.durationS ? formatDuration(video.durationS) : null;
+  const player = useRef<HTMLVideoElement>(null);
   return (
     <figure className={cx('space-y-2', className)} data-media="video">
       <video
+        ref={player}
         src={src}
         controls
         preload="none"
@@ -103,6 +109,29 @@ function FileVideo({ src, video, caption, className }: { src: string; video: Vid
         aria-label={video.title}
         className="aspect-video w-full rounded-[var(--radius-card)] bg-forest ring-1 ring-line"
       />
+      {chapters.length > 0 && (
+        <nav aria-label={`Chapters of ${video.title}`}>
+          <ol className="divide-y divide-line overflow-hidden rounded-[var(--radius-field)] bg-card ring-1 ring-line">
+            {chapters.map((c) => (
+              <li key={c.atS}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = player.current;
+                    if (!el) return;
+                    el.currentTime = c.atS;
+                    void el.play().catch(() => undefined);
+                  }}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left text-[14px] hover:bg-surface"
+                >
+                  <span className="w-14 shrink-0 font-mono text-[12px] text-link">{formatClock(c.atS)}</span>
+                  <span className="min-w-0 flex-1 text-ink">{c.title}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
       <figcaption className="space-y-1">
         <p className="font-display text-[15px] font-bold leading-snug text-ink">{video.title}</p>
         {caption && <p className="text-[14px] leading-relaxed text-body">{caption}</p>}

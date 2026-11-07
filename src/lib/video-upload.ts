@@ -67,6 +67,9 @@ export interface UploadCallbacks {
  */
 export async function uploadLibraryVideo(file: File, opts: UploadCallbacks & { title?: string; resumeVideoId?: string }): Promise<LibraryVideo> {
   const signal = opts.signal ?? new AbortController().signal;
+  const stopIfCancelled = () => {
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+  };
   const type = videoType(file);
   if (!type) throw new Error('Choose an MP4, WebM, MOV or MKV video.');
   if (file.size > MAX_LIBRARY_VIDEO_BYTES) throw new Error('Videos can be up to 2 GB. Export a smaller file (720p is plenty for lessons).');
@@ -76,6 +79,7 @@ export async function uploadLibraryVideo(file: File, opts: UploadCallbacks & { t
   let received = new Set<number>();
   if (videoId) {
     const [l, status] = await Promise.all([videoUploadLink(videoId), videoUploadStatus(videoId)]);
+    stopIfCancelled();
     if (!l.ok) throw new Error(l.error);
     if (!status.ok) throw new Error(status.error);
     link = l.data;
@@ -83,6 +87,7 @@ export async function uploadLibraryVideo(file: File, opts: UploadCallbacks & { t
     received = new Set(status.data.received);
   } else {
     const created = await createVideo({ title: opts.title ?? titleFromFile(file.name), fileName: file.name, contentType: type, size: file.size });
+    stopIfCancelled();
     if (!created.ok) throw new Error(created.error);
     videoId = created.data.video.id;
     link = created.data.upload;
@@ -130,6 +135,8 @@ export async function uploadLibraryVideo(file: File, opts: UploadCallbacks & { t
       while (next < todo.length) await send(todo[next++]!);
     }),
   );
+  // Once every block is sent, joining them goes ahead even if Cancel is pressed now: the video is safe.
+  stopIfCancelled();
   const joined = await videoUploaded(id);
   if (!joined.ok) throw new Error(joined.error);
   return joined.data;

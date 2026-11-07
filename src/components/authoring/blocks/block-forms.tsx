@@ -349,13 +349,13 @@ function DownloadForm({ block, set }: Props) {
             draftId={draftId}
             kind="file"
             label={path ? 'Replace the file' : 'Upload a file'}
-            onUploaded={(p, file) =>
+            onUploaded={(p, file, contentType) =>
               set({
                 ...block,
                 path: p,
                 fileName: file.name.slice(-160),
                 size: file.size,
-                contentType: file.type,
+                contentType,
                 title: str(block.title) || file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').slice(0, 160),
               })
             }
