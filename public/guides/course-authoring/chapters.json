@@ -1,0 +1,26 @@
+[
+  {
+    "id": "start",
+    "seconds": 56
+  },
+  {
+    "id": "workspace",
+    "seconds": 53
+  },
+  {
+    "id": "writing",
+    "seconds": 56
+  },
+  {
+    "id": "videos",
+    "seconds": 64
+  },
+  {
+    "id": "assess",
+    "seconds": 42
+  },
+  {
+    "id": "publish",
+    "seconds": 49
+  }
+]

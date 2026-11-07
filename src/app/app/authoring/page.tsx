@@ -28,6 +28,9 @@ export default async function AuthoringPage({ searchParams }: Props) {
             <Link href="/app/authoring/videos" className="font-semibold text-link hover:underline">
               Video library
             </Link>
+            <Link href="/guide/course-authoring" className="font-semibold text-link hover:underline">
+              How to create a course (guide)
+            </Link>
             <Link href="/app/authoring/instructors" className="font-semibold text-link hover:underline">
               Instructors and course staff
             </Link>

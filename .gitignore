@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 # Playwright
 /test-results/
 /playwright-report/
+
+# Course-authoring guide: recordings and narration are scratch (scripts/guide/README.md)
+scripts/guide/out/

@@ -32,6 +32,10 @@ export default async function VideoLibraryPage({ searchParams }: Props) {
           <Link href="/app/authoring" className="font-semibold text-link hover:underline">
             ← Authoring
           </Link>
+          <span className="mx-2 text-faint">·</span>
+          <Link href="/guide/course-authoring#videos" className="font-semibold text-link hover:underline">
+            How videos work (guide)
+          </Link>
         </p>
         <Eyebrow tone="gold">{active ? active.org.name : 'Platform courses'}</Eyebrow>
         <h1 className="text-[30px] font-extrabold">Video library</h1>
