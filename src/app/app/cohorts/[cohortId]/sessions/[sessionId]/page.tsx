@@ -8,6 +8,7 @@ import { Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import type { AttendanceSheet, CohortDetail } from '@/lib/cohorts';
 import { classTime } from '@/lib/cohorts';
 import { inJoinWindow, sessionRoomHref, type SessionLive } from '@/lib/community';
+import { type CohortEngagement } from '@/lib/engagement';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { isUuid } from '@/lib/learning';
@@ -23,10 +24,12 @@ type Props = { params: Promise<{ cohortId: string; sessionId: string }> };
 export default async function AttendancePage({ params }: Props) {
   const { cohortId, sessionId } = await params;
   if (!isUuid(cohortId) || !isUuid(sessionId)) notFound();
-  const [sheet, cohort, live] = await Promise.all([
+  const [sheet, cohort, live, engagement] = await Promise.all([
     api<AttendanceSheet>('GET', `/v1/learning/cohorts/${cohortId}/sessions/${sessionId}/attendance`),
     api<CohortDetail>('GET', `/v1/learning/cohorts/${cohortId}`),
     api<SessionLive>('GET', `/v1/learning/cohorts/${cohortId}/sessions/${sessionId}/live`),
+    // Teachers who don't manage the cohort reach its engagement view from here (LRN-9); hidden on an older API.
+    api<CohortEngagement>('GET', `/v1/learning/cohorts/${cohortId}/engagement`),
   ]);
   if (!sheet.ok && sheet.status === 404) notFound();
   if (!sheet.ok) return <Notice tone="error">{friendlyError(sheet.error)}</Notice>;
@@ -45,6 +48,13 @@ export default async function AttendancePage({ params }: Props) {
           {classTime(session.startsAt, tz)} · {session.durationMin} min · {session.mode === 'virtual' ? 'Online' : 'In person'}
           {session.location ? ` · ${session.location}` : ''}
         </p>
+        {engagement.ok && (
+          <p>
+            <Link href={`/app/cohorts/${cohortId}/engagement`} className="inline-flex min-h-10 items-center text-[13.5px] font-semibold text-link hover:underline">
+              How learners in this cohort are doing
+            </Link>
+          </p>
+        )}
       </header>
       {session.cancelled && <Notice tone="neutral">This class was cancelled.</Notice>}
       {session.mode === 'virtual' && !session.cancelled && (

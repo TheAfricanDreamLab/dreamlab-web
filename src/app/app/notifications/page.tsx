@@ -18,6 +18,7 @@ const ICONS: Record<NotificationCategory, IconName> = {
   admissions: 'user',
   community: 'users',
   circles: 'users',
+  progress: 'compass',
   account: 'shield',
 };
 
