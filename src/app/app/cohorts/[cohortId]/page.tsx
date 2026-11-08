@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { CohortTabs } from '@/components/cohorts/cohort-tabs';
 import { CohortSettingsForm, CohortStatusActions, SessionEditor } from '@/components/cohorts/cohort-forms';
 import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate, classTime, COHORT_STATUS_LABELS, COHORT_STATUS_TONES, type CohortDetail, isPast, POLICY_LABELS, type RosterEntry, WEEKDAYS } from '@/lib/cohorts';
+import { type CohortEngagement, featureMissing } from '@/lib/engagement-staff';
 import { friendlyError } from '@/lib/errors';
 import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
@@ -22,9 +24,10 @@ export default async function CohortPage({ params, searchParams }: Props) {
   const me = await getMe();
   if (!me.platformAdmin && !(activeMembership(me) && can(me, 'cohort.manage'))) redirect('/app');
 
-  const [res, roster] = await Promise.all([
+  const [res, roster, engagement] = await Promise.all([
     api<CohortDetail>('GET', `/v1/learning/cohorts/${cohortId}`),
     api<{ items: RosterEntry[] }>('GET', `/v1/learning/cohorts/${cohortId}/roster`),
+    api<CohortEngagement>('GET', `/v1/learning/cohorts/${cohortId}/engagement`),
   ]);
   if (!res.ok && res.status === 404) notFound();
   if (!res.ok) return <Notice tone="error">{friendlyError(res.error)}</Notice>;
@@ -33,6 +36,11 @@ export default async function CohortPage({ params, searchParams }: Props) {
   const week = Number(sp.week) || c.currentWeek || 1;
   const weekSessions = c.sessions.filter((s) => s.weekNo === week);
   const thisWeek = c.calendar.find((w) => w.weekNo === week);
+  // Engagement and the funnel (LRN-9) come with a newer API; without it the tabs stay hidden.
+  const hasEngagement = !featureMissing(engagement);
+  const needHand = engagement.ok ? engagement.data.summary.atRisk + engagement.data.summary.inactive : 0;
+  const catchUp = (w: { kind?: string }) => w.kind === 'catch_up';
+  const hasCatchUp = c.calendar.some(catchUp);
 
   return (
     <div className="space-y-8">
@@ -65,6 +73,16 @@ export default async function CohortPage({ params, searchParams }: Props) {
         </div>
       </header>
 
+      {hasEngagement && <CohortTabs cohortId={c.id} current="overview" canManage />}
+      {needHand > 0 && (
+        <Notice tone="neutral">
+          {needHand === 1 ? 'One learner' : `${needHand} learners`} might need a hand: quiet for a while or well behind.{' '}
+          <Link href={`/app/cohorts/${c.id}/engagement`} className="font-semibold text-link hover:underline">
+            See who, and send a check-in
+          </Link>
+        </Notice>
+      )}
+
       {sp.created && (
         <FlashToast clear={['created']}>
           Scheduled: {c.calendar.length} weeks and {c.sessions.length} classes. Open it for joining when you’re ready.
@@ -85,6 +103,12 @@ export default async function CohortPage({ params, searchParams }: Props) {
                   {thisWeek.phase} · {thisWeek.focus}
                 </p>
               )}
+              {thisWeek && catchUp(thisWeek) && (
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-[13.5px] text-body">
+                  <Badge tone="gold">Catch-up week</Badge>
+                  No new lessons: time for learners to get level.
+                </p>
+              )}
             </div>
             <nav aria-label="Weeks" className="flex flex-wrap gap-1">
               {c.calendar.map((w) => (
@@ -92,10 +116,13 @@ export default async function CohortPage({ params, searchParams }: Props) {
                   key={w.weekNo}
                   href={`/app/cohorts/${c.id}?week=${w.weekNo}`}
                   aria-current={w.weekNo === week ? 'page' : undefined}
-                  aria-label={`Week ${w.weekNo}`}
+                  aria-label={`Week ${w.weekNo}${catchUp(w) ? ', catch-up week' : ''}`}
+                  title={catchUp(w) ? 'Catch-up week' : undefined}
                   className={cx(
                     'grid h-9 min-w-9 place-items-center rounded-full px-2 font-mono text-[12.5px] ring-1',
                     w.weekNo === week ? 'bg-forest text-white ring-forest' : w.weekNo === c.currentWeek ? 'bg-gold-tint text-gold-ink ring-gold-line' : 'text-body ring-line hover:bg-surface',
+                    catchUp(w) && w.weekNo !== week && 'border border-dashed border-gold bg-surface ring-0',
+                    catchUp(w) && w.weekNo === week && 'outline-2 outline-offset-2 outline-dashed outline-gold',
                   )}
                 >
                   {w.weekNo}
@@ -103,6 +130,12 @@ export default async function CohortPage({ params, searchParams }: Props) {
               ))}
             </nav>
           </div>
+          {hasCatchUp && (
+            <p className="flex items-center gap-2 text-[12.5px] text-muted">
+              <span aria-hidden className="inline-block h-4 w-4 rounded-full border border-dashed border-gold bg-surface" />
+              Dashed weeks are catch-up weeks: no new lessons.
+            </p>
+          )}
           <Card>
             <ul className="divide-y divide-line">
               {weekSessions.map((s) => (
