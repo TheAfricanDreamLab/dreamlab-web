@@ -37,6 +37,14 @@ export function EngagementBoard({ cohortId, data }: { cohortId: string; data: Co
   const opener = useRef<HTMLButtonElement>(null);
   const selectAll = useRef<HTMLInputElement>(null);
 
+  // A refresh can drop someone who has left the cohort: forget them, so counts and the check-in stay right.
+  const [items, setItems] = useState(data.items);
+  if (data.items !== items) {
+    setItems(data.items);
+    const present = new Set(data.items.map((r) => r.userId));
+    if ([...selected].some((id) => !present.has(id))) setSelected(new Set([...selected].filter((id) => present.has(id))));
+  }
+
   const rows = useMemo(() => (filter === 'all' ? data.items : data.items.filter((r) => r.risk === filter)), [data.items, filter]);
   const chosen = data.items.filter((r) => selected.has(r.userId));
   const visibleChosen = rows.filter((r) => selected.has(r.userId)).length;
@@ -107,7 +115,7 @@ export function EngagementBoard({ cohortId, data }: { cohortId: string; data: Co
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-[13.5px] text-body" aria-live="polite">
-            {selected.size === 0 ? 'Nobody selected' : `${plural(selected.size, 'person', 'people')} selected`}
+            {chosen.length === 0 ? 'Nobody selected' : `${plural(chosen.length, 'person', 'people')} selected`}
           </span>
           {/* On phones the table's header (and its select-all box) is hidden. */}
           {rows.length > 0 && (
@@ -115,7 +123,7 @@ export function EngagementBoard({ cohortId, data }: { cohortId: string; data: Co
               {allVisible ? 'Unselect everyone shown' : 'Select everyone shown'}
             </button>
           )}
-          {selected.size > 0 && (
+          {chosen.length > 0 && (
             <button type="button" onClick={() => setSelected(new Set())} className="min-h-10 px-1 text-[13.5px] font-semibold text-link hover:underline">
               Clear
             </button>
@@ -123,7 +131,7 @@ export function EngagementBoard({ cohortId, data }: { cohortId: string; data: Co
           <button
             ref={opener}
             type="button"
-            disabled={selected.size === 0}
+            disabled={chosen.length === 0}
             onClick={() => {
               setResult(null);
               setComposing(true);
@@ -314,7 +322,10 @@ function CheckInDialog({ cohortId, people, onClose, onSent }: { cohortId: string
       cohortId,
       people.map((p) => p.userId),
       message,
-    );
+    ).catch(() => ({
+      ok: false as const,
+      error: 'We lost touch with the server, so the check-in may or may not have been sent. Reload the page and look at Last check-in before you send it again.',
+    }));
     setSending(false);
     if (!res.ok) return setError(res.error);
     onSent(res.sent);

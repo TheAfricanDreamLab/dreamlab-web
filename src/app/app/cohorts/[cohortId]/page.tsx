@@ -6,7 +6,7 @@ import { CohortSettingsForm, CohortStatusActions, SessionEditor } from '@/compon
 import { BackLink } from '@/components/ui/nav';
 import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { calendarDate, classTime, COHORT_STATUS_LABELS, COHORT_STATUS_TONES, type CohortDetail, isPast, POLICY_LABELS, type RosterEntry, WEEKDAYS } from '@/lib/cohorts';
-import { type CohortEngagement, featureMissing } from '@/lib/engagement-staff';
+import type { CohortEngagement } from '@/lib/engagement-staff';
 import { friendlyError } from '@/lib/errors';
 import { formatScore } from '@/lib/grading';
 import { api } from '@/lib/gateway';
@@ -36,8 +36,9 @@ export default async function CohortPage({ params, searchParams }: Props) {
   const week = Number(sp.week) || c.currentWeek || 1;
   const weekSessions = c.sessions.filter((s) => s.weekNo === week);
   const thisWeek = c.calendar.find((w) => w.weekNo === week);
-  // Engagement and the funnel (LRN-9) come with a newer API; without it the tabs stay hidden.
-  const hasEngagement = !featureMissing(engagement);
+  // Engagement and the funnel (LRN-9) come with a newer API: the tabs show only when engagement answers
+  // (not on an older API, a 403 or a server error). The funnel comes with it, for the same managers.
+  const hasEngagement = engagement.ok;
   const needHand = engagement.ok ? engagement.data.summary.atRisk + engagement.data.summary.inactive : 0;
   const catchUp = (w: { kind?: string }) => w.kind === 'catch_up';
   const hasCatchUp = c.calendar.some(catchUp);

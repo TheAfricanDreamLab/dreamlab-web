@@ -38,8 +38,10 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
   ]);
   const { error } = await searchParams;
   // Course funnels (LRN-9) come with a newer API: ask once, and offer the links only when it answers.
+  // A 404 about that one course still means the route is there; a 403 or a server error doesn't say.
   const firstSlug = res.ok ? res.data.items[0]?.slug : undefined;
-  const funnels = firstSlug ? !featureMissing(await api<CompletionFunnel>('GET', `/v1/learning/admin/courses/${firstSlug}/funnel`)) : false;
+  const probe = firstSlug ? await api<CompletionFunnel>('GET', `/v1/learning/admin/courses/${firstSlug}/funnel`) : null;
+  const funnels = !!probe && (probe.ok || (probe.status === 404 && !featureMissing(probe)));
   const flagError =
     error === 'flag_invalid' || error === 'flag_update_failed' ? 'That change didn’t save. Please try again.' : messageForCode(error);
 

@@ -46,6 +46,8 @@ export function GoalForm({
   const f = state.fields ?? {};
   const initialWeekly = v?.minutesPerWeek ?? (goal ? ((WEEKLY_PRESETS as readonly number[]).includes(goal.minutesPerWeek) ? String(goal.minutesPerWeek) : 'other') : '120');
   const [weekly, setWeekly] = useState(initialWeekly);
+  // Kept while the learner tries a preset and comes back to Other.
+  const [hours, setHours] = useState(v?.otherHours ?? (goal && initialWeekly === 'other' ? String(goal.minutesPerWeek / 60) : ''));
   const [why, setWhy] = useState(v?.why ?? goal?.why ?? '');
   const days = v ? v.studyDays.split(',').filter(Boolean) : (goal?.studyDays ?? []);
   const whyLeft = 20 - why.trim().length;
@@ -141,7 +143,8 @@ export function GoalForm({
               min={0.5}
               max={20}
               step={0.5}
-              defaultValue={v?.otherHours ?? (goal && weekly === initialWeekly ? String(goal.minutesPerWeek / 60) : '')}
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
               aria-invalid={Boolean(f.minutesPerWeek)}
               className={cx(fieldClass, 'h-11 w-24 py-0')}
             />
@@ -220,13 +223,15 @@ export function GoalCard({
     return (
       <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
         <p className="text-[14px] text-body">People who write down why they started are more likely to finish.</p>
+        {/* Still the target of the checklist's "Set your goal" link. */}
         <button
+          id={`goal-${enrollmentId}`}
           type="button"
           onClick={() => {
             setLater(false);
             requestAnimationFrame(() => heading.current?.focus());
           }}
-          className="min-h-11 rounded-full bg-card px-4 text-[14px] font-semibold text-link ring-1 ring-line-strong hover:ring-line-heavy"
+          className="min-h-11 scroll-mt-24 rounded-full bg-card px-4 text-[14px] font-semibold text-link ring-1 ring-line-strong hover:ring-line-heavy"
         >
           Set your goal
         </button>

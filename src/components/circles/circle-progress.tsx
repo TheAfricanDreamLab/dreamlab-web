@@ -29,6 +29,13 @@ function Days({ active, name }: { active: number; name: string }) {
 
 export function CircleProgressPanel({ circleId, initial, canShare, meId }: { circleId: string; initial: CircleProgress; canShare: boolean; meId: string | null }) {
   const [data, setData] = useState(initial);
+  // A refresh brings newer progress (sharing may have changed in another tab): take it in. A saved
+  // toggle already updated `data`, and the refresh that follows it agrees.
+  const [seen, setSeen] = useState(initial);
+  if (initial !== seen) {
+    setSeen(initial);
+    setData(initial);
+  }
   const [error, setError] = useState<string | null>(null);
   const [said, setSaid] = useState('');
   const [pending, start] = useTransition();

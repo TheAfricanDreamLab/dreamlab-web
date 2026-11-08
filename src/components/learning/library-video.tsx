@@ -147,7 +147,8 @@ export function LibraryVideo({
   /** Swap between watching and listening, carrying on from the same moment. */
   const switchTo = (next: 'video' | 'audio') => {
     const el = video.current ?? audio.current;
-    if (el && el.currentTime > 0) pendingStart.current = el.currentTime;
+    // The player's position, back at 0 too; with no player yet (or one still loading), a chapter chosen stays.
+    if (el && el.readyState > 0) pendingStart.current = el.currentTime;
     el?.pause();
     setLevels([]);
     setLevel(-1);
@@ -234,11 +235,9 @@ export function LibraryVideo({
   const duration = ready ? formatDuration((endS ?? manifest.durationS) - (startS ?? 0)) : null;
   const estimate = ready ? dataEstimate(manifest, saveData, startS, endS) : null;
   const audioSrc = mode === 'audio' && ready && manifest.audio ? `${base}${manifest.audio.src}` : null;
-  const transcript = transcriptOpen && ready && <Transcript base={base} tracks={manifest.captions} time={time} onSeek={seek} />;
 
   return (
-    <figure className="space-y-3" data-media="video" data-save-data={saveData ? 'on' : 'off'}>
-      {saveData && transcript}
+    <figure className="flex flex-col gap-3" data-media="video" data-save-data={saveData ? 'on' : 'off'}>
       {audioSrc ? (
         <div className="space-y-3 rounded-[var(--radius-card)] bg-forest p-4 text-white ring-1 ring-line sm:p-5">
           <p className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-gold">
@@ -397,7 +396,8 @@ export function LibraryVideo({
         </nav>
       )}
 
-      {!saveData && transcript}
+      {/* One place in the tree, so switching save data moves it (first when on) without losing its search or captions. */}
+      {transcriptOpen && ready && <Transcript base={base} tracks={manifest.captions} time={time} onSeek={seek} className={saveData ? 'order-first' : undefined} />}
 
       <figcaption className="space-y-1">
         {caption && <p className="text-[14px] leading-relaxed text-body">{caption}</p>}
@@ -427,7 +427,19 @@ function dataEstimate(m: VideoManifest, saveData: boolean, startS?: number, endS
 }
 
 /** The captions as text that follows the video; tap a line to go there. */
-function Transcript({ base, tracks, time, onSeek }: { base: string; tracks: VideoManifest['captions']; time: number; onSeek: (s: number) => void }) {
+function Transcript({
+  base,
+  tracks,
+  time,
+  onSeek,
+  className,
+}: {
+  base: string;
+  tracks: VideoManifest['captions'];
+  time: number;
+  onSeek: (s: number) => void;
+  className?: string;
+}) {
   const [lang, setLang] = useState(tracks[0]?.lang ?? '');
   // The cues loaded, and which language they are: switching language shows "Loading…" until the new ones arrive.
   const [loaded, setLoaded] = useState<{ lang: string; cues: Cue[] | 'error' } | null>(null);
@@ -458,7 +470,7 @@ function Transcript({ base, tracks, time, onSeek }: { base: string; tracks: Vide
 
   const shown = Array.isArray(cues) ? cues.map((c, i) => ({ c, i })).filter(({ c }) => !query || c.text.toLowerCase().includes(query.toLowerCase())) : [];
   return (
-    <section aria-label="Transcript" className="space-y-2 rounded-[var(--radius-card)] bg-card p-3 ring-1 ring-line">
+    <section aria-label="Transcript" className={cx('space-y-2 rounded-[var(--radius-card)] bg-card p-3 ring-1 ring-line', className)}>
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="search"

@@ -24,9 +24,11 @@ function read(): boolean {
 
 function subscribe(onChange: () => void): () => void {
   window.addEventListener(EVENT, onChange);
-  // Another tab changed it.
+  // Another tab changed it (or cleared storage): the later choice wins over one only held in this page.
   const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) onChange();
+    if (e.key !== KEY && e.key !== null) return;
+    memory = e.key === KEY && e.newValue === '1' ? true : e.key === KEY && e.newValue === '0' ? false : null;
+    onChange();
   };
   window.addEventListener('storage', onStorage);
   return () => {

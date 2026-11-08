@@ -20,7 +20,7 @@ export async function sendCheckIn(cohortId: string, userIds: string[], message: 
 
   const res = await api<{ sent: number }>('POST', `/v1/learning/cohorts/${cohortId}/check-ins`, { userIds: ids, message: text });
   if (!res.ok) {
-    if (featureMissing(res) && !res.error?.code) return { ok: false, error: 'Check-ins aren’t available yet. Please try again later.' };
+    if (featureMissing(res)) return { ok: false, error: 'Check-ins aren’t available yet. Please try again later.' };
     return { ok: false, error: friendlyError(res.error) };
   }
   refresh();

@@ -59,10 +59,10 @@ export function daysAgo(iso: string | null, now = Date.now()): string | null {
 }
 
 /**
- * The API this web app talks to may be older than the feature: an unknown route answers 404 (or 405).
- * Staff then simply don't see the new pages and links.
+ * The API this web app talks to may be older than the feature: an unknown route answers 404 (or 405,
+ * 501) with no error code. A 404 with a code (`course_not_found`, say) comes from the feature itself.
  */
-export const featureMissing = (res: ApiResult<unknown>) => !res.ok && (res.status === 404 || res.status === 405 || res.status === 501);
+export const featureMissing = (res: ApiResult<unknown>) => !res.ok && (res.status === 404 || res.status === 405 || res.status === 501) && !res.error?.code;
 
 export const CHECK_IN_MIN = 10;
 export const CHECK_IN_MAX = 1000;

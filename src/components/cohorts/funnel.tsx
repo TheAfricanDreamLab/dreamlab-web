@@ -6,12 +6,12 @@ const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 100) : 0)
 const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
 const weekDate = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-/** The biggest fall from one stage to the next, or null when nobody fell away. */
-export function biggestDrop(stages: CompletionFunnel['stages']): { from: string; to: string; lost: number } | null {
-  let best: { from: string; to: string; lost: number } | null = null;
+/** The biggest fall from one stage to the next (`index` is the stage it falls to), or null when nobody fell away. */
+export function biggestDrop(stages: CompletionFunnel['stages']): { from: string; to: string; index: number; lost: number } | null {
+  let best: { from: string; to: string; index: number; lost: number } | null = null;
   for (let i = 1; i < stages.length; i++) {
     const lost = stages[i - 1]!.count - stages[i]!.count;
-    if (lost > 0 && (!best || lost > best.lost)) best = { from: label(stages[i - 1]!), to: label(stages[i]!), lost };
+    if (lost > 0 && (!best || lost > best.lost)) best = { from: label(stages[i - 1]!), to: label(stages[i]!), index: i, lost };
   }
   return best;
 }
@@ -22,7 +22,7 @@ const label = (s: CompletionFunnel['stages'][number]) => s.label || FUNNEL_STAGE
 export function FunnelView({ funnel: f }: { funnel: CompletionFunnel }) {
   const enrolled = f.stages[0]?.count ?? 0;
   const drop = biggestDrop(f.stages);
-  const dropIndex = drop ? f.stages.findIndex((s) => label(s) === drop.to) : -1;
+  const dropIndex = drop ? drop.index : -1;
 
   if (enrolled === 0) {
     return <Card className="p-6 text-[14.5px] text-muted">Nobody has enrolled yet, so there is nothing to show.</Card>;
