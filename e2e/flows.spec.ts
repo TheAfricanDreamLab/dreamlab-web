@@ -102,7 +102,7 @@ test.describe('individual learner', () => {
     await signedIn(page, email, 'a-brand-new-password');
     await page.getByRole('link', { name: 'Account' }).click();
     await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
-    await expect(page.getByText('This device')).toBeVisible();
+    await expect(page.getByText('This device', { exact: true })).toBeVisible();
     await page.getByLabel('Current password').fill('a-brand-new-password');
     await page.getByLabel('New password').fill(PASSWORD);
     await page.getByLabel('Type the new one again').fill(PASSWORD);

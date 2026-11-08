@@ -90,8 +90,12 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
                       {c.provider} · <span className="font-mono">{c.slug}</span>
                     </span>
                     {funnels && (
-                      <Link href={`/app/admin/catalog/courses/${c.slug}/funnel`} className="inline-flex min-h-10 items-center text-[13px] font-semibold text-link hover:underline">
-                        Completion funnel<span className="sr-only">: {c.title}</span>
+                      <Link
+                        href={`/app/admin/catalog/courses/${c.slug}/funnel`}
+                        aria-label={`Completion funnel: ${c.title}`}
+                        className="inline-flex min-h-10 items-center text-[13px] font-semibold text-link hover:underline"
+                      >
+                        Completion funnel
                       </Link>
                     )}
                   </td>

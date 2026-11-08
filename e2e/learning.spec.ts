@@ -56,6 +56,8 @@ async function finishLesson(page: Page): Promise<void> {
   for (let step = 0; step < 25; step++) {
     const blocks = page.locator('[data-block-type]');
     for (let i = 0; i < (await blocks.count()); i++) await settle(blocks.nth(i));
+    // Wait for the step itself: a lesson shows a loading outline first, with neither button.
+    await expect(page.getByRole('button', { name: /^(Continue|Complete lesson)$/ })).toBeVisible();
     const next = page.getByRole('button', { name: 'Continue', exact: true });
     if (await next.isVisible()) {
       await expect(next).toBeEnabled();

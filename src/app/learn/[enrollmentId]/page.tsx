@@ -136,7 +136,13 @@ export default async function CourseHomePage({ params }: Params) {
                 behind={track.pace === 'behind' || track.pace === 'far_behind'}
               />
               {track.pace !== 'not_started' && <OnTrackCard data={track} name={course.title} showGoal={false} />}
-              <FirstWeekChecklist data={track} enrollmentId={enrollment.id} goalHref={`#goal-${enrollment.id}`} circleHref={null} />
+              <FirstWeekChecklist
+                data={track}
+                enrollmentId={enrollment.id}
+                goalHref={`#goal-${enrollment.id}`}
+                circleHref={null}
+                lessonHref={(nextItem ?? first) ? href((nextItem ?? first)!.id) : null}
+              />
             </div>
           )}
 

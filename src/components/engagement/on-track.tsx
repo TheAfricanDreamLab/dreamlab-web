@@ -123,13 +123,26 @@ export function OnTrackCard({
 type Step = { key: string; label: string; done: boolean; href: string | null; hint?: string };
 
 /** The first week's steps: a goal, a first lesson, hello to the circle. Gone once they're done. */
-export function FirstWeekChecklist({ data, enrollmentId, goalHref, circleHref }: { data: OnTrack | ProgramOnTrack; enrollmentId: string; goalHref: string; circleHref: string | null }) {
+export function FirstWeekChecklist({
+  data,
+  enrollmentId,
+  goalHref,
+  circleHref,
+  lessonHref = null,
+}: {
+  data: OnTrack | ProgramOnTrack;
+  enrollmentId: string;
+  goalHref: string;
+  circleHref: string | null;
+  /** Where "Finish your first lesson" goes when there is no catch-up list (someone on track has none). */
+  lessonHref?: string | null;
+}) {
   const o = data.onboarding;
   if (o.done) return null;
   const first = data.catchUp[0];
   const steps: Step[] = [
     { key: 'goal', label: 'Set your goal', done: o.goalSet, href: goalHref, hint: 'Why you’re here and when you’ll study' },
-    { key: 'first', label: 'Finish your first lesson', done: o.firstItemDone, href: first ? catchUpHref(first) : null, hint: first ? `${first.title}${first.minutes ? `, about ${first.minutes} min` : ''}` : undefined },
+    { key: 'first', label: 'Finish your first lesson', done: o.firstItemDone, href: first ? catchUpHref(first) : lessonHref, hint: first ? `${first.title}${first.minutes ? `, about ${first.minutes} min` : ''}` : undefined },
   ];
   if (o.introducedInCircle !== null) {
     steps.push({ key: 'circle', label: 'Say hello in your Dream Circle', done: o.introducedInCircle, href: circleHref, hint: 'A line about you and what you’re working on' });
@@ -258,8 +271,12 @@ export function CoursePace({ data, enrollmentId, courseTitle }: { data: OnTrack;
         </div>
       )}
       {!data.goal && (
-        <Link href={`/learn/${enrollmentId}#goal-${enrollmentId}`} className="inline-flex min-h-10 items-center text-[13.5px] font-semibold text-link hover:underline">
-          Set your goal for this course<span className="sr-only">: {courseTitle}</span>
+        <Link
+          href={`/learn/${enrollmentId}#goal-${enrollmentId}`}
+          aria-label={`Set your goal for this course: ${courseTitle}`}
+          className="inline-flex min-h-10 items-center text-[13.5px] font-semibold text-link hover:underline"
+        >
+          Set your goal for this course
         </Link>
       )}
     </div>

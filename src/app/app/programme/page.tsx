@@ -130,7 +130,16 @@ function Programme({ p, justJoined, track, circleHref }: { p: MyProgram; justJoi
             <OnTrackCard data={track} name={p.cohort.name} showGoal={false} />
           </div>
           <div className="space-y-6">
-            <FirstWeekChecklist data={track} enrollmentId={p.enrollment.id} goalHref={`#goal-${p.enrollment.id}`} circleHref={circleHref} />
+            <FirstWeekChecklist
+              data={track}
+              enrollmentId={p.enrollment.id}
+              goalHref={`#goal-${p.enrollment.id}`}
+              circleHref={circleHref}
+              lessonHref={(() => {
+                const started = p.courses.find((c) => c.enrollmentId);
+                return started ? `/learn/${started.enrollmentId}` : null;
+              })()}
+            />
             <CertificatePath certificate={track.certificate} name={p.cohort.programTitle} />
           </div>
         </div>
