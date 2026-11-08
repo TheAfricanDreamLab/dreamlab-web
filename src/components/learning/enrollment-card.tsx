@@ -1,11 +1,12 @@
 import type { EnrollmentSummary } from '@dreamlab/contracts';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Badge, Card } from '@/components/ui/primitives';
 import { ITEM_LABELS, shortDate } from '@/lib/learning';
 import { CourseCover, ItemIcon, ProgressBar } from './course-ui';
 
 /** A course I'm taking: progress, and "Continue" to the next item. */
-export function EnrollmentCard({ e, compact = false }: { e: EnrollmentSummary; compact?: boolean }) {
+export function EnrollmentCard({ e, compact = false, extra }: { e: EnrollmentSummary; compact?: boolean; /** Below the actions, e.g. the course's pace. */ extra?: ReactNode }) {
   const completed = e.status === 'completed';
   return (
     <Card className="flex overflow-hidden">
@@ -52,6 +53,7 @@ export function EnrollmentCard({ e, compact = false }: { e: EnrollmentSummary; c
             Course home
           </Link>
         </div>
+        {extra}
       </div>
     </Card>
   );

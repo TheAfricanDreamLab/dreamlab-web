@@ -4,6 +4,7 @@ import type { BlockResponse, BlockResult, ItemState } from '@dreamlab/contracts'
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { checkBlock, saveProgress } from '@/app/actions/learning';
+import { SaveDataToggle } from '@/components/engagement/save-data-toggle';
 import { cx, Notice } from '@/components/ui/primitives';
 import { isSettled, type LessonStep } from '@/lib/learning';
 import { InteractiveBlock, isInteractive } from './interactive-blocks';
@@ -47,6 +48,8 @@ export function LessonPlayer({
   const open = step.blocks.filter(isInteractive).filter((b) => !isSettled(results[b.id]));
   const canContinue = open.length === 0;
   const questions = steps.reduce((n, s) => n + s.blocks.filter(isInteractive).length, 0);
+  // Videos streamed from Dream Lab follow the save-data switch (LRN-9): offer it where it matters.
+  const hasVideo = step.blocks.some((b) => b.type === 'video' && b.provider === 'library');
 
   const go = (index: number) => {
     setCurrent(index);
@@ -131,6 +134,8 @@ export function LessonPlayer({
           </div>
         </section>
       )}
+
+      {hasVideo && <SaveDataToggle compact />}
 
       <div key={step.id} className="animate-rise space-y-6">
         {step.title && <h2 className="text-[24px] font-extrabold leading-tight">{step.title}</h2>}

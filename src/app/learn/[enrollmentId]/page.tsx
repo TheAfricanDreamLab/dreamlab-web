@@ -4,11 +4,15 @@ import Link from 'next/link';
 import { SignedInShell } from '@/components/app/signed-in-shell';
 import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
+import { GoalCard } from '@/components/engagement/goal-form';
+import { FirstWeekChecklist, OnTrackCard } from '@/components/engagement/on-track';
 import { CourseCover, ItemIcon, ProgressBar, StatusTick } from '@/components/learning/course-ui';
 import { VideoFacade } from '@/components/learning/media';
 import { Breadcrumbs } from '@/components/ui/nav';
 import { Badge, ButtonLink, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
+import type { MyProgram } from '@/lib/cohorts';
+import type { OnTrack } from '@/lib/engagement';
 import { api, type ApiResult } from '@/lib/gateway';
 import { formatMinutes, hours, isUuid, ITEM_LABELS, plural, shortDate } from '@/lib/learning';
 import { formatScore } from '@/lib/grading';
@@ -23,6 +27,21 @@ const loadHome = cache(async (enrollmentId: string): Promise<ApiResult<CoursePro
   if (!found) return { ok: false, status: 404 };
   return api<CourseProgress>('GET', `/v1/learning/courses/${found.courseSlug}`);
 });
+
+/**
+ * Pace and first steps for a course taken on its own (LRN-9). A course that is part of a programme
+ * is followed on My programme instead, with the programme's goal. Null hides the cards: a programme
+ * course, an API without the route, or any failure.
+ */
+async function loadOnTrack(enrollmentId: string): Promise<OnTrack | null> {
+  const [programs, track] = await Promise.all([
+    api<{ items: MyProgram[] }>('GET', '/v1/learning/me/programs'),
+    api<OnTrack>('GET', `/v1/learning/enrollments/${enrollmentId}/on-track`),
+  ]);
+  if (!programs.ok || !track.ok) return null;
+  const inProgramme = programs.data.items.some((p) => p.courses.some((c) => c.enrollmentId === enrollmentId));
+  return inProgramme ? null : track.data;
+}
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { enrollmentId } = await params;
@@ -60,6 +79,7 @@ export default async function CourseHomePage({ params }: Params) {
   if (!enrollment) notFound();
   // The course page reports the enrolment for the current space; follow it if this link is an older one.
   if (enrollment.id !== enrollmentId) redirect(`/learn/${enrollment.id}`);
+  const track = await loadOnTrack(enrollment.id);
 
   const items = course.modules.flatMap((m) => m.items);
   const first = items[0];
@@ -105,6 +125,27 @@ export default async function CourseHomePage({ params }: Params) {
 
       <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_300px] [&>*]:min-w-0">
         <div className="space-y-8">
+          {track && !finished && (
+            <div className="space-y-6">
+              <GoalCard
+                scope="course"
+                enrollmentId={enrollment.id}
+                goal={track.goal}
+                welcome={!started}
+                title={course.title}
+                behind={track.pace === 'behind' || track.pace === 'far_behind'}
+              />
+              {track.pace !== 'not_started' && <OnTrackCard data={track} name={course.title} showGoal={false} />}
+              <FirstWeekChecklist
+                data={track}
+                enrollmentId={enrollment.id}
+                goalHref={`#goal-${enrollment.id}`}
+                circleHref={null}
+                lessonHref={(nextItem ?? first) ? href((nextItem ?? first)!.id) : null}
+              />
+            </div>
+          )}
+
           <section className="space-y-4" aria-labelledby="how">
             <h2 id="how" className="text-[22px] font-bold">
               How this course works

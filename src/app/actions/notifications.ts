@@ -25,7 +25,10 @@ export async function markAllNotificationsRead(): Promise<void> {
 
 /** One checkbox per category (email:<category>); unticked means no email for it. */
 export async function saveNotificationPreferences(_: FormState, fd: FormData): Promise<FormState> {
-  const email = Object.fromEntries(CATEGORY_LABELS.map(([c]) => [c, fd.get(`email:${c}`) === 'on'])) as NotificationPreferences['email'];
+  // The categories the form showed (those the API offered), so an older API isn't sent one it doesn't know.
+  const shown = new Set(fd.getAll('category').map(String));
+  const categories = CATEGORY_LABELS.filter(([c]) => shown.size === 0 || shown.has(c));
+  const email = Object.fromEntries(categories.map(([c]) => [c, fd.get(`email:${c}`) === 'on'])) as NotificationPreferences['email'];
   const res = await api<NotificationPreferences>('PUT', '/v1/notifications/preferences', { email });
   if (!res.ok) return { error: friendlyError(res.error) };
   // React resets the form after the action: reload the page's data so the boxes show what was saved.

@@ -54,6 +54,8 @@ async function settle(block: Locator): Promise<void> {
 
 async function finishLesson(page: Page): Promise<void> {
   for (let step = 0; step < 25; step++) {
+    // Wait for the step itself: a lesson shows a loading outline first, with neither button.
+    await expect(page.getByRole('button', { name: /^(Continue|Complete lesson)$/ })).toBeVisible();
     const blocks = page.locator('[data-block-type]');
     for (let i = 0; i < (await blocks.count()); i++) await settle(blocks.nth(i));
     const next = page.getByRole('button', { name: 'Continue', exact: true });
@@ -62,7 +64,10 @@ async function finishLesson(page: Page): Promise<void> {
       await next.click();
       continue;
     }
+    const lesson = page.url();
     await page.getByRole('button', { name: 'Complete lesson' }).click();
+    // Saved once the player moves on (to the next item, the course home or the course page).
+    await expect(page).not.toHaveURL(lesson);
     return;
   }
   throw new Error('The lesson never reached its last step');

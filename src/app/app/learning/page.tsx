@@ -1,18 +1,22 @@
 import type { EnrollmentSummary } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
+import { CoursePace } from '@/components/engagement/on-track';
 import { EnrollmentCard } from '@/components/learning/enrollment-card';
 import Link from 'next/link';
 import { Badge, ButtonLink, Card, Eyebrow, Notice } from '@/components/ui/primitives';
 import { ASSIGNEE_STATUS_LABELS, ASSIGNEE_STATUS_TONES, dueDate, type MyAssignment } from '@/lib/assigned';
+import type { MyProgram } from '@/lib/cohorts';
+import type { OnTrack } from '@/lib/engagement';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 
 export const metadata: Metadata = { title: 'My learning' };
 
 export default async function MyLearningPage() {
-  const [res, assigned] = await Promise.all([
+  const [res, assigned, programs] = await Promise.all([
     api<{ items: EnrollmentSummary[] }>('GET', '/v1/learning/enrollments'),
     api<{ items: MyAssignment[] }>('GET', '/v1/learning/me/assigned'),
+    api<{ items: MyProgram[] }>('GET', '/v1/learning/me/programs'),
   ]);
   // Courses an organisation assigned, not yet finished; finished ones stay with the rest below.
   const toDo = assigned.ok ? assigned.data.items.filter((a) => a.status !== 'completed') : [];
@@ -20,6 +24,7 @@ export default async function MyLearningPage() {
   const items = res.ok ? res.data.items : [];
   const active = items.filter((e) => e.status !== 'completed');
   const done = items.filter((e) => e.status === 'completed');
+  const paces = await loadPaces(active, programs.ok ? programs.data.items : null);
 
   return (
     <div className="space-y-8">
@@ -60,9 +65,10 @@ export default async function MyLearningPage() {
                 In progress
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                {active.map((e) => (
-                  <EnrollmentCard key={e.id} e={e} />
-                ))}
+                {active.map((e) => {
+                  const pace = paces.get(e.id);
+                  return <EnrollmentCard key={e.id} e={e} extra={pace && <CoursePace data={pace} enrollmentId={e.id} courseTitle={e.course.title} />} />;
+                })}
               </div>
             </section>
           )}
@@ -82,6 +88,19 @@ export default async function MyLearningPage() {
       )}
     </div>
   );
+}
+
+/**
+ * Pace for the courses taken on their own (LRN-9), the most recently active first. Courses in a
+ * programme are followed on My programme. Any course whose pace can't be loaded (an API without the
+ * route, a failure) simply shows without it.
+ */
+async function loadPaces(active: EnrollmentSummary[], programs: MyProgram[] | null): Promise<Map<string, OnTrack>> {
+  if (!programs) return new Map();
+  const inProgramme = new Set(programs.flatMap((p) => p.courses.map((c) => c.enrollmentId)).filter(Boolean));
+  const standalone = active.filter((e) => !inProgramme.has(e.id)).slice(0, 8);
+  const results = await Promise.all(standalone.map((e) => api<OnTrack>('GET', `/v1/learning/enrollments/${e.id}/on-track`)));
+  return new Map(standalone.flatMap((e, i) => (results[i]!.ok ? [[e.id, results[i]!.data] as const] : [])));
 }
 
 /** Assigned by an organisation (ASSIGN-1): due dates first, overdue ones marked. */

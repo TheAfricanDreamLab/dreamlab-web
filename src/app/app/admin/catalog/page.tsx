@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { setCourseFlag } from '@/app/actions/platform';
 import { ImportForm } from '@/components/admin/admin-forms';
 import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
+import { type CompletionFunnel, featureMissing } from '@/lib/engagement-staff';
 import { friendlyError, messageForCode } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { type AdminCourse, shortDate } from '@/lib/learning';
@@ -36,6 +37,11 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
     api<{ items: { slug: string; title: string; creditTotal: number; courseCount: number }[] }>('GET', '/v1/catalog/programs'),
   ]);
   const { error } = await searchParams;
+  // Course funnels (LRN-9) come with a newer API: ask once, and offer the links only when it answers.
+  // A 404 about that one course still means the route is there; a 403 or a server error doesn't say.
+  const firstSlug = res.ok ? res.data.items[0]?.slug : undefined;
+  const probe = firstSlug ? await api<CompletionFunnel>('GET', `/v1/learning/admin/courses/${firstSlug}/funnel`) : null;
+  const funnels = !!probe && (probe.ok || (probe.status === 404 && !featureMissing(probe)));
   const flagError =
     error === 'flag_invalid' || error === 'flag_update_failed' ? 'That change didn’t save. Please try again.' : messageForCode(error);
 
@@ -85,6 +91,15 @@ export default async function CatalogAdminPage({ searchParams }: { searchParams:
                     <span className="block break-all text-[13px] text-muted">
                       {c.provider} · <span className="font-mono">{c.slug}</span>
                     </span>
+                    {funnels && (
+                      <Link
+                        href={`/app/admin/catalog/courses/${c.slug}/funnel`}
+                        aria-label={`Completion funnel: ${c.title}`}
+                        className="inline-flex min-h-10 items-center text-[13px] font-semibold text-link hover:underline"
+                      >
+                        Completion funnel
+                      </Link>
+                    )}
                   </td>
                   <td data-label="State" className="px-5 py-3">
                     <span className="flex flex-wrap gap-1">
