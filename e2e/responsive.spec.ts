@@ -120,7 +120,7 @@ test.describe('responsive layout', () => {
     await signedIn(page, email, password);
     await page.goto('/app/admin/users');
     const user = (await page.locator('a[href^="/app/admin/users/"]').first().getAttribute('href'))!;
-    await visitAll(page, ['/app/admin', '/app/admin/users', user, '/app/admin/organisations', '/app/admin/catalog']);
+    await visitAll(page, ['/app/admin', '/app/admin/insights', '/app/admin/users', user, '/app/admin/organisations', '/app/admin/catalog']);
 
     // On a phone the people table becomes stacked cards, still one row per person.
     await page.setViewportSize({ width: 320, height: 800 });

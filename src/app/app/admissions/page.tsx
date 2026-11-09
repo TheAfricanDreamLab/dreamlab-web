@@ -50,25 +50,23 @@ export default async function AdmissionsPage() {
           {!cycles.ok ? (
             <Notice tone="error">{friendlyError(cycles.error)}</Notice>
           ) : cycles.data.items.length === 0 ? (
-            <Card className="p-5 text-[14px] text-muted">No admission cycles yet.{manage ? ' Create one to start taking applications.' : ''}</Card>
+            <p className="text-[14.5px] text-muted">No admission cycles yet.{manage ? ' Create one to start taking applications.' : ''}</p>
           ) : (
-            <Card>
-              <ul className="divide-y divide-line">
-                {cycles.data.items.map((c) => (
-                  <li key={c.id}>
-                    <Link href={`/app/admissions/cycles/${c.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-surface">
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-ink">{c.name}</span>
-                        <span className="block text-[13px] text-muted">
-                          {c.programTitle} · {admissionsTime(c.opensAt)} – {admissionsTime(c.closesAt)}
-                        </span>
+            <ul className="dl-stagger -mx-3 space-y-1">
+              {cycles.data.items.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/app/admissions/cycles/${c.id}`} className="dl-lift flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] px-3 py-3 hover:bg-card">
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-ink">{c.name}</span>
+                      <span className="block text-[13px] text-muted">
+                        {c.programTitle} · {admissionsTime(c.opensAt)} – {admissionsTime(c.closesAt)}
                       </span>
-                      <Badge tone={CYCLE_STATUS_TONES[c.status]}>{CYCLE_STATUS_LABELS[c.status]}</Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+                    </span>
+                    <Badge tone={CYCLE_STATUS_TONES[c.status]}>{CYCLE_STATUS_LABELS[c.status]}</Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 

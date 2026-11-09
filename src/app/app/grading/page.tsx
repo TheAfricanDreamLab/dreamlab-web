@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Badge, Card, cx, Eyebrow, Notice } from '@/components/ui/primitives';
+import { Badge, cx, Eyebrow, Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
 import { GRADING_STATUS_LABELS, GRADING_STATUS_TONES, type GradingQueueItem } from '@/lib/grading';
@@ -40,7 +40,7 @@ export default async function GradingPage({ searchParams }: Props) {
             href={`/app/grading?status=${t.status}`}
             aria-current={t.status === status ? 'page' : undefined}
             className={cx(
-              'flex min-h-10 items-center rounded-full px-4 text-[14px] font-semibold ring-1',
+              'dl-press flex min-h-10 items-center rounded-full px-4 text-[14px] font-semibold ring-1',
               t.status === status ? 'bg-forest text-white ring-forest' : 'text-body ring-line hover:bg-surface',
             )}
           >
@@ -52,31 +52,29 @@ export default async function GradingPage({ searchParams }: Props) {
       {!res.ok ? (
         <Notice tone="error">{res.status === 403 ? 'You don’t grade in this organisation. Switch to the organisation you teach in.' : friendlyError(res.error)}</Notice>
       ) : res.data.items.length === 0 ? (
-        <Card className="p-8 text-center text-[14.5px] text-muted">{status === 'awaiting' ? 'Nothing waiting. Every submission has a grade.' : 'Nothing here yet.'}</Card>
+        <p className="py-6 text-[14.5px] text-muted">{status === 'awaiting' ? 'Nothing waiting. Every submission has a grade.' : 'Nothing here yet.'}</p>
       ) : (
-        <Card>
-          <ul className="divide-y divide-line">
-            {res.data.items.map((s) => (
-              <li key={s.submissionId}>
-                <Link href={`/app/grading/${s.submissionId}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 hover:bg-surface">
-                  <span className="min-w-0">
-                    <span className="block font-semibold text-ink">
-                      {s.learner.name} · {s.item.title}
-                    </span>
-                    <span className="block text-[13px] text-muted">
-                      {s.course.title}
-                      {s.cohortName && ` · ${s.cohortName}`} · version {s.version} · {dateTime(s.submittedAt)}
-                    </span>
+        <ul className="dl-stagger -mx-3 space-y-1">
+          {res.data.items.map((s) => (
+            <li key={s.submissionId}>
+              <Link href={`/app/grading/${s.submissionId}`} className="dl-lift flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] px-3 py-3 hover:bg-card">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-ink">
+                    {s.learner.name} · {s.item.title}
                   </span>
-                  <span className="flex items-center gap-2">
-                    {s.scorePct !== null && <span className="font-mono text-[13px] text-muted">{s.scorePct}%</span>}
-                    <Badge tone={GRADING_STATUS_TONES[s.status]}>{GRADING_STATUS_LABELS[s.status]}</Badge>
+                  <span className="block text-[13px] text-muted">
+                    {s.course.title}
+                    {s.cohortName && ` · ${s.cohortName}`} · version {s.version} · {dateTime(s.submittedAt)}
                   </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+                </span>
+                <span className="flex items-center gap-2">
+                  {s.scorePct !== null && <span className="font-mono text-[13px] text-muted">{s.scorePct}%</span>}
+                  <Badge tone={GRADING_STATUS_TONES[s.status]}>{GRADING_STATUS_LABELS[s.status]}</Badge>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
