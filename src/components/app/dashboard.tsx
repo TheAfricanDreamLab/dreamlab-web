@@ -2,9 +2,10 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { CourseCover } from '@/components/learning/course-ui';
 import { Icon, type IconName } from '@/components/ui/icons';
+import { CountUp } from '@/components/ui/motion';
 import { cx } from '@/components/ui/primitives';
 
-/* Dashboard pieces shared by the learner home (/app) and the platform overview (/app/admin). */
+/* Dashboard pieces shared by home (/app), Activity, the organisation overview and the platform overview (/app/admin). */
 
 export type Period = 'month' | 'all';
 export const PERIODS: Record<Period, string> = { month: 'This month', all: 'All time' };
@@ -42,6 +43,79 @@ export function PageTitle({ title, intro, actions }: { title: string; intro?: Re
       </div>
       {actions}
     </header>
+  );
+}
+
+/* ---- Calm pieces: one quiet heading, thin progress, a row of small figures, a short list of links. ---- */
+
+/** "Good morning" and friends, by the hour in Lagos (the server renders it, so one fixed place). */
+export function greetingFor(now = new Date(), timeZone = 'Africa/Lagos'): string {
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone }).format(now));
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+/** A section heading with an optional link on the right. Small and calm: type, not boxes, does the work. */
+export function SectionHeading({ id, title, action }: { id: string; title: string; action?: { href: string; label: string } }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+      <h2 id={id} className="text-[17px] font-bold text-ink">
+        {title}
+      </h2>
+      {action && (
+        <Link href={action.href} className="dl-press inline-flex min-h-11 items-center text-[14px] font-semibold text-link hover:underline">
+          {action.label}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+/** A thin progress bar that grows in from the left. `label` names it for screen readers. */
+export function ProgressBar({ value, label, className }: { value: number; label: string; className?: string }) {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <span role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} className={cx('block h-1.5 overflow-hidden rounded-full bg-line', className)}>
+      <span className="dl-bar block h-full rounded-full bg-primary" style={{ width: `${Math.max(v, 2)}%` }} />
+    </span>
+  );
+}
+
+/** Up to three small figures in one quiet row. Numbers count up once. */
+export function Figures({ label, items }: { label: string; items: { label: string; value: number; href?: string }[] }) {
+  return (
+    <dl aria-label={label} className="grid grid-cols-3 gap-3 sm:gap-6">
+      {items.map((f) => (
+        <div key={f.label} className="flex min-w-0 flex-col-reverse gap-1">
+          <dt className="text-[13px] leading-snug text-muted">{f.href ? <Link href={f.href} className="hover:text-ink hover:underline">{f.label}</Link> : f.label}</dt>
+          <dd className="font-display text-[26px] font-bold leading-none text-ink tabular-nums sm:text-[30px]">
+            <CountUp value={f.value} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export type AttentionItem = { key: string; icon: IconName; text: string; href: string };
+
+/** A short list of things to look at, each a link out. Render it only when there is something. */
+export function AttentionList({ items }: { items: AttentionItem[] }) {
+  return (
+    <ul className="divide-y divide-line">
+      {items.map((i) => (
+        <li key={i.key}>
+          <Link href={i.href} className="dl-press group flex min-h-12 items-center gap-3 py-3 text-[14.5px] text-body hover:text-ink">
+            <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold-tint text-gold-ink">
+              <Icon name={i.icon} className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1 break-words">{i.text}</span>
+            <Icon name="arrow" className="h-4 w-4 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-link" />
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -169,7 +243,7 @@ const TILE = {
 export function SummaryTile({ title, text, href, updated, note, count, tone }: { title: string; text: string; href: string; updated?: string | null; /** Shown instead of "Updated: …". */ note?: string; count: number | string; tone: keyof typeof TILE }) {
   const t = TILE[tone];
   return (
-    <article className={cx('group relative flex min-h-[168px] flex-col justify-between gap-4 rounded-[var(--radius-tile)] p-5 ring-1 transition-shadow focus-within:ring-2 focus-within:ring-primary hover:shadow-[var(--shadow-soft)]', t.box)}>
+    <article className={cx('dl-lift group relative flex min-h-[168px] flex-col justify-between gap-4 rounded-[var(--radius-tile)] p-5 ring-1 focus-within:ring-2 focus-within:ring-primary', t.box)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <h3 className={cx('font-display text-[17px] font-bold leading-snug', t.ink)}>
