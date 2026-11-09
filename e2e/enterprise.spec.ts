@@ -104,6 +104,9 @@ test.describe('company sign-in and security', () => {
     const ctx = await browser.newContext({ baseURL: WEB_URL });
     const colleague = await ctx.newPage();
     await signUpWithEmail(colleague, 'Emeka Colleague', `emeka@${domain}`);
+    // Home points to it under "Needs your attention"; joining happens on the Spaces page.
+    await colleague.getByRole('region', { name: 'Needs your attention' }).getByRole('link', { name: `You can join ${company}` }).click();
+    await expect(colleague).toHaveURL(/\/app\/spaces$/);
     const offer = colleague.locator('form').filter({ hasText: company });
     await expect(offer.getByText(`Everyone at @${domain}`)).toBeVisible();
     await offer.getByRole('button', { name: 'Join' }).click();
@@ -154,7 +157,7 @@ test.describe('company sign-in and security', () => {
     await amaka.getByRole('button', { name: 'Continue' }).click();
     await expect(amaka).toHaveURL(/\/app$/);
     await expect(amaka.locator('summary').filter({ hasText: company })).toBeVisible();
-    await expect(amaka.getByRole('heading', { name: 'Welcome, Amaka.' })).toBeVisible();
+    await expect(amaka.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), Amaka$/ })).toBeVisible();
     await ctx.close();
   });
 

@@ -43,7 +43,7 @@ test.describe('individual learner', () => {
   test('signs up with email, confirms with a code, lands in the personal space', async ({ page }) => {
     await signUpWithEmail(page, 'Ada Obi', email);
     await expect(page).toHaveURL(/\/app$/);
-    await expect(page.getByRole('heading', { name: 'Welcome, Ada.' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), Ada$/ })).toBeVisible();
     await expect(page.getByText('You’re learning on your own.')).toBeVisible();
     await expect(page.locator('summary').filter({ hasText: 'Just me' })).toBeVisible();
   });
@@ -124,7 +124,7 @@ test.describe('individual learner', () => {
     await expect(page.getByText(e164)).toBeVisible();
     await enterCode(page, await latestCode(e164));
     await page.getByRole('button', { name: 'Verify and continue' }).click();
-    await expect(page.getByRole('heading', { name: 'Welcome, Bayo.' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), Bayo$/ })).toBeVisible();
   });
 });
 

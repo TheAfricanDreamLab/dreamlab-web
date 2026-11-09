@@ -144,6 +144,8 @@ test.describe('learning', () => {
 
     await page.goto('/app');
     await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Continue Problem Solving' })).toBeVisible();
+    await expect(page.getByRole('progressbar', { name: /^Problem Solving: \d+% done$/ })).toBeVisible();
   });
 
   test('course home and the player always have a way out', async ({ page }) => {
