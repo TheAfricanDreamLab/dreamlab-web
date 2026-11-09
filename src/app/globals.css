@@ -416,3 +416,83 @@
   height: 0;
   pointer-events: none;
 }
+
+/*
+ * Micro-interactions (UX-2): small, quick responses that confirm a touch, never a show. All of them stop
+ * for people who ask for less motion (the global rule above, plus explicit resets below).
+ *
+ *   dl-stagger   children rise in one after another (up to 8, then together)
+ *   dl-lift      a card that can be opened: lifts slightly on hover, settles on press
+ *   dl-press     a control that gives a little when pressed
+ *   dl-bar       a progress fill that grows from the left when it appears
+ *   dl-fade      a calm fade, for content swapped in place
+ */
+.dl-stagger > * {
+  animation: dl-rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.dl-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.dl-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.dl-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.dl-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.dl-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.dl-stagger > *:nth-child(7) { animation-delay: 240ms; }
+.dl-stagger > *:nth-child(n + 8) { animation-delay: 280ms; }
+
+.dl-lift {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+@media (hover: hover) {
+  .dl-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+  }
+}
+.dl-lift:active,
+.dl-press:active {
+  transform: scale(0.985);
+}
+.dl-press {
+  transition: transform 120ms ease;
+}
+
+@keyframes dl-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.dl-bar {
+  transform-origin: left center;
+  animation: dl-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.1s both;
+}
+
+@keyframes dl-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dl-fade {
+  animation: dl-fade-in 0.25s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dl-stagger > *,
+  .dl-bar,
+  .dl-fade {
+    animation: none;
+  }
+  .dl-lift,
+  .dl-lift:hover,
+  .dl-lift:active,
+  .dl-press:active {
+    transform: none;
+  }
+}
