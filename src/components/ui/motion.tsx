@@ -15,11 +15,15 @@ export function CountUp({ value, duration = 600, decimals = 0, suffix = '' }: { 
   // The in-between number while counting, tied to the value it counts towards.
   const [step, setStep] = useState<{ to: number; n: number } | null>(null);
   const started = useRef(false);
+  // The value the first count was for: a different value later shows at once rather than counting again.
+  const countedFor = useRef<number | null>(null);
   const format = (n: number) => `${n.toLocaleString('en-GB', { maximumFractionDigits: decimals })}${suffix}`;
 
   useEffect(() => {
     if (started.current || !Number.isFinite(value) || value <= 0) return;
+    if (countedFor.current !== null && countedFor.current !== value) return;
     started.current = true;
+    countedFor.current = value;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const scale = 10 ** decimals;
     const target = value;
@@ -36,7 +40,7 @@ export function CountUp({ value, duration = 600, decimals = 0, suffix = '' }: { 
     frame = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(frame);
-      // Cut short (Strict Mode's setup-cleanup-setup, say): let the next setup count again.
+      // Cut short (Strict Mode's setup-cleanup-setup, say): the same value may count again; a new one won't.
       if (!done) started.current = false;
     };
   }, [value, duration, decimals]);

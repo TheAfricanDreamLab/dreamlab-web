@@ -36,9 +36,9 @@ export default async function OrganisationOverviewPage() {
   ]);
   const membersFailed = canRead && (!activeMembers || !requests);
   const invitesFailed = canInvite && !pending;
-  // One list showing someone else is in is enough; "to do" needs the member count (and the invitations, if
-  // we may see them), so without it the step stays unknown.
-  const invited: boolean | null = (activeMembers && activeMembers.n > 1) || (pending && pending.n > 0) ? true : !activeMembers || invitesFailed ? null : false;
+  // One list showing someone else is in is enough; "to do" needs both the member count and the invitations,
+  // so without either (not loaded, or not ours to see) the step stays unknown.
+  const invited: boolean | null = (activeMembers && activeMembers.n > 1) || (pending && pending.n > 0) ? true : !activeMembers || !pending ? null : false;
   const signIn: boolean | null = domains?.ok && sso?.ok ? domains.data.items.some((d) => d.verified) && Boolean(sso.data.connection?.enabled) : null;
 
   const steps: Step[] = [
@@ -46,7 +46,13 @@ export default async function OrganisationOverviewPage() {
     {
       done: invited,
       title: 'Invite your team',
-      text: invited ? 'Done. Invite more whenever you like.' : invited === null ? 'We couldn’t check this just now.' : 'Send invitations by email or phone.',
+      text: invited
+        ? 'Done. Invite more whenever you like.'
+        : invited === null
+          ? canInvite && canRead
+            ? 'We couldn’t check this just now.'
+            : 'Someone who can see members and invitations can check this.'
+          : 'Send invitations by email or phone.',
       href: canInvite ? '/app/members' : undefined,
       cta: 'Invite',
     },

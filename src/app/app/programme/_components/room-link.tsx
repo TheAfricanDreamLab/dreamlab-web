@@ -22,11 +22,25 @@ export function RoomLink({ cohortId, s, open: initial, serverNow, className }: {
     setOpen(initial);
   }
   useEffect(() => {
-    // The server's clock, carried forward by the device's: the offset is taken when this answer arrives.
-    const offset = serverNow - Date.now();
+    // Checks run on the server's clock, carried forward by the device's. Until a fresh reading arrives the
+    // offset comes from the render; then /healthz's Date header (to the second; +0.5 s for the midpoint)
+    // gives the current server time, so a late hydration or a wrong device clock doesn't hold the room shut.
+    let offset = serverNow - Date.now();
+    let gone = false;
     const check = () => setOpen(inJoinWindow(s, Date.now() + offset));
+    fetch('/healthz', { cache: 'no-store' })
+      .then((r) => {
+        const server = Date.parse(r.headers.get('date') ?? '');
+        if (gone || !Number.isFinite(server)) return;
+        offset = server + 500 - Date.now();
+        check();
+      })
+      .catch(() => undefined);
     const timer = window.setInterval(check, 30_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      gone = true;
+      window.clearInterval(timer);
+    };
   }, [s, serverNow]);
 
   return open ? (
