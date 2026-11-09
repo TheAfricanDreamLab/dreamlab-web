@@ -13,7 +13,7 @@ const PAGES = [
 type Page = (typeof PAGES)[number]['page'];
 
 /**
- * The way back (My programme for the learner; the cohort's board for faculty, who arrive with
+ * The way back (My programme’s Progress tab for the learner; the cohort's board for faculty, who arrive with
  * ?cohort=) and the five outcome pages of one programme enrolment.
  */
 export function OutcomeBack({ enrollmentId, cohortId, board, current }: { enrollmentId: string; cohortId: string | null; board: 'residency' | 'graduation'; current?: Page }) {
@@ -24,7 +24,7 @@ export function OutcomeBack({ enrollmentId, cohortId, board, current }: { enroll
       {cohortId ? (
         <BackLink href={`/app/cohorts/${cohortId}/${board}`} label={board === 'residency' ? 'Residency board' : 'Graduation board'} />
       ) : (
-        <BackLink href="/app/programme" label="My programme" />
+        <BackLink href="/app/programme/progress" label="Programme progress" />
       )}
       <nav aria-label="Programme outcomes" className="flex flex-wrap gap-1">
         {PAGES.map((p) => (

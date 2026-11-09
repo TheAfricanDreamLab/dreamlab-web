@@ -103,12 +103,12 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await expect(mentor.getByRole('link', { name: 'Join meeting with Ada Obi' })).toBeVisible();
 
   // Ada sees her mentor, the meeting and her circle; Tunde has a circle but no mentor.
-  await ada.goto('/app/programme');
+  await ada.goto('/app/programme/community');
   const adaCommunity = ada.getByRole('heading', { name: 'My community' }).locator('..');
   await expect(adaCommunity.getByText('Musa Mentor').first()).toBeVisible();
   await expect(adaCommunity.getByRole('link', { name: 'Join meeting' })).toBeVisible();
   await expect(adaCommunity.getByText('Sankofa')).toBeVisible();
-  await tunde.goto('/app/programme');
+  await tunde.goto('/app/programme/community');
   const tundeCommunity = tunde.getByRole('heading', { name: 'My community' }).locator('..');
   await expect(tundeCommunity.getByText('You don’t have a mentor yet.', { exact: false })).toBeVisible();
   await expect(tundeCommunity.getByRole('list', { name: 'Members of Sankofa' }).getByText('Ada Obi')).toBeVisible();
@@ -121,7 +121,7 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await expect(mentor.getByText('Logged as held.')).toBeVisible();
   // The save and Ada's page load can cross; she sees the notes once the save has landed.
   await expect(async () => {
-    await ada.goto('/app/programme');
+    await ada.goto('/app/programme/community');
     await expect(ada.getByText('Agreed to interview five farmers before Friday.')).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 20_000 });
 
@@ -137,7 +137,7 @@ test('a cohort’s mentors and Dream Circles reach the learner, and mentors sche
   await expect(ada.getByRole('heading', { name: 'Mentors and Dream Circles' })).toHaveCount(0);
 
   // COMM-2: the circle's own space. Ada posts a picture and a link; Post waits for something to post.
-  await ada.goto('/app/programme');
+  await ada.goto('/app/programme/community');
   await ada.getByRole('heading', { name: 'My community' }).locator('..').getByRole('link', { name: 'Open circle' }).click();
   await expect(ada.getByRole('heading', { name: 'Sankofa', level: 1 })).toBeVisible();
   const circleUrl = ada.url();
