@@ -144,6 +144,8 @@ test.describe('learning', () => {
 
     await page.goto('/app');
     await expect(page.getByRole('heading', { name: 'Continue learning' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Continue Problem Solving' })).toBeVisible();
+    await expect(page.getByRole('progressbar', { name: /^Problem Solving: \d+% done$/ })).toBeVisible();
   });
 
   test('course home and the player always have a way out', async ({ page }) => {
@@ -182,7 +184,14 @@ test.describe('platform admin console', () => {
     await signedIn(page, email, password);
     await page.getByRole('navigation', { name: 'Platform admin' }).getByRole('link', { name: 'Overview' }).click();
     await expect(page.getByRole('heading', { name: 'Platform overview' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Key figures' })).toBeVisible();
+    // The detailed figures live on Insights now.
+    await page.getByRole('link', { name: 'Open insights' }).click();
+    await expect(page).toHaveURL(/\/app\/admin\/insights$/);
+    await expect(page.getByRole('heading', { name: 'Insights', level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Sign-ups, last 14 days' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Account safety' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Organisations by kind' })).toBeVisible();
     const admin = page.getByRole('navigation', { name: 'Platform admin' });
 
     await admin.getByRole('link', { name: 'Catalog' }).click();

@@ -108,6 +108,12 @@ test('a cohort learner sets a goal on joining, sees their pace, a catch-up plan 
   await expect(learner.getByRole('heading', { name: 'Welcome. What brings you to The African Dream Lab?' })).toBeVisible();
   await setGoal(learner);
 
+  // The overview keeps one next step, with the pace as a quiet line that opens the Progress tab.
+  await expect(learner.getByRole('heading', { name: 'Your next step' })).toBeVisible();
+  await learner.getByRole('link', { name: 'See your pace' }).first().click();
+  await expect(learner).toHaveURL(/\/app\/programme\/progress$/);
+  await expect(learner.getByRole('navigation', { name: 'Programme pages' }).getByRole('link', { name: 'Progress' })).toHaveAttribute('aria-current', 'page');
+
   // The pace card: plain words, progress against the calendar, and when behind a short, kind list.
   const pace = learner.getByRole('region', { name: `Your pace in ${cohortName}` });
   await expect(pace).toBeVisible();
@@ -119,26 +125,32 @@ test('a cohort learner sets a goal on joining, sees their pace, a catch-up plan 
     const items = plan.getByRole('listitem');
     expect(await items.count()).toBeGreaterThan(0);
     expect(await items.count()).toBeLessThanOrEqual(3);
-    // The goal comes first as a reminder when behind.
-    await expect(learner.getByText('Remember why you started')).toBeVisible();
+    // The goal is shown back as a reminder when behind.
+    await expect(pace.getByText(`“${WHY}”`)).toBeVisible();
     await expect(pace.getByText(/about \d+% expected by now/)).toBeVisible();
     await expect(pace).not.toContainText(/overdue|failing|you missed/i);
     await plan.getByRole('link', { name: /^Start / }).first().click();
     await expect(learner).toHaveURL(/\/learn\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/);
+    // On the overview too, quietly.
     await learner.goto('/app/programme');
+    await expect(learner.getByText('Remember why you started')).toBeVisible();
   }
 
-  // The first week: the goal is ticked, the rest link where to do them.
-  const firstWeek = learner.getByRole('region', { name: 'Your first week' });
-  await expect(firstWeek.getByText(/^1 of [23] done$/)).toBeVisible();
-  await expect(firstWeek.getByText('Set your goal')).toBeVisible();
-
   // The way to the certificate counts what's done.
+  await learner.goto('/app/programme/progress');
   const certificate = learner.getByRole('region', { name: 'Your way to the certificate in The African Dream Lab' });
   await expect(certificate.getByText(/^\d+ of \d+ done$/)).toBeVisible();
   expect(await certificate.getByRole('listitem').count()).toBeGreaterThan(0);
 
+  // The first week, on the overview: the goal is ticked, the rest link where to do them.
+  await learner.goto('/app/programme');
+  const firstWeek = learner.getByRole('region', { name: 'Your first week' });
+  await expect(firstWeek.getByText(/^1 of [23] done$/)).toBeVisible();
+  await expect(firstWeek.getByText('Set your goal')).toBeVisible();
+
   // Catch-up weeks stand out in the calendar (when the programme has any).
+  await learner.goto('/app/programme/calendar');
+  await expect(learner.getByRole('heading', { name: 'Week by week' })).toBeVisible();
   const catchUpWeeks = learner.locator('tr[data-week-kind="catch_up"]');
   for (let i = 0; i < (await catchUpWeeks.count()); i++) await expect(catchUpWeeks.nth(i).getByText('Catch-up week')).toBeVisible();
   await learner.context().close();
@@ -164,7 +176,7 @@ test('Dream Circle members choose to share their week, and nobody is ranked', as
   await expect(page.getByText('Sankofa is formed. Its members have been told.')).toBeVisible();
 
   // Nobody shares until they choose to.
-  await ada.goto('/app/programme');
+  await ada.goto('/app/programme/community');
   await ada.getByRole('link', { name: 'Open circle' }).click();
   await expect(ada.getByRole('heading', { name: 'Sankofa', level: 1 })).toBeVisible();
   await expect(ada.getByRole('heading', { name: 'This week' })).toBeVisible();

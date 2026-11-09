@@ -34,11 +34,13 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
           { href: '/app', label: 'Home', icon: 'home', show: true, exact: true },
           { href: '/app/learning', label: 'My learning', icon: 'book', show: true },
           { href: '/app/programme', label: 'My programme', icon: 'calendar', show: true },
+          { href: '/app/activity', label: 'Activity', icon: 'refresh', show: true },
           { href: '/app/journal', label: 'Journal', icon: 'journal', show: true },
           { href: '/app/apply', label: 'Applications', icon: 'file', show: true },
           { href: '/app/credentials', label: 'Credentials', icon: 'shield', show: true },
           { href: '/app/mentoring', label: 'Mentoring', icon: 'users', show: Boolean(active) && can(me, 'mentorship.conduct') },
           { href: '/courses', label: 'Courses', icon: 'compass', show: true },
+          { href: '/app/spaces', label: 'Spaces', icon: 'building', show: true },
           { href: '/app/account', label: 'Account', icon: 'user', show: true },
         ]
   ).filter((i) => i.show) as Item[];
@@ -46,6 +48,13 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
     admin
       ? []
       : [
+          {
+            href: '/app/organisation',
+            label: 'Overview',
+            icon: 'chart',
+            show: Boolean(active) && (can(me, 'org.members.read') || can(me, 'org.members.invite')),
+            exact: true,
+          },
           { href: '/app/members', label: 'People', icon: 'users', show: Boolean(active) && can(me, 'org.members.read') },
           { href: '/app/cohorts', label: 'Cohorts', icon: 'spark', show: Boolean(active) && can(me, 'cohort.manage') },
           { href: '/app/grading', label: 'Grading', icon: 'check', show: Boolean(active) && can(me, 'submission.grade') },
@@ -70,6 +79,7 @@ export async function SignedInShell({ children }: { children: ReactNode }) {
   const platform: Item[] = admin
     ? [
         { href: '/app/admin', label: 'Overview', icon: 'chart', show: true, exact: true },
+        { href: '/app/admin/insights', label: 'Insights', icon: 'spark', show: true },
         { href: '/app/admin/users', label: 'People', icon: 'users', show: true },
         { href: '/app/admin/organisations', label: 'Organisations', icon: 'building', show: true },
         { href: '/app/admin/catalog', label: 'Catalog', icon: 'grid', show: true },

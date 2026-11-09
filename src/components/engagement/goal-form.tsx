@@ -201,6 +201,7 @@ export function GoalCard({
   welcome = false,
   title,
   behind = false,
+  compact = false,
 }: {
   scope: GoalScope;
   enrollmentId: string;
@@ -211,13 +212,58 @@ export function GoalCard({
   title: string;
   /** Behind on pace: the goal comes first as a reminder. */
   behind?: boolean;
+  /**
+   * Quiet, for an overview: once set, the goal is one quoted line with "Change"; until set (and not
+   * just joined) it waits behind a "Set your goal" button rather than opening the form.
+   */
+  compact?: boolean;
 }) {
   // Which saved goal the form was opened to change: a save brings a newer one, which closes the form.
   const [editingFor, setEditingFor] = useState<string | null>(null);
-  const [later, setLater] = useState(false);
+  const [later, setLater] = useState(compact && !welcome);
   const heading = useRef<HTMLHeadingElement>(null);
   const savedAt = goal?.updatedAt;
   const editing = !goal || editingFor === savedAt;
+
+  if (compact && !goal && later) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="min-w-0 flex-1 text-[14px] text-muted">People who write down why they started are more likely to finish.</p>
+        {/* The target of the checklist's "Set your goal" link. */}
+        <button
+          id={`goal-${enrollmentId}`}
+          type="button"
+          onClick={() => {
+            setLater(false);
+            requestAnimationFrame(() => heading.current?.focus());
+          }}
+          className="dl-press min-h-11 scroll-mt-24 rounded-full bg-card px-4 text-[14px] font-semibold text-link ring-1 ring-line-strong hover:ring-line-heavy"
+        >
+          Set your goal
+        </button>
+      </div>
+    );
+  }
+
+  if (compact && goal && !editing) {
+    return (
+      <section id={`goal-${enrollmentId}`} className="dl-fade scroll-mt-24 space-y-1.5" aria-labelledby={`goal-heading-${enrollmentId}`}>
+        <h3 id={`goal-heading-${enrollmentId}`} ref={heading} tabIndex={-1} className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted focus:outline-none">
+          Why you’re here
+        </h3>
+        <blockquote className="border-l-2 border-gold-line pl-3 text-[15px] leading-relaxed text-ink">
+          {behind && <span className="text-muted">Remember why you started: </span>}“{goal.why}”
+        </blockquote>
+        <p className="flex flex-wrap items-center gap-x-2 pl-3.5 text-[13px] text-muted">
+          <span>{planText(goal)}</span>
+          <span aria-hidden>·</span>
+          <button type="button" onClick={() => setEditingFor(savedAt ?? null)} className="dl-press min-h-10 font-semibold text-link hover:underline">
+            Change<span className="sr-only"> goal or plan</span>
+          </button>
+        </p>
+      </section>
+    );
+  }
 
   if (!goal && later) {
     return (

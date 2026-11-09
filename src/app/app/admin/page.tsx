@@ -1,257 +1,139 @@
-import type { LearningStats, Organization, PlatformOverview, PlatformUser } from '@dreamlab/contracts';
+import type { LearningStats, PlatformOverview } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ActivityFeed, DashboardGrid, type FeedEntry, inPeriod, PageTitle, periodOf, ProfileCard, SummaryHeader, SummaryTile } from '@/components/app/dashboard';
-import { Card, Notice } from '@/components/ui/primitives';
+import { Icon, type IconName } from '@/components/ui/icons';
+import { CountUp } from '@/components/ui/motion';
+import { Notice } from '@/components/ui/primitives';
 import { friendlyError } from '@/lib/errors';
 import { api } from '@/lib/gateway';
-import { initials, KIND_LABELS } from '@/lib/labels';
-import { getMe } from '@/lib/me';
 
 export const metadata: Metadata = { title: 'Platform overview' };
 
 const n = (v: number) => v.toLocaleString('en-GB');
+const plural = (count: number, one: string, many: string) => `${n(count)} ${count === 1 ? one : many}`;
 
-function Stat({ label, value, hint, href }: { label: string; value: number; hint?: string; href?: string }) {
-  const body = (
-    <>
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="font-display text-[30px] font-extrabold leading-tight text-ink">{n(value)}</p>
-      {hint && <p className="text-[12.5px] text-muted">{hint}</p>}
-    </>
-  );
-  return href ? (
-    <Link href={href} className="block rounded-[var(--radius-card)] bg-card p-4 ring-1 ring-line hover:ring-line-heavy sm:p-5">
-      {body}
-    </Link>
-  ) : (
-    <div className="rounded-[var(--radius-card)] bg-card p-4 ring-1 ring-line sm:p-5">{body}</div>
-  );
-}
-
-export default async function PlatformOverviewPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const period = periodOf((await searchParams).period);
-  const [me, overview, stats, users, pending] = await Promise.all([
-    getMe(),
+/**
+ * The platform admin's landing page, kept calm on purpose: four key figures, what needs attention
+ * (only when something does), and the places admins go next. The detail lives on /app/admin/insights.
+ */
+export default async function PlatformOverviewPage() {
+  const [overview, stats] = await Promise.all([
     api<PlatformOverview>('GET', '/v1/platform/overview'),
     api<LearningStats>('GET', '/v1/learning/admin/stats'),
-    api<{ items: PlatformUser[] }>('GET', '/v1/platform/users?limit=100'),
-    api<{ items: Organization[] }>('GET', '/v1/orgs?status=pending&limit=20'),
   ]);
-  const people = users.ok ? users.data.items : [];
-  const waiting = pending.ok ? pending.data.items : [];
-  const total = overview.ok ? overview.data.users.total : people.length;
-  // Newest first, at most 100: past that, "this month" is at least 100.
-  const joined = people.filter((u) => inPeriod(u.createdAt, period)).length;
-  const joinedLabel = period === 'all' ? total : people.length === 100 && joined === 100 ? '100+' : joined;
-  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+  const o = overview.ok ? overview.data : null;
+  const s = stats.ok ? stats.data : null;
 
-  const feed: FeedEntry[] = [
-    ...people.slice(0, 6).map(
-      (u): FeedEntry => ({
-        id: u.id,
-        at: u.createdAt,
-        avatar: { initials: initials(u.fullName), tone: 'jade' },
-        title: `${u.fullName} signed up`,
-        subtitle: u.email ?? u.phone ?? undefined,
-        tags: [u.verified ? 'Verified' : 'Unverified', ...(u.mfaEnabled ? ['2-step'] : [])],
-        href: `/app/admin/users/${u.id}`,
-        hrefLabel: `Open ${u.fullName}`,
-      }),
-    ),
-    ...waiting.slice(0, 5).map(
-      (o): FeedEntry => ({
-        id: o.id,
-        at: o.createdAt,
-        avatar: { icon: 'building', tone: 'gold' },
-        title: `${o.name} asked to join`,
-        subtitle: 'Waiting for review',
-        tags: o.kinds.map((k) => KIND_LABELS[k] ?? k),
-        href: '/app/admin/organisations?status=pending',
-        hrefLabel: `Review ${o.name}`,
-      }),
-    ),
-  ]
-    .sort((a, b) => b.at.localeCompare(a.at))
-    .slice(0, 8);
+  const figures: Figure[] = [
+    { label: 'People', value: o?.users.total, hint: o ? (o.users.new7d ? `+${n(o.users.new7d)} this week` : 'No new sign-ups this week') : undefined, href: '/app/admin/users' },
+    {
+      label: 'Organisations',
+      value: o?.organizations.total,
+      // The total counts every status. The Organisations page has no "all" view, so this opens it unfiltered, on
+      // its first tab (waiting for review), which is what the hint describes.
+      hint: o ? (o.organizations.pending ? `${n(o.organizations.pending)} waiting for approval` : 'None waiting for approval') : undefined,
+      href: '/app/admin/organisations',
+    },
+    { label: 'Active learners', value: s?.activeLearners7d, hint: 'In the last 7 days', href: '/app/admin/insights#learning' },
+    {
+      label: 'Completions',
+      value: s?.completions,
+      hint: s ? (s.enrollments ? `${Math.round((s.completions / s.enrollments) * 100)}% of enrolments` : 'No enrolments yet') : undefined,
+      href: '/app/admin/insights#learning',
+    },
+  ];
 
-  const main = (
-    <>
-      <PageTitle title="Platform overview" intro="People, organisations and learning across every space." />
+  const attention: { text: string; href: string; tone: 'gold' | 'danger' | 'muted' }[] = o
+    ? [
+        ...(o.organizations.pending ? [{ text: `${plural(o.organizations.pending, 'organisation is', 'organisations are')} waiting for approval`, href: '/app/admin/organisations?status=pending', tone: 'gold' as const }] : []),
+        ...(o.users.suspended ? [{ text: `${plural(o.users.suspended, 'account is', 'accounts are')} suspended`, href: '/app/admin/users?status=suspended', tone: 'danger' as const }] : []),
+        ...(o.users.banned ? [{ text: `${plural(o.users.banned, 'account is', 'accounts are')} banned`, href: '/app/admin/users?status=banned', tone: 'muted' as const }] : []),
+      ]
+    : [];
 
-      <ProfileCard
-        name={me.user.fullName}
-        role="Platform admin"
-        since={me.user.createdAt}
-        contact={[...(me.user.email ? [{ icon: 'mail', text: me.user.email }] : []), ...(me.user.phone ? [{ icon: 'phone', text: me.user.phone }] : [])]}
-        stats={[
-          { label: 'People', value: total, pct: overview.ok ? pct(overview.data.users.withMfa, total) : 0, tone: 'jade', hint: overview.ok ? `${n(overview.data.users.withMfa)} with 2-step` : undefined },
-          {
-            label: 'Organisations',
-            value: overview.ok ? overview.data.organizations.total : '—',
-            pct: overview.ok ? pct(overview.data.organizations.total - overview.data.organizations.pending, overview.data.organizations.total) : 0,
-            tone: 'gold',
-            hint: overview.ok ? `${n(overview.data.organizations.pending)} in review` : undefined,
-          },
-          { label: 'Enrolments', value: stats.ok ? stats.data.enrollments : '—', pct: stats.ok ? pct(stats.data.completions, stats.data.enrollments) : 0, tone: 'forest', hint: stats.ok ? `${n(stats.data.completions)} completed` : undefined },
-        ]}
-      />
-
-      <section className="space-y-4" aria-labelledby="platform-summary">
-        <SummaryHeader id="platform-summary" title="Summary" period={period} action="/app/admin" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryTile
-            title="Pending organisations"
-            text="Schools, partners and sponsors to check."
-            href="/app/admin/organisations?status=pending"
-            updated={waiting[0]?.createdAt ?? null}
-            count={overview.ok ? overview.data.organizations.pending : waiting.length}
-            tone="gold"
-          />
-          <SummaryTile
-            title="New sign-ups"
-            text={period === 'month' ? 'Accounts created this month.' : 'Accounts on the platform.'}
-            href="/app/admin/users"
-            updated={people[0]?.createdAt ?? null}
-            count={joinedLabel}
-            tone="jade"
-          />
-          <SummaryTile title="Completions" text="Courses finished, all time." href="/app/admin/catalog" note="Across every space" count={stats.ok ? stats.data.completions : '—'} tone="sky" />
-          <SummaryTile
-            title="Active learners"
-            text="Learned something in the last 7 days."
-            href="/app/admin/catalog"
-            note={stats.ok ? `${n(stats.data.submissions7d)} submissions this week` : undefined}
-            count={stats.ok ? stats.data.activeLearners7d : '—'}
-            tone="sage"
-          />
+  return (
+    <div className="space-y-12">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div className="min-w-0 space-y-1">
+          <h1 className="text-[30px] font-extrabold leading-tight sm:text-[38px]">Platform overview</h1>
+          <p className="text-[14.5px] text-muted">What matters today, across every space.</p>
         </div>
-      </section>
+        <Link href="/app/admin/insights" className="dl-press inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-link hover:underline">
+          Open insights
+          <Icon name="arrow" className="h-4 w-4" />
+        </Link>
+      </header>
 
-      {!overview.ok ? (
-        <Notice tone="error">{friendlyError(overview.error)}</Notice>
-      ) : (
-        <>
-          <section className="grid grid-cols-2 gap-3 md:grid-cols-3" aria-label="Account safety">
-            <Stat label="Two-step sign-in" value={overview.data.users.withMfa} hint={overview.data.users.total ? `${Math.round((overview.data.users.withMfa / overview.data.users.total) * 100)}% of people` : undefined} />
-            <Stat label="Suspended" value={overview.data.users.suspended} hint="Kept out for now" href="/app/admin/users?status=suspended" />
-            <Stat label="Banned" value={overview.data.users.banned} hint="Accounts closed" href="/app/admin/users?status=banned" />
-          </section>
-
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] [&>*]:min-w-0">
-            <Card className="space-y-4 rounded-[var(--radius-tile)] p-5 sm:p-6">
-              <div className="flex items-baseline justify-between">
-                <h2 className="text-[18px] font-bold">Sign-ups, last 14 days</h2>
-                <span className="font-mono text-[12px] text-muted">{n(overview.data.signups.reduce((s, d) => s + d.count, 0))} total</span>
-              </div>
-              <SignupChart days={overview.data.signups} />
-            </Card>
-            <Card className="space-y-3 rounded-[var(--radius-tile)] p-5 sm:p-6">
-              <h2 className="text-[18px] font-bold">Organisations by kind</h2>
-              <ul className="divide-y divide-line">
-                {Object.entries(overview.data.organizations.byKind)
-                  .filter(([k]) => k !== 'platform')
-                  .map(([k, v]) => (
-                    <li key={k} className="flex items-center justify-between py-2.5 text-[14px]">
-                      <span className="text-body">{KIND_LABELS[k] ?? k}</span>
-                      <span className="font-mono font-semibold text-ink">{n(v ?? 0)}</span>
-                    </li>
-                  ))}
-              </ul>
-            </Card>
-          </div>
-        </>
+      {(!overview.ok || !stats.ok) && (
+        <div className="space-y-2">
+          {!overview.ok && <Notice tone="error">{friendlyError(overview.error)}</Notice>}
+          {!stats.ok && <Notice tone="error">{friendlyError(stats.error)}</Notice>}
+        </div>
       )}
 
-      <section className="space-y-4" aria-labelledby="learning-stats">
-        <h2 id="learning-stats" className="text-[22px] font-bold">
-          Learning
+      <section aria-labelledby="key-figures" className="space-y-3">
+        <h2 id="key-figures" className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
+          Key figures
         </h2>
-        {!stats.ok ? (
-          <Notice tone="error">{friendlyError(stats.error)}</Notice>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <Stat label="Enrolments" value={stats.data.enrollments} />
-              <Stat label="Active learners" value={stats.data.activeLearners7d} hint="in the last 7 days" />
-              <Stat label="Completions" value={stats.data.completions} />
-              <Stat label="Submissions" value={stats.data.submissions7d} hint="in the last 7 days" />
-            </div>
-            <Card className="overflow-x-auto rounded-[var(--radius-tile)]">
-              <table className="stack-table w-full text-left text-[14px] sm:min-w-[520px]">
-                <thead className="bg-surface font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted">
-                  <tr>
-                    <th scope="col" className="px-5 py-3">
-                      Course
-                    </th>
-                    <th scope="col" className="px-5 py-3 text-right">
-                      Enrolled
-                    </th>
-                    <th scope="col" className="px-5 py-3 text-right">
-                      Completed
-                    </th>
-                    <th scope="col" className="px-5 py-3">
-                      Average progress
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {stats.data.courses.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-muted">
-                        Nobody has enrolled yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    stats.data.courses.map((c) => (
-                      <tr key={c.slug}>
-                        <td className="px-5 py-3">
-                          <Link href={`/courses/${c.slug}`} className="font-semibold text-ink hover:underline">
-                            {c.title}
-                          </Link>
-                        </td>
-                        <td data-label="Enrolled" className="px-5 py-3 text-right font-mono">{n(c.enrolled)}</td>
-                        <td data-label="Completed" className="px-5 py-3 text-right font-mono">{n(c.completed)}</td>
-                        <td data-label="Progress" className="px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-28 overflow-hidden rounded-full bg-line" aria-hidden>
-                              <div className="h-full rounded-full bg-primary" style={{ width: `${c.avgProgressPct}%` }} />
-                            </div>
-                            <span className="font-mono text-[12.5px] text-muted">{c.avgProgressPct}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </Card>
-          </>
-        )}
+        <ul className="dl-stagger -mx-3 grid grid-cols-2 gap-1 lg:grid-cols-4">
+          {figures.map((f) => (
+            <li key={f.label} className="min-w-0">
+              <Link href={f.href} className="dl-lift block h-full rounded-[var(--radius-card)] px-3 py-3 hover:bg-card">
+                <span className="block text-[13.5px] font-semibold text-body">{f.label}</span>
+                <span className="block font-display text-[32px] font-extrabold leading-tight text-ink sm:text-[38px]">{f.value === undefined ? '—' : <CountUp value={f.value} />}</span>
+                {f.hint && <span className="block text-[12.5px] text-muted">{f.hint}</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
-    </>
-  );
 
-  return <DashboardGrid main={main} feed={<ActivityFeed entries={feed} empty="Sign-ups and organisation requests will show here." />} />;
+      {attention.length > 0 ? (
+        <section aria-labelledby="attention" className="space-y-3">
+          <h2 id="attention" className="text-[19px] font-bold">
+            Needs your attention
+          </h2>
+          <ul className="dl-stagger -mx-3 space-y-1">
+            {attention.map((a) => (
+              <li key={a.href}>
+                <Link href={a.href} className="dl-lift flex min-h-12 items-center gap-3 rounded-[var(--radius-card)] px-3 py-2.5 text-[14.5px] text-ink hover:bg-card">
+                  <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${a.tone === 'gold' ? 'bg-gold' : a.tone === 'danger' ? 'bg-danger' : 'bg-muted'}`} />
+                  <span className="min-w-0 flex-1">{a.text}</span>
+                  <Icon name="arrow" className="h-4 w-4 shrink-0 text-muted" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        o && <p className="text-[14.5px] text-muted">Nothing needs your attention right now.</p>
+      )}
+
+      <section aria-labelledby="quick-links" className="space-y-3">
+        <h2 id="quick-links" className="text-[19px] font-bold">
+          Go to
+        </h2>
+        <ul className="dl-stagger grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {QUICK_LINKS.map((q) => (
+            <li key={q.href} className="min-w-0">
+              <Link href={q.href} className="dl-lift flex h-full flex-col gap-2 rounded-[var(--radius-card)] bg-card px-4 py-4">
+                <Icon name={q.icon} className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-ink">{q.label}</span>
+                <span className="text-[12.5px] text-muted">{q.text}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
 }
 
-function SignupChart({ days }: { days: PlatformOverview['signups'] }) {
-  const max = Math.max(1, ...days.map((d) => d.count));
-  const label = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  return (
-    <figure className="space-y-2">
-      <div className="flex h-36 items-end gap-1.5" role="img" aria-label={`Sign-ups per day: ${days.map((d) => `${label(d.date)} ${d.count}`).join(', ')}`}>
-        {days.map((d) => (
-          <div key={d.date} className="group flex h-full flex-1 flex-col justify-end" title={`${label(d.date)}: ${d.count}`}>
-            <span className="mb-1 text-center font-mono text-[10px] text-muted opacity-0 group-hover:opacity-100">{d.count}</span>
-            <div className="min-h-[3px] rounded-t-md bg-primary/80 group-hover:bg-primary" style={{ height: `${(d.count / max) * 100}%` }} />
-          </div>
-        ))}
-      </div>
-      <figcaption className="flex justify-between font-mono text-[10.5px] text-faint">
-        <span>{days[0] ? label(days[0].date) : ''}</span>
-        <span>{days.at(-1) ? label(days.at(-1)!.date) : ''}</span>
-      </figcaption>
-    </figure>
-  );
-}
+type Figure = { label: string; value: number | undefined; hint?: string; href: string };
+
+const QUICK_LINKS: { href: string; label: string; text: string; icon: IconName }[] = [
+  { href: '/app/admin/users', label: 'People', text: 'Find, suspend or restore accounts.', icon: 'users' },
+  { href: '/app/admin/organisations', label: 'Organisations', text: 'Approve and manage spaces.', icon: 'building' },
+  { href: '/app/admin/catalog', label: 'Catalog', text: 'Courses and programmes.', icon: 'grid' },
+  { href: '/app/cohorts', label: 'Cohorts', text: 'Every scheduled intake.', icon: 'calendar' },
+];

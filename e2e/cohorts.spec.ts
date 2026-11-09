@@ -48,11 +48,20 @@ test('an organisation runs a cohort; a learner joins it, chooses an elective and
   await learner.getByRole('button', { name: `Join ${cohortName}` }).click();
   await expect(learner).toHaveURL(/\/app\/programme(?:\?joined=[^&]*)?$/);
   await expect(learner.getByText(`You’ve joined ${cohortName}`)).toBeVisible();
-  await expect(learner.getByRole('heading', { name: 'Your courses' })).toBeVisible();
+  // The overview: the week, one next step, the next class; the rest is a tab away.
   await expect(learner.getByText('Week 1 of 15')).toBeVisible();
+  await expect(learner.getByRole('heading', { name: 'This week' })).toBeVisible();
+  await expect(learner.getByRole('heading', { name: 'Your next step' })).toBeVisible();
+  await expect(learner.getByRole('heading', { name: 'Next class' })).toBeVisible();
+  await expect(learner.getByText(/^Choose your .* elective/)).toBeVisible();
+  await learner.getByRole('link', { name: 'All classes and the calendar' }).click();
+  await expect(learner).toHaveURL(/\/app\/programme\/calendar$/);
   await expect(learner.getByRole('link', { name: 'Join class' }).first()).toBeVisible();
 
   // One elective, before the deadline.
+  await learner.getByRole('navigation', { name: 'Programme pages' }).getByRole('link', { name: 'Courses' }).click();
+  await expect(learner).toHaveURL(/\/app\/programme\/courses$/);
+  await expect(learner.getByRole('heading', { name: 'Your courses' })).toBeVisible();
   const electives = learner.getByRole('heading', { name: 'Electives' }).locator('..');
   await electives.getByRole('radio').first().check();
   await electives.getByRole('button', { name: 'Save my choice' }).first().click();

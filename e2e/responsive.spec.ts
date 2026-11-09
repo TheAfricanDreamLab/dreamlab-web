@@ -68,7 +68,7 @@ test.describe('responsive layout', () => {
     courseHome = new URL(page.url()).pathname;
     lesson = (await page.getByRole('link', { name: 'Start the course' }).getAttribute('href'))!;
 
-    await visitAll(page, ['/app', '/app/learning', '/app/journal', '/app/account', courseHome, lesson]);
+    await visitAll(page, ['/app', '/app/learning', '/app/activity', '/app/spaces', '/app/journal', '/app/account', courseHome, lesson]);
   });
 
   test('on a 320px phone the menu drawer holds the navigation, and sign-out is reachable', async ({ page }) => {
@@ -112,7 +112,7 @@ test.describe('responsive layout', () => {
 
   test('organisation admin pages fit', async ({ page }) => {
     await createCompany(page, 'Kofi Responsive', unique('responsive-founder'), `Accra Solar Cooperative ${Date.now().toString(36)}`);
-    await visitAll(page, ['/app', '/app/members', '/app/roles', '/app/settings']);
+    await visitAll(page, ['/app', '/app/organisation', '/app/members', '/app/roles', '/app/settings']);
   });
 
   test('platform admin pages fit, tables included', async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe('responsive layout', () => {
     await signedIn(page, email, password);
     await page.goto('/app/admin/users');
     const user = (await page.locator('a[href^="/app/admin/users/"]').first().getAttribute('href'))!;
-    await visitAll(page, ['/app/admin', '/app/admin/users', user, '/app/admin/organisations', '/app/admin/catalog']);
+    await visitAll(page, ['/app/admin', '/app/admin/insights', '/app/admin/users', user, '/app/admin/organisations', '/app/admin/catalog']);
 
     // On a phone the people table becomes stacked cards, still one row per person.
     await page.setViewportSize({ width: 320, height: 800 });
