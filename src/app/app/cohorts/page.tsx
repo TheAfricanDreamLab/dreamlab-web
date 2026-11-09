@@ -45,32 +45,30 @@ export default async function CohortsPage() {
           {!cohorts.ok ? (
             <Notice tone="error">{friendlyError(cohorts.error)}</Notice>
           ) : cohorts.data.items.length === 0 ? (
-            <Card className="p-6 text-[14.5px] text-muted">No cohorts yet. Schedule the first one here.</Card>
+            <p className="text-[14.5px] text-muted">No cohorts yet. Schedule the first one here.</p>
           ) : (
-            <Card>
-              <ul className="divide-y divide-line">
-                {cohorts.data.items.map((c) => (
-                  <li key={c.id}>
-                    <Link href={`/app/cohorts/${c.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 hover:bg-surface">
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-ink">{c.name}</span>
-                        <span className="block text-[13px] text-muted">
-                          {c.programTitle} · {calendarDate(c.startsOn)} – {calendarDate(c.endsOn)}
-                          {me.platformAdmin && ` · ${c.hostOrgName}`}
-                        </span>
+            <ul className="dl-stagger -mx-3 space-y-1">
+              {cohorts.data.items.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/app/cohorts/${c.id}`} className="dl-lift flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] px-3 py-3 hover:bg-card">
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-ink">{c.name}</span>
+                      <span className="block text-[13px] text-muted">
+                        {c.programTitle} · {calendarDate(c.startsOn)} – {calendarDate(c.endsOn)}
+                        {me.platformAdmin && ` · ${c.hostOrgName}`}
                       </span>
-                      <span className="flex items-center gap-3">
-                        <span className="text-[13px] text-muted">
-                          {c.learnerCount}
-                          {c.capacity !== null && ` / ${c.capacity}`} {c.learnerCount === 1 && c.capacity === null ? 'learner' : 'learners'}
-                        </span>
-                        <Badge tone={COHORT_STATUS_TONES[c.status]}>{COHORT_STATUS_LABELS[c.status]}</Badge>
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="text-[13px] text-muted">
+                        {c.learnerCount}
+                        {c.capacity !== null && ` / ${c.capacity}`} {c.learnerCount === 1 && c.capacity === null ? 'learner' : 'learners'}
                       </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+                      <Badge tone={COHORT_STATUS_TONES[c.status]}>{COHORT_STATUS_LABELS[c.status]}</Badge>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 

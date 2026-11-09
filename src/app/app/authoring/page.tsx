@@ -24,7 +24,7 @@ export default async function AuthoringPage({ searchParams }: Props) {
         <h1 className="text-[30px] font-extrabold">Authoring</h1>
         <p className="text-[14.5px] text-muted">Write courses in drafts, send them for review, and publish them as new versions. Learners already enrolled stay on their version.</p>
         {res.ok && res.data.can.author && (
-          <p className="flex flex-wrap gap-x-5 gap-y-1 pt-1 text-[14px]">
+          <p className="flex flex-wrap gap-x-5 gap-y-1 pt-2 text-[13.5px]">
             <Link href="/app/authoring/videos" className="font-semibold text-link hover:underline">
               Video library
             </Link>
@@ -59,35 +59,33 @@ export default async function AuthoringPage({ searchParams }: Props) {
                 Courses
               </h2>
               {res.data.courses.length === 0 ? (
-                <Card className="p-6 text-[14.5px] text-muted">No published courses yet. Start one on the right.</Card>
+                <p className="text-[14.5px] text-muted">No published courses yet.</p>
               ) : (
-                <Card>
-                  <ul className="divide-y divide-line">
-                    {res.data.courses.map((c) => (
-                      <li key={c.courseId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                        <span className="min-w-0">
-                          <span className="block font-semibold text-ink">{c.title}</span>
-                          <span className="block text-[13px] text-muted">
-                            {VISIBILITY_LABELS[c.visibility] ?? c.visibility} · {c.versionNo ? `version ${c.versionNo}` : 'coming soon'}
-                          </span>
+                <ul className="dl-stagger -mx-3 space-y-1">
+                  {res.data.courses.map((c) => (
+                    <li key={c.courseId} className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] px-3 py-3 hover:bg-card">
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-ink">{c.title}</span>
+                        <span className="block text-[13px] text-muted">
+                          {VISIBILITY_LABELS[c.visibility] ?? c.visibility} · {c.versionNo ? `version ${c.versionNo}` : 'coming soon'}
                         </span>
-                        <span className="flex items-center gap-2">
-                          {c.openDraft && <Badge tone={DRAFT_STATUS_TONES[c.openDraft.status]}>{DRAFT_STATUS_LABELS[c.openDraft.status]}</Badge>}
-                          {c.canEdit || c.openDraft ? (
-                            <form action={editCourse}>
-                              <input type="hidden" name="courseSlug" value={c.slug} />
-                              {c.openDraft && <input type="hidden" name="draftId" value={c.openDraft.id} />}
-                              <button type="submit" className="min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-link hover:bg-success-tint">
-                                {c.openDraft ? 'Open draft' : 'Edit'}
-                                <span className="sr-only"> {c.title}</span>
-                              </button>
-                            </form>
-                          ) : null}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {c.openDraft && <Badge tone={DRAFT_STATUS_TONES[c.openDraft.status]}>{DRAFT_STATUS_LABELS[c.openDraft.status]}</Badge>}
+                        {c.canEdit || c.openDraft ? (
+                          <form action={editCourse}>
+                            <input type="hidden" name="courseSlug" value={c.slug} />
+                            {c.openDraft && <input type="hidden" name="draftId" value={c.openDraft.id} />}
+                            <button type="submit" className="dl-press min-h-10 rounded-lg px-3 text-[13.5px] font-semibold text-link hover:bg-success-tint">
+                              {c.openDraft ? 'Open draft' : 'Edit'}
+                              <span className="sr-only"> {c.title}</span>
+                            </button>
+                          </form>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
 
@@ -119,23 +117,21 @@ export default async function AuthoringPage({ searchParams }: Props) {
 
 function DraftList({ drafts, showOwner = false }: { drafts: DraftSummary[]; showOwner?: boolean }) {
   return (
-    <Card>
-      <ul className="divide-y divide-line">
-        {drafts.map((d) => (
-          <li key={d.id}>
-            <Link href={`/app/authoring/${d.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-surface">
-              <span className="min-w-0">
-                <span className="block font-semibold text-ink">{d.title}</span>
-                <span className="block text-[13px] text-muted">
-                  {showOwner && `${d.ownerName} · `}
-                  {VISIBILITY_LABELS[d.visibility] ?? d.visibility} · {d.updatedBy?.name ?? 'Someone'} · {dateTime(d.updatedAt)}
-                </span>
+    <ul className="dl-stagger -mx-3 space-y-1">
+      {drafts.map((d) => (
+        <li key={d.id}>
+          <Link href={`/app/authoring/${d.id}`} className="dl-lift flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] px-3 py-3 hover:bg-card">
+            <span className="min-w-0">
+              <span className="block font-semibold text-ink">{d.title}</span>
+              <span className="block text-[13px] text-muted">
+                {showOwner && `${d.ownerName} · `}
+                {VISIBILITY_LABELS[d.visibility] ?? d.visibility} · {d.updatedBy?.name ?? 'Someone'} · {dateTime(d.updatedAt)}
               </span>
-              <Badge tone={DRAFT_STATUS_TONES[d.status]}>{DRAFT_STATUS_LABELS[d.status]}</Badge>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </Card>
+            </span>
+            <Badge tone={DRAFT_STATUS_TONES[d.status]}>{DRAFT_STATUS_LABELS[d.status]}</Badge>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
