@@ -1,10 +1,9 @@
-import type { CourseSummary, EnrollmentSummary, InvitationSchema, Membership } from '@dreamlab/contracts';
+import type { CourseSummary, EnrollmentSummary } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import type { z } from 'zod';
-import { ActivityFeed, type FeedEntry, inPeriod, PageTitle, periodOf, SummaryHeader, SummaryTile } from '@/components/app/dashboard';
-import { api } from '@/lib/gateway';
-import { type JournalEntry, LEVEL_LABELS, plural } from '@/lib/learning';
+import { ActivityFeed, type FeedEntry, inPeriod, LoadNote, PageTitle, periodOf, SummaryHeader, SummaryTile } from '@/components/app/dashboard';
+import { api, countList } from '@/lib/gateway';
+import { type JournalEntry, LEVEL_LABELS, pluralCount } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
 
 export const metadata: Metadata = { title: 'Activity' };
@@ -19,12 +18,14 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   if (me.platformAdmin) redirect('/app/admin');
   const active = activeMembership(me);
   const orgId = active?.org.id;
+  const canRead = Boolean(orgId) && can(me, 'org.members.read');
+  const canInvite = Boolean(orgId) && can(me, 'org.members.invite');
   const [learning, journal, catalog, members, invitations] = await Promise.all([
     api<{ items: EnrollmentSummary[] }>('GET', '/v1/learning/enrollments'),
     api<{ items: JournalEntry[] }>('GET', '/v1/learning/journal'),
     api<{ items: CourseSummary[] }>('GET', '/v1/catalog/courses'),
-    orgId && can(me, 'org.members.read') ? api<{ items: Membership[] }>('GET', `/v1/orgs/${orgId}/members?limit=100`) : null,
-    orgId && can(me, 'org.members.invite') ? api<{ items: z.infer<typeof InvitationSchema>[] }>('GET', `/v1/orgs/${orgId}/invitations?status=pending&limit=100`) : null,
+    canRead ? countList(`/v1/orgs/${orgId}/members?status=active`) : null,
+    canInvite ? countList(`/v1/orgs/${orgId}/invitations?status=pending`) : null,
   ]);
 
   const enrolments = learning.ok ? learning.data.items : [];
@@ -34,6 +35,8 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   const enrolledSlugs = new Set(enrolments.map((e) => e.courseSlug));
   const discover = (catalog.ok ? catalog.data.items : []).filter((c) => !enrolledSlugs.has(c.slug) && c.availability === 'available');
   const periodText = period === 'month' ? 'this month' : 'so far';
+  // A figure that didn't load shows a dash and says so, never a zero.
+  const unknown = { count: '–', note: 'Couldn’t load just now' };
 
   const tiles = [
     {
@@ -43,6 +46,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
       updated: latest(continuing.map((e) => e.lastActiveAt)),
       count: continuing.length,
       tone: 'jade' as const,
+      ...(learning.ok ? {} : { ...unknown, text: 'Courses you’ve started.' }),
     },
     {
       title: 'Completed',
@@ -51,6 +55,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
       updated: latest(completed.map((e) => e.completedAt)),
       count: completed.filter((e) => inPeriod(e.completedAt, period)).length,
       tone: 'gold' as const,
+      ...(learning.ok ? {} : unknown),
     },
     {
       title: 'Reflections',
@@ -59,18 +64,28 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
       updated: latest(entries.map((e) => e.createdAt)),
       count: entries.filter((e) => inPeriod(e.createdAt, period)).length,
       tone: 'sky' as const,
+      ...(journal.ok ? {} : unknown),
     },
-    members?.ok && active
+    canRead && active
       ? {
           title: 'Members',
           text: `Everyone in ${active.org.name}.`,
           href: '/app/members',
-          note: invitations?.ok && invitations.data.items.length ? `${plural(invitations.data.items.length, 'invitation')} waiting` : 'No invitations waiting',
-          count: members.data.items.filter((m) => m.status === 'active').length,
+          note: invitations?.n ? `${pluralCount(invitations, 'invitation')} waiting` : canInvite && !invitations ? 'Invitations couldn’t load just now' : 'No invitations waiting',
+          count: members ? (members.more ? `${members.n}+` : members.n) : '–',
           tone: 'sage' as const,
         }
-      : { title: 'New to explore', text: 'Open courses you haven’t started.', href: '/courses', note: 'Free to start', count: discover.length, tone: 'sage' as const },
+      : {
+          title: 'New to explore',
+          text: 'Open courses you haven’t started.',
+          href: '/courses',
+          note: 'Free to start',
+          count: discover.length,
+          tone: 'sage' as const,
+          ...(learning.ok && catalog.ok ? {} : unknown),
+        },
   ];
+  const feedGaps = [!learning.ok && 'courses', !journal.ok && 'reflections'].filter(Boolean).join(' and ');
 
   // The feed comes from what the learning service already records: enrolments, progress and journal entries.
   const feed: FeedEntry[] = [
@@ -127,9 +142,16 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
             <SummaryTile key={t.title} {...t} />
           ))}
         </div>
+        {(!learning.ok || !journal.ok || (canRead && !members) || (canInvite && !invitations)) && (
+          <LoadNote retry={`/app/activity?period=${period}`}>We couldn’t load some of these figures just now.</LoadNote>
+        )}
       </section>
 
-      <ActivityFeed entries={feed} empty="Your activity will show here: courses you start, lessons you finish and reflections you save." />
+      <ActivityFeed
+        entries={feed}
+        empty={feedGaps ? 'Nothing to show yet.' : 'Your activity will show here: courses you start, lessons you finish and reflections you save.'}
+        notice={feedGaps ? <LoadNote retry={`/app/activity?period=${period}`}>{`We couldn’t load your ${feedGaps} just now, so this feed may be missing some activity.`}</LoadNote> : undefined}
+      />
     </div>
   );
 }

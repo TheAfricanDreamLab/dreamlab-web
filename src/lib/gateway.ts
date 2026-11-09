@@ -88,3 +88,24 @@ export async function callGateway<T>(
 export async function api<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<ApiResult<T>> {
   return callGateway<T>(method, path, { body, token: await getAccessToken(), request: await incomingRequest() });
 }
+
+/** A count from a paged list. `more` means there were more pages than we read, so show it as "500+". */
+export type ListCount = { n: number; more: boolean };
+
+/**
+ * Counts a paged list (`{ items, nextCursor }`) by following its cursors, 100 at a time, up to `maxPages`.
+ * `null` when a page fails to load, so a failure never reads as zero.
+ */
+export async function countList(path: string, maxPages = 5): Promise<ListCount | null> {
+  let n = 0;
+  let cursor: string | null = null;
+  for (let page = 0; page < maxPages; page++) {
+    const sep = path.includes('?') ? '&' : '?';
+    const res: ApiResult<{ items: unknown[]; nextCursor: string | null }> = await api('GET', `${path}${sep}limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    if (!res.ok) return null;
+    n += res.data.items.length;
+    cursor = res.data.nextCursor;
+    if (!cursor) return { n, more: false };
+  }
+  return { n, more: true };
+}

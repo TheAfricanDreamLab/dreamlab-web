@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { switchOrg } from '@/app/actions/auth';
 import { joinOrganisation } from '@/app/actions/security';
-import { PageTitle, SectionHeading } from '@/components/app/dashboard';
+import { LoadNote, PageTitle, SectionHeading } from '@/components/app/dashboard';
 import { Badge, OrgMark } from '@/components/ui/primitives';
 import { api } from '@/lib/gateway';
 import { KIND_LABELS, ROLE_LABELS } from '@/lib/labels';
@@ -62,6 +62,13 @@ export default async function SpacesPage() {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {!joinable.ok && (
+          <section aria-labelledby="can-join" className="space-y-3">
+            <SectionHeading id="can-join" title="You can join" />
+            <LoadNote retry="/app/spaces">We couldn’t load the organisations you can join just now.</LoadNote>
           </section>
         )}
 

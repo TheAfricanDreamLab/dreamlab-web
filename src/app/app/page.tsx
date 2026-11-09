@@ -1,16 +1,15 @@
-import type { CourseSummary, EnrollmentSummary, InvitationSchema, JoinableOrganization, Membership } from '@dreamlab/contracts';
+import type { CourseSummary, EnrollmentSummary, JoinableOrganization } from '@dreamlab/contracts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { z } from 'zod';
-import { type AttentionItem, AttentionList, Figures, greetingFor, ProgressBar, SectionHeading } from '@/components/app/dashboard';
+import { type AttentionItem, AttentionList, Figures, greetingFor, LoadNote, ProgressBar, SectionHeading } from '@/components/app/dashboard';
 import { CourseCover } from '@/components/learning/course-ui';
 import { ButtonLink, Notice } from '@/components/ui/primitives';
 import { FlashToast } from '@/components/ui/toast';
 import { messageForCode } from '@/lib/errors';
-import { api } from '@/lib/gateway';
+import { api, countList } from '@/lib/gateway';
 import { ROLE_LABELS } from '@/lib/labels';
-import { LEVEL_LABELS, plural } from '@/lib/learning';
+import { LEVEL_LABELS, pluralCount } from '@/lib/learning';
 import { activeMembership, can, getMe } from '@/lib/me';
 
 export const metadata: Metadata = { title: 'My space' };
@@ -29,12 +28,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const firstName = me.user.fullName.split(' ')[0];
   const waiting = me.memberships.filter((m) => m.status === 'requested');
   const orgId = active?.org.id;
-  const [joinable, learning, catalog, members, invitations] = await Promise.all([
+  const canRead = Boolean(orgId) && can(me, 'org.members.read');
+  const [joinable, learning, catalog, requested, activeCount, invitations] = await Promise.all([
     api<{ items: JoinableOrganization[] }>('GET', '/v1/me/joinable-orgs'),
     api<{ items: EnrollmentSummary[] }>('GET', '/v1/learning/enrollments'),
     api<{ items: CourseSummary[] }>('GET', '/v1/catalog/courses'),
-    orgId && can(me, 'org.members.read') ? api<{ items: Membership[] }>('GET', `/v1/orgs/${orgId}/members?limit=100`) : null,
-    orgId && can(me, 'org.members.invite') ? api<{ items: z.infer<typeof InvitationSchema>[] }>('GET', `/v1/orgs/${orgId}/invitations?status=pending&limit=100`) : null,
+    canRead ? countList(`/v1/orgs/${orgId}/members?status=requested`) : null,
+    // Only "anyone besides me?" matters here, so one page is enough.
+    canRead ? countList(`/v1/orgs/${orgId}/members?status=active`, 1) : null,
+    orgId && can(me, 'org.members.invite') ? countList(`/v1/orgs/${orgId}/invitations?status=pending`) : null,
   ]);
 
   const enrolments = learning.ok ? learning.data.items : [];
@@ -50,15 +52,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const role = active ? active.roles.map((r) => ROLE_LABELS[r.roleKey] ?? r.roleKey).join(', ') || 'member' : null;
 
   // Needs your attention: only what is waiting on this person, most pressing first, at most four.
-  const requests = members?.ok ? members.data.items.filter((m) => m.status === 'requested').length : 0;
-  const activeMembers = members?.ok ? members.data.items.filter((m) => m.status === 'active').length : 0;
-  const pendingInvites = invitations?.ok ? invitations.data.items.length : 0;
   const joinables = joinable.ok ? joinable.data.items : [];
   const attention: AttentionItem[] = [
-    ...(requests > 0 ? [{ key: 'requests', icon: 'mail' as const, text: `${plural(requests, 'request')} to join ${active!.org.name}`, href: '/app/members' }] : []),
-    ...(pendingInvites > 0 ? [{ key: 'invites', icon: 'mail' as const, text: `${plural(pendingInvites, 'invitation')} not yet accepted`, href: '/app/members' }] : []),
+    ...(requested && requested.n > 0 ? [{ key: 'requests', icon: 'mail' as const, text: `${pluralCount(requested, 'request')} to join ${active!.org.name}`, href: '/app/members' }] : []),
+    ...(invitations && invitations.n > 0 ? [{ key: 'invites', icon: 'mail' as const, text: `${pluralCount(invitations, 'invitation')} not yet accepted`, href: '/app/members' }] : []),
     // Setup is open while nobody else is in or invited yet.
-    ...(active && invitations?.ok && members?.ok && activeMembers <= 1 && pendingInvites === 0
+    ...(active && invitations && activeCount && activeCount.n <= 1 && invitations.n === 0
       ? [{ key: 'setup', icon: 'building' as const, text: `Finish setting up ${active.org.name}`, href: '/app/organisation' }]
       : []),
     ...(joinables.length > 0
@@ -101,7 +100,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         )}
 
-        {current ? (
+        {!learning.ok ? (
+          <section aria-labelledby="continue-learning" className="space-y-4">
+            <SectionHeading id="continue-learning" title="Continue learning" action={{ href: '/app/learning', label: 'All my courses' }} />
+            <LoadNote retry="/app">We couldn’t load your courses just now.</LoadNote>
+          </section>
+        ) : current ? (
           <section aria-labelledby="continue-learning" className="space-y-4">
             <SectionHeading id="continue-learning" title="Continue learning" action={upNext.length ? undefined : { href: '/app/learning', label: 'All my courses' }} />
             <article className="dl-lift relative flex flex-col overflow-hidden rounded-[var(--radius-tile)] bg-card ring-1 ring-line focus-within:ring-2 focus-within:ring-primary sm:flex-row">

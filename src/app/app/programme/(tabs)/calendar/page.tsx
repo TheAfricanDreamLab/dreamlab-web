@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { LoadNote } from '@/components/app/dashboard';
 import { Card, cx, Notice } from '@/components/ui/primitives';
 import { calendarDate, type MyProgram } from '@/lib/cohorts';
 import type { MyCommunity } from '@/lib/community';
@@ -18,7 +19,11 @@ export default async function ProgrammeCalendarPage() {
       {res.data.items.map((p) => (
         <Calendar key={p.enrollment.id} p={p} />
       ))}
-      {community.ok && <Recordings recordings={community.data.recordings} />}
+      {community.ok ? (
+        <Recordings recordings={community.data.recordings} />
+      ) : (
+        <LoadNote retry="/app/programme/calendar">We couldn’t load your class recordings just now.</LoadNote>
+      )}
     </div>
   );
 }

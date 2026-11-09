@@ -80,6 +80,9 @@ export const hours = (minutes: number | null | undefined) => (minutes ? Math.max
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** Same, for a count that may stop short of the whole list: "500+ invitations". */
+export const pluralCount = (c: { n: number; more: boolean }, one: string, many = `${one}s`) => (c.more ? `${c.n}+ ${many}` : plural(c.n, one, many));
+
 export const wordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
 
 /** Done with this block: answered, and (when it has a right answer) right or shown the answer. */

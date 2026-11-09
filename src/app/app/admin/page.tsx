@@ -29,8 +29,10 @@ export default async function PlatformOverviewPage() {
     {
       label: 'Organisations',
       value: o?.organizations.total,
-      hint: o ? (o.organizations.pending ? `${n(o.organizations.pending)} waiting for approval` : 'All reviewed') : undefined,
-      href: '/app/admin/organisations?status=active',
+      // The total counts every status. The Organisations page has no "all" view, so this opens it unfiltered, on
+      // its first tab (waiting for review), which is what the hint describes.
+      hint: o ? (o.organizations.pending ? `${n(o.organizations.pending)} waiting for approval` : 'None waiting for approval') : undefined,
+      href: '/app/admin/organisations',
     },
     { label: 'Active learners', value: s?.activeLearners7d, hint: 'In the last 7 days', href: '/app/admin/insights#learning' },
     {

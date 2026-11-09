@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { CourseCover } from '@/components/learning/course-ui';
 import { Icon, type IconName } from '@/components/ui/icons';
 import { CountUp } from '@/components/ui/motion';
-import { cx } from '@/components/ui/primitives';
+import { cx, Notice } from '@/components/ui/primitives';
 
 /* Dashboard pieces shared by home (/app), Activity, the organisation overview and the platform overview (/app/admin). */
 
@@ -82,15 +82,34 @@ export function ProgressBar({ value, label, className }: { value: number; label:
   );
 }
 
-/** Up to three small figures in one quiet row. Numbers count up once. */
-export function Figures({ label, items }: { label: string; items: { label: string; value: number; href?: string }[] }) {
+/** A calm note that something didn't load, with "Try again" as a link back to the same page. */
+export function LoadNote({ children = 'We couldn’t load this just now.', retry, className }: { children?: ReactNode; retry: string; className?: string }) {
+  return (
+    <Notice tone="neutral" className={className}>
+      {children}{' '}
+      <Link href={retry} className="font-semibold text-link hover:underline">
+        Try again
+      </Link>
+    </Notice>
+  );
+}
+
+/** Up to three small figures in one quiet row. Numbers count up once; `null` means it couldn't load. */
+export function Figures({ label, items }: { label: string; items: { label: string; value: number | null; suffix?: string; href?: string }[] }) {
   return (
     <dl aria-label={label} className="grid grid-cols-3 gap-3 sm:gap-6">
       {items.map((f) => (
         <div key={f.label} className="flex min-w-0 flex-col-reverse gap-1">
           <dt className="text-[13px] leading-snug text-muted">{f.href ? <Link href={f.href} className="hover:text-ink hover:underline">{f.label}</Link> : f.label}</dt>
           <dd className="font-display text-[26px] font-bold leading-none text-ink tabular-nums sm:text-[30px]">
-            <CountUp value={f.value} />
+            {f.value === null ? (
+              <>
+                <span aria-hidden className="text-faint">–</span>
+                <span className="sr-only">Couldn’t load</span>
+              </>
+            ) : (
+              <CountUp value={f.value} suffix={f.suffix} />
+            )}
           </dd>
         </div>
       ))}
@@ -334,7 +353,7 @@ export type FeedEntry = {
 const AVATAR = { jade: 'bg-success-tint text-link ring-success-line', gold: 'bg-gold-tint text-gold-ink ring-gold-line', sky: 'bg-sky-tint text-sky-ink ring-sky-line', sage: 'bg-sage-tint text-forest ring-sage-line' } as const;
 
 /** Recent activity: a full-width section of cards, newest first. */
-export function ActivityFeed({ title = 'Recent activity', entries, empty }: { title?: string; entries: FeedEntry[]; empty: string }) {
+export function ActivityFeed({ title = 'Recent activity', entries, empty, notice }: { title?: string; entries: FeedEntry[]; empty: string; /** Shown above the entries, e.g. when part of the feed couldn't load. */ notice?: ReactNode }) {
   return (
     <section id="recent-activity" aria-labelledby="recent-activity-title" className="scroll-mt-24 rounded-[var(--radius-tile)] bg-card/80 p-5 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -345,6 +364,7 @@ export function ActivityFeed({ title = 'Recent activity', entries, empty }: { ti
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary" /> Feed
         </span>
       </div>
+      {notice && <div className="mb-4">{notice}</div>}
       {entries.length === 0 ? (
         <p className="rounded-[20px] bg-surface p-4 text-[14px] text-muted ring-1 ring-line">{empty}</p>
       ) : (

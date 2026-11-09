@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { ButtonLink, cx } from '@/components/ui/primitives';
 import { classTime, type MyProgram } from '@/lib/cohorts';
-import { inJoinWindow, sessionRoomHref } from '@/lib/community';
+import { inJoinWindow } from '@/lib/community';
+import { RoomLink } from './room-link';
 
 /*
  * Small pieces the My programme pages share. Quiet by default: type and space over boxes, one green
@@ -73,13 +73,14 @@ export function SessionAction({ cohortId, s }: { cohortId: string; s: Session })
     );
   }
   if (s.mode === 'virtual') {
-    return inJoinWindow(s) ? (
-      <Link href={sessionRoomHref(cohortId, s.id)} prefetch={false} className={join}>
-        Join class
-        <span className="sr-only"> {s.title}</span>
-      </Link>
-    ) : (
-      <span className="text-[12.5px] text-faint">Room opens 15 min before</span>
+    // A small client piece, so "Join class" appears when the room opens without a reload.
+    return (
+      <RoomLink
+        cohortId={cohortId}
+        s={{ id: s.id, title: s.title, startsAt: s.startsAt, durationMin: s.durationMin, mode: s.mode, cancelled: s.cancelled }}
+        open={inJoinWindow(s)}
+        className={join}
+      />
     );
   }
   return s.location ? <span className="text-[13px] text-body">{s.location}</span> : <span className="text-[12.5px] text-faint">Place coming</span>;
