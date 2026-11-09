@@ -25,14 +25,20 @@ export function CountUp({ value, duration = 600, decimals = 0, suffix = '' }: { 
     const target = value;
     let frame = 0;
     const t0 = performance.now();
+    let done = false;
     const tick = (now: number) => {
       const p = Math.min(1, (now - t0) / duration);
       const eased = 1 - Math.pow(1 - p, 3);
       setStep(p < 1 ? { to: target, n: Math.round(target * eased * scale) / scale } : null);
       if (p < 1) frame = requestAnimationFrame(tick);
+      else done = true;
     };
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      // Cut short (Strict Mode's setup-cleanup-setup, say): let the next setup count again.
+      if (!done) started.current = false;
+    };
   }, [value, duration, decimals]);
 
   // Counting only towards the current value; a new value (or the end) shows the value itself.

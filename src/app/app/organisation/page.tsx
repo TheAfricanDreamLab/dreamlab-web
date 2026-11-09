@@ -36,8 +36,9 @@ export default async function OrganisationOverviewPage() {
   ]);
   const membersFailed = canRead && (!activeMembers || !requests);
   const invitesFailed = canInvite && !pending;
-  // Known only when every list it depends on loaded; one that shows someone else is in is enough.
-  const invited: boolean | null = (activeMembers && activeMembers.n > 1) || (pending && pending.n > 0) ? true : membersFailed || invitesFailed ? null : false;
+  // One list showing someone else is in is enough; "to do" needs the member count (and the invitations, if
+  // we may see them), so without it the step stays unknown.
+  const invited: boolean | null = (activeMembers && activeMembers.n > 1) || (pending && pending.n > 0) ? true : !activeMembers || invitesFailed ? null : false;
   const signIn: boolean | null = domains?.ok && sso?.ok ? domains.data.items.some((d) => d.verified) && Boolean(sso.data.connection?.enabled) : null;
 
   const steps: Step[] = [

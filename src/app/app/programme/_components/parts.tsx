@@ -74,11 +74,15 @@ export function SessionAction({ cohortId, s }: { cohortId: string; s: Session })
   }
   if (s.mode === 'virtual') {
     // A small client piece, so "Join class" appears when the room opens without a reload.
+    // A server component renders once per request, so reading the clock here is safe: it is the server's time.
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
     return (
       <RoomLink
         cohortId={cohortId}
         s={{ id: s.id, title: s.title, startsAt: s.startsAt, durationMin: s.durationMin, mode: s.mode, cancelled: s.cancelled }}
-        open={inJoinWindow(s)}
+        open={inJoinWindow(s, now)}
+        serverNow={now}
         className={join}
       />
     );
