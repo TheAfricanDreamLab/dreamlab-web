@@ -25,7 +25,6 @@ export function CountUp({ value, duration = 600, format = (n: number) => n.toLoc
       setShown(p < 1 ? (whole ? Math.round(n) : Math.round(n * 10) / 10) : value);
       if (p < 1) frame = requestAnimationFrame(tick);
     };
-    setShown(0);
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [value, duration]);
