@@ -56,7 +56,7 @@ function Progress({ p, track }: { p: MyProgram; track: ProgramOnTrack | null }) 
           <dl className="grid grid-cols-2 gap-6">
             <div className="space-y-1">
               <dt className="text-[13px] text-muted">Programme Score</dt>
-              <dd className="font-display text-[30px] font-extrabold leading-none text-ink">{score === null ? '—' : <CountUp value={score} format={formatScore} />}</dd>
+              <dd className="font-display text-[30px] font-extrabold leading-none text-ink">{score === null ? '—' : <CountUp value={score} decimals={1} />}</dd>
               <dd className="text-[12.5px] text-muted">
                 {score === null ? 'After your first graded course' : `${formatScore(p.score.scoredCredits)} of ${formatScore(p.score.totalCredits)} credits scored`}
               </dd>
