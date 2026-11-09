@@ -33,6 +33,8 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await learner.goto('/programs/the-african-dream-lab');
   await learner.getByRole('button', { name: `Join ${cohortName}` }).click();
   await expect(learner).toHaveURL(/\/app\/programme(?:\?joined=[^&]*)?$/);
+  // The outcome pages live on the Progress tab.
+  await learner.goto('/app/programme/progress');
   await learner.getByRole('link', { name: 'Dream Residency' }).first().click();
   await expect(learner.getByRole('heading', { name: 'Dream Residency', level: 1 })).toBeVisible();
   await expect(learner.getByRole('heading', { name: 'Dream Definition', level: 2 })).toBeVisible();
@@ -124,7 +126,7 @@ test('a learner’s residency, action plan and graduation, checked publicly', as
   await expect(page.getByText(/The credential was revoked on .*: Issued in error before the final review\./)).toBeVisible();
 
   // The learner publishes their portfolio; it opens signed out, and stops when unpublished.
-  await learner.goto('/app/programme');
+  await learner.goto('/app/programme/progress');
   await learner.getByRole('link', { name: 'Portfolio' }).first().click();
   await learner.getByRole('button', { name: 'Publish at a link' }).click();
   const shared = learner.locator('span.font-mono').filter({ hasText: '/portfolios/' });

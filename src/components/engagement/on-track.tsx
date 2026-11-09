@@ -223,7 +223,7 @@ export function CertificatePath({ certificate, name }: { certificate: ProgramOnT
           </span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={`${certificate.done} of ${certificate.total} steps done`}>
-          <div className="h-full rounded-full bg-gold" style={{ width: `${pct}%` }} />
+          <div className="dl-bar h-full rounded-full bg-gold" style={{ width: `${pct}%` }} />
         </div>
         <ul className="space-y-1.5">
           {certificate.steps.map((s) => (

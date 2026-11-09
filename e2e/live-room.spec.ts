@@ -112,7 +112,7 @@ test('a mentor and mentee meet on camera, and a learner joins a live class that 
   await turnOn(mentor, 'camera');
   await turnOn(mentor, 'microphone');
 
-  await ada.goto('/app/programme');
+  await ada.goto('/app/programme/community');
   await ada.getByRole('heading', { name: 'My community' }).locator('..').getByRole('link', { name: 'Join meeting' }).click();
   await inRoom(ada, 2);
   await turnOn(ada, 'camera');
@@ -144,7 +144,7 @@ test('a mentor and mentee meet on camera, and a learner joins a live class that 
   await turnOn(page, 'camera');
 
   // The learner joins with their microphone: a class gives learners no camera or screen.
-  await ada.goto('/app/programme');
+  await ada.goto('/app/programme/calendar');
   await ada.getByRole('link', { name: 'Join class' }).first().click();
   await inRoom(ada, 2);
   await expect(ada.locator('.lk-control-bar [data-lk-source="camera"]')).toHaveCount(0);
